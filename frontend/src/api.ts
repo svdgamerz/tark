@@ -27,7 +27,7 @@ export interface ChatMessage {
 // Use the literal IPv4 loopback, not "localhost": on Windows "localhost" can
 // resolve to IPv6 (::1) while uvicorn binds IPv4 (127.0.0.1), which breaks the
 // fetch. 127.0.0.1 is unambiguous.
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:8000'
+export const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:8000'
 
 export interface ModelInfo {
   id: string

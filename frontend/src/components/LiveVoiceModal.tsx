@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { API_BASE } from '../api'
 
 export interface LiveVoiceModalProps {
   isOpen: boolean
@@ -122,7 +123,7 @@ export const LiveVoiceModal: React.FC<LiveVoiceModalProps> = ({
 
     setIsEvaluating(true)
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/voice/evaluate-recitation', {
+      const res = await fetch(`${API_BASE}/api/voice/evaluate-recitation`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

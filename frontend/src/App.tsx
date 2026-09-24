@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
+  API_BASE,
   fetchCurriculum,
   fetchModels,
   sendFeedback,
@@ -586,12 +587,12 @@ export default function App() {
       const source = currMilestone.textbook_source || sched?.task?.details?.source
       const chapter = currMilestone.chapter || sched?.task?.details?.chapter || currMilestone.title || ''
       if (source) {
-        textbookPageImage = `http://127.0.0.1:8000/api/textbook/page-image?source=${encodeURIComponent(source)}&page=${pNum}&chapter=${encodeURIComponent(chapter)}`
+        textbookPageImage = `${API_BASE}/api/textbook/page-image?source=${encodeURIComponent(source)}&page=${pNum}&chapter=${encodeURIComponent(chapter)}`
       } else {
         const board = sched?.task?.details?.board || ''
         const grade = sched?.task?.details?.grade || ''
         const subject = sched?.task?.details?.subject || ''
-        textbookPageImage = `http://127.0.0.1:8000/api/textbook/page-image?board=${encodeURIComponent(board)}&grade=${encodeURIComponent(grade)}&subject=${encodeURIComponent(subject)}&chapter=${encodeURIComponent(chapter)}&page=${pNum}`
+        textbookPageImage = `${API_BASE}/api/textbook/page-image?board=${encodeURIComponent(board)}&grade=${encodeURIComponent(grade)}&subject=${encodeURIComponent(subject)}&chapter=${encodeURIComponent(chapter)}&page=${pNum}`
       }
     }
 

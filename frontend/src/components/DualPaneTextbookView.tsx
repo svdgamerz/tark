@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { API_BASE } from '../api'
 
 export interface DualPaneTextbookViewProps {
   isOpen: boolean
@@ -44,8 +45,8 @@ export const DualPaneTextbookView: React.FC<DualPaneTextbookViewProps> = ({
   if (!isOpen) return null
 
   const pageImageUrl = source
-    ? `http://127.0.0.1:8000/api/textbook/page-image?source=${encodeURIComponent(source)}&page=${currentPage}&chapter=${encodeURIComponent(chapter)}`
-    : `http://127.0.0.1:8000/api/textbook/page-image?board=${encodeURIComponent(board)}&grade=${encodeURIComponent(grade)}&subject=${encodeURIComponent(subject)}&chapter=${encodeURIComponent(chapter)}&page=${currentPage}`
+    ? `${API_BASE}/api/textbook/page-image?source=${encodeURIComponent(source)}&page=${currentPage}&chapter=${encodeURIComponent(chapter)}`
+    : `${API_BASE}/api/textbook/page-image?board=${encodeURIComponent(board)}&grade=${encodeURIComponent(grade)}&subject=${encodeURIComponent(subject)}&chapter=${encodeURIComponent(chapter)}&page=${currentPage}`
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!snipMode || !imgRef.current) return
