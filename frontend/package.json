@@ -1,0 +1,26 @@
+{
+  "name": "tark-frontend",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --config vite.config.ts --configLoader runner",
+    "build": "tsc --noEmit && vite build --config vite.config.ts --configLoader runner",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "katex": "^0.16.11",
+    "mermaid": "^11.16.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/katex": "^0.16.7",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.5"
+  }
+}

@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/api.ts","./src/auth.tsx","./src/authapi.ts","./src/main.tsx","./src/math.ts","./src/vite-env.d.ts","./src/components/authpage.tsx","./src/components/message.tsx","./src/components/modeswitcher.tsx"],"version":"5.9.3"}

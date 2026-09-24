@@ -1,0 +1,16 @@
+[package]
+name = "tark_wasm"
+version = "0.1.0"
+edition = "2021"
+description = "WebAssembly client-side engine for Tark physics simulations and symbolic math"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "=0.2.100"
+js-sys = "=0.3.77"
+web-sys = { version = "=0.3.77", features = ["console"] }
+
+# Link to core algorithms from tark_core with no python dependency
+tark_core = { path = "../tark_core", default-features = false }

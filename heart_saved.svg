@@ -1,0 +1,82 @@
+<svg viewBox="0 0 480 380">
+  <rect x="0" y="0" width="480" height="380" fill="#ffffff"/>
+  <text x="240" y="24" text-anchor="middle" font-size="16" font-weight="bold" fill="#23232a">Human Heart (Internal View)</text>
+
+  <g stroke="#23232a" stroke-width="2">
+    <!-- Right Atrium (RA) - Deoxygenated blood, pastel blue -->
+    <polygon points="150,140 150,210 240,210 240,140" fill="#D8EBF2"/>
+    <!-- Right Ventricle (RV) - Deoxygenated blood, pastel blue -->
+    <polygon points="150,210 150,300 240,300 240,210" fill="#D8EBF2"/>
+    <!-- Left Atrium (LA) - Oxygenated blood, pastel pink -->
+    <polygon points="240,140 240,210 330,210 330,140" fill="#FADDE2"/>
+    <!-- Left Ventricle (LV) - Oxygenated blood, pastel pink -->
+    <polygon points="240,210 240,300 330,300 330,210" fill="#FADDE2"/>
+
+    <!-- Septum (Interventricular) -->
+    <line x1="240" y1="210" x2="240" y2="300" stroke="#23232a" stroke-width="2"/>
+
+    <!-- Tricuspid Valve (between RA and RV) -->
+    <path d="M170,210 L195,200 L220,210" fill="none" stroke="#A0A0A0" stroke-width="3"/>
+    <!-- Mitral Valve (between LA and LV) -->
+    <path d="M260,210 L285,200 L310,210" fill="none" stroke="#A0A0A0" stroke-width="3"/>
+
+    <!-- Pulmonary Artery (trunk from RV) - Deoxygenated blood, pastel blue, thick stroke with outline -->
+    <path d="M200,210 L200,100" fill="none" stroke="#87CEEB" stroke-width="12" stroke-linecap="round"/>
+    <path d="M200,210 L200,100" fill="none" stroke="#23232a" stroke-width="2" stroke-linecap="round"/>
+    <!-- Left Pulmonary Artery (branch) -->
+    <path d="M200,100 L160,70" fill="none" stroke="#87CEEB" stroke-width="12" stroke-linecap="round"/>
+    <path d="M200,100 L160,70" fill="none" stroke="#23232a" stroke-width="2" stroke-linecap="round"/>
+    <!-- Right Pulmonary Artery (branch) -->
+    <path d="M200,100 L240,70" fill="none" stroke="#87CEEB" stroke-width="12" stroke-linecap="round"/>
+    <path d="M200,100 L240,70" fill="none" stroke="#23232a" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Aorta (from LV) - Oxygenated blood, pastel red, thick stroke with outline -->
+    <path d="M280,210 L280,120 C280,100 320,80 340,90 C360,100 360,130 340,150" fill="none" stroke="#FF6347" stroke-width="12" stroke-linecap="round"/>
+    <path d="M280,210 L280,120 C280,100 320,80 340,90 C360,100 360,130 340,150" fill="none" stroke="#23232a" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Pulmonary Vein (into LA) - Oxygenated blood, pastel red, thick stroke with outline -->
+    <path d="M350,175 L330,175" fill="none" stroke="#FF6347" stroke-width="12" stroke-linecap="round"/>
+    <path d="M350,175 L330,175" fill="none" stroke="#23232a" stroke-width="2" stroke-linecap="round"/>
+
+  </g>
+
+  <!-- Labels and Leader Lines -->
+  <g font-size="13" font-family="sans-serif" fill="#23232a">
+    <!-- Right Atrium -->
+    <line x1="150" y1="175" x2="70" y2="175" stroke="#5b5b66" stroke-width="1"/>
+    <text x="65" y="179" text-anchor="end">Right Atrium</text>
+    <!-- Right Ventricle -->
+    <line x1="150" y1="255" x2="70" y2="255" stroke="#5b5b66" stroke-width="1"/>
+    <text x="65" y="259" text-anchor="end">Right Ventricle</text>
+    <!-- Left Atrium -->
+    <line x1="330" y1="175" x2="410" y2="175" stroke="#5b5b66" stroke-width="1"/>
+    <text x="415" y="179" text-anchor="start">Left Atrium</text>
+    <!-- Left Ventricle -->
+    <line x1="330" y1="255" x2="410" y2="255" stroke="#5b5b66" stroke-width="1"/>
+    <text x="415" y="259" text-anchor="start">Left Ventricle</text>
+    <!-- Aorta -->
+    <line x1="330" y1="110" x2="410" y2="110" stroke="#5b5b66" stroke-width="1"/>
+    <text x="415" y="114" text-anchor="start">Aorta</text>
+    <!-- Pulmonary Artery -->
+    <line x1="200" y1="150" x2="100" y2="120" stroke="#5b5b66" stroke-width="1"/>
+    <text x="95" y="124" text-anchor="end">Pulmonary Artery</text>
+    <!-- Mitral Valve -->
+    <line x1="285" y1="200" x2="410" y2="220" stroke="#5b5b66" stroke-width="1"/>
+    <text x="415" y="224" text-anchor="start">Mitral Valve</text>
+    <!-- Tricuspid Valve -->
+    <line x1="195" y1="200" x2="70" y2="220" stroke="#5b5b66" stroke-width="1"/>
+    <text x="65" y="224" text-anchor="end">Tricuspid Valve</text>
+    <!-- Pulmonary Vein -->
+    <line x1="350" y1="175" x2="410" y2="140" stroke="#5b5b66" stroke-width="1"/>
+    <text x="415" y="144" text-anchor="start">Pulmonary Vein</text>
+    <!-- Septum -->
+    <line x1="240" y1="250" x2="240" y2="330" stroke="#5b5b66" stroke-width="1"/>
+    <text x="240" y="345" text-anchor="middle">Septum</text>
+    <!-- Left Pulmonary Artery -->
+    <line x1="160" y1="70" x2="70" y2="50" stroke="#5b5b66" stroke-width="1"/>
+    <text x="65" y="54" text-anchor="end">Left Pulmonary Artery</text>
+    <!-- Right Pulmonary Artery -->
+    <line x1="240" y1="70" x2="330" y2="50" stroke="#5b5b66" stroke-width="1"/>
+    <text x="335" y="54" text-anchor="start">Right Pulmonary Artery</text>
+  </g>
+</svg>

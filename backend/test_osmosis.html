@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Osmosis Lab Simulation</title>
+<style>
+    :root{
+        --bg:#0f172a;
+        --card:#1e293b;
+        --accent1:#38bdf8;
+        --accent2:#818cf8;
+        --accent3:#34d399;
+        --accent4:#f472b6;
+        --accent5:#fbbf24;
+        --glass:#ffffff10;
+        --glass-border:#ffffff20;
+    }
+    html,body{
+        height:100%;
+        margin:0;
+        padding:0;
+        background:var(--bg);
+        color:#e2e8f0;
+        font-family:system-ui,sans-serif;
+        overflow:hidden;
+    }
+    #app{
+        display:flex;
+        flex-direction:column;
+        height:100%;
+        width:100%;
+    }
+    #canvasContainer{
+        flex:1;
+        position:relative;
+    }
+    canvas{
+        width:100%;
+        height:100%;
+        display:block;
+    }
+    #controls{
+        display:flex;
+        flex-wrap:wrap;
+        gap:1rem;
+        padding:0.8rem;
+        background:var(--card);
+        backdrop-filter:blur(8px);
+        border-top:1px solid var(--glass-border);
+    }
+    .panel{
+        background:var(--glass);
+        border:1px solid var(--glass-border);
+        border-radius:0.8rem;
+        padding:0.6rem 0.8rem;
+        flex:1 1 200px;
+        min-width:200px;
+    }
+    .panel h3{
+        margin:0 0 0.4rem 0;
+        font-size:0.95rem;
+        color:var(--accent5);
+    }
+    .slider-group{
+        display:flex;
+        align-items:center;
+        gap:0.4rem;
+        margin-bottom:0.4rem;
+    }
+    input[type=range]{
+        -webkit-appearance:none;
+        width:100%;
+        height:6px;
+        background:var(--glass-border);
+        border-radius:3px;
+        outline:none;
+    }
+    input[type=range]::-webkit-slider-thumb{
+        -webkit-appearance:none;
+        appearance:none;
+        width:14px;
+        height:14px;
+        border-radius:50%;
+        background:var(--accent1);
+        cursor:pointer;
+        border:2px solid #fff;
+    }
+    .badge{
+        min-width:40px;
+        text-align:center;
+        font-size:0.85rem;
+        background:var(--accent3);
+        color:#111;
+        border-radius:0.3rem;
+        padding:0.1rem 0.3rem;
+    }
+    button{
+        background:var(--accent2);
+        border:none;
+        color:#111;
+        padding:0.4rem 0.8rem;
+        border-radius:0.4rem;
+        cursor:pointer;
+        font-weight:600;
+        margin-right:0.4rem;
+    }
+    button:hover{
+        background:var(--accent4);
+    }
+    .readout{
+        font-size:0.85rem;
+        line-height:1.4;
+    }
+</style>
+</head>
+<body>
+<div id="app">
+    <div id="canvasContainer"><canvas id="simCanvas"></canvas></div>
+    <div id="controls">
+        <div class="panel">
+            <h3>Concentrations</h3>
+            <div class="slider-group">
+                <label for="leftConc">Left Side (M)</label>
+                <input type="range" id="leftConc" min="0" max="200" value="50">
+                <span class="badge" id="leftConcVal">0.05</span>
+            </div>
+            <div class="slider-group">
+                <label for="rightConc">Right Side (M)</label>
+                <input type="range" id="rightConc" min="0" max="200" value="150">
+                <span class="badge" id="rightConcVal">0.15</span>
+            </div>
+        </div>
+        <div class="panel">
+            <h3>Temperature</h3>
+            <div class="slider-group">
+                <label for="temp">Temp (°C)</label>
+                <input type="range" id="temp" min="0" max="100" value="25">
+                <span class="badge" id="tempVal">25</span>
+            </div>
+        </div>
+        <div class="panel">
+            <h3>Controls</h3>
+            <button id="playPauseBtn">Pause</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+        <div class="panel">
+            <h3>Readouts</h3>
+            <div class="readout" id="readouts">
+                π<sub>L</sub> = 0.00 bar<br>
+                π<sub>R</sub> = 0.00 bar<br>
+                Δπ = 0.00 bar<br>
+                Net Flux ≈ 0.00 µL·s⁻¹
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(() => {
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const leftConcSlider = document.getElementById('leftConc');
+    const rightConcSlider = document.getElementById('rightConc');
+    const tempSlider = document.getElementById('temp');
+    const leftConcVal = document.getElementById('leftConcVal');
+    const rightConcVal = document.getElementById('rightConcVal');
+    const tempVal = document.getElementById('tempVal');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const readoutsDiv = document.getElementById('readouts');
+
+    const R = 0.08314; // L·bar·K⁻¹·mol⁻¹
+    let running = true;
+    let particles = [];
+    const PARTICLE_COUNT = 300;
+    const WATER_RADIUS = 3;
+    const SOLUTE_RADIUS = 6;
+    const MEMBRANE_X_RATIO = 0.5; // middle of canvas
+    const MEMBRANE_THICK = 8;
+    const MEMBRANE_PORE_SIZE = 12;
+    const TIME_STEP = 0.016; // ~60fps
+
+    function resizeCanvas(){
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function initParticles(){
+        particles = [];
+        const width = canvas.width;
+        const height = canvas.height;
+        const memX = width * MEMBRANE_X_RATIO;
+        for(let i=0;i<PARTICLE_COUNT;i++){
+            // decide if water or solute
+            const isSolute = Math.random()<0.2; // 20% solute
+            const side = Math.random()<0.5 ? 'left' : 'right';
+            const x = side==='left' ? Math.random()* (memX - MEMBRANE_THICK/2 - 20) + 20
+                                    : memX + MEMBRANE_THICK/2 + Math.random()* (width - memX - MEMBRANE_THICK/2 - 20) + 20;
+            const y = Math.random()* (height-40) + 20;
+            particles.push({
+                x, y,
+                vx: (Math.random()-0.5)*0.5,
+                vy: (Math.random()-0.5)*0.5,
+                isSolute,
+                side
+            });
+        }
+    }
+
+    function updateReadouts(){
+        const leftM = leftConcSlider.value/1000; // M (mol/L)
+        const rightM = rightConcSlider.value/1000;
+        const T = Number(tempSlider.value) + 273.15; // K
+        const piL = leftM * R * T;
+        const piR = rightM * R * T;
+        const dPi = piR - piL;
+        const netFlux = dPi * 0.02; // arbitrary scaling for display
+        readoutsDiv.innerHTML = `
+            π<sub>L</sub> = ${piL.toFixed(2)} bar<br>
+            π<sub>R</sub> = ${piR.toFixed(2)} bar<br>
+            Δπ = ${dPi.toFixed(2)} bar<br>
+            Net Flux ≈ ${netFlux.toFixed(2)} µL·s⁻¹
+        `;
+        return {dPi, netFlux};
+    }
+
+    function stepSimulation(){
+        const width = canvas.width;
+        const height = canvas.height;
+        const memX = width * MEMBRANE_X_RATIO;
+        const leftM = leftConcSlider.value/1000;
+        const rightM = rightConcSlider.value/1000;
+        const T = Number(tempSlider.value) + 273.15;
+        const baseSpeed = 0.8 + (tempSlider.value/100)*0.6; // speed rises with temp
+
+        particles.forEach(p=>{
+            // random walk
+            const speedFactor = p.isSolute ? 0.4 : baseSpeed;
+            p.vx += (Math.random()-0.5)*0.2*speedFactor;
+            p.vy += (Math.random()-0.5)*0.2*speedFactor;
+
+            // limit speed
+            const maxV = 2*speedFactor;
+            const vmag = Math.hypot(p.vx,p.vy);
+            if(vmag>maxV){
+                p.vx *= maxV/vmag;
+                p.vy *= maxV/vmag;
+            }
+
+            p.x += p.vx;
+            p.y += p.vy;
+
+            // bounce off walls
+            if(p.y<10){ p.y=10; p.vy*=-1;}
+            if(p.y>height-10){ p.y=height-10; p.vy*=-1;}
+
+            // handle membrane crossing
+            const leftSide = p.x < memX;
+            if(leftSide && p.x > memX - MEMBRANE_THICK/2){
+                // approaching membrane from left
+                if(p.isSolute){
+                    // solute cannot cross
+                    p.x = memX - MEMBRANE_THICK/2 - 1;
+                    p.vx*=-0.5;
+                }else{
+                    // water crossing probability depends on osmotic pressure
+                    const prob = 0.5 + (rightM - leftM)*0.8; // bias towards higher conc
+                    if(Math.random() < prob && Math.abs(p.y - height/2) < MEMBRANE_PORE_SIZE){
+                        // allow crossing
+                        p.x = memX + MEMBRANE_THICK/2 + 1;
+                        p.side='right';
+                    }else{
+                        p.x = memX - MEMBRANE_THICK/2 - 1;
+                        p.vx*=-0.3;
+                    }
+                }
+            }else if(!leftSide && p.x < memX + MEMBRANE_THICK/2){
+                // approaching from right
+                if(p.isSolute){
+                    p.x = memX + MEMBRANE_THICK/2 + 1;
+                    p.vx*=-0.5;
+                }else{
+                    const prob = 0.5 + (leftM - rightM)*0.8;
+                    if(Math.random() < prob && Math.abs(p.y - height/2) < MEMBRANE_PORE_SIZE){
+                        p.x = memX - MEMBRANE_THICK/2 - 1;
+                        p.side='left';
+                    }else{
+                        p.x = memX + MEMBRANE_THICK/2 + 1;
+                        p.vx*=-0.3;
+                    }
+                }
+            }
+
+            // keep within bounds horizontally
+            if(p.x<10){ p.x=10; p.vx*=-0.5;}
+            if(p.x>width-10){ p.x=width-10; p.vx*=-0.5;}
+        });
+    }
+
+    function draw(){
+        const w = canvas.width, h = canvas.height;
+        ctx.clearRect(0,0,w,h);
+
+        // draw background gradient (optional subtle)
+        const grad = ctx.createLinearGradient(0,0,w,0);
+        grad.addColorStop(0,'#1e293b');
+        grad.addColorStop(1,'#0f172a');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0,0,w,h);
+
+        // draw membrane
+        const memX = w*MEMBRANE_X_RATIO;
+        ctx.fillStyle = '#ffffff30';
+        ctx.fillRect(memX-MEMBRANE_THICK/2,0,MEMBRANE_THICK,h);
+        // draw pores
+        ctx.fillStyle = '#38bdf8';
+        for(let y=MEMBRANE_PORE_SIZE; y<h; y+=MEMBRANE_PORE_SIZE*3){
+            ctx.beginPath();
+            ctx.arc(memX, y, MEMBRANE_PORE_SIZE/2,0,Math.PI*2);
+            ctx.fill();
+        }
+
+        // draw particles
+        particles.forEach(p=>{
+            ctx.beginPath();
+            ctx.arc(p.x,p.y, p.isSolute? SOLUTE_RADIUS: WATER_RADIUS,0,Math.PI*2);
+            ctx.fillStyle = p.isSolute ? (p.side==='left'? '#f472b6' : '#fbbf24') : '#38bdf8';
+            ctx.fill();
+        });
+
+        // draw volume bars (simple representation)
+        const leftBarHeight = h*0.4 + (rightConcSlider.value - leftConcSlider.value)*0.2;
+        const rightBarHeight = h*0.4 + (leftConcSlider.value - rightConcSlider.value)*0.2;
+        ctx.fillStyle = 'rgba(52,211,153,0.4)';
+        ctx.fillRect(30, h - leftBarHeight - 20, 20, leftBarHeight);
+        ctx.fillRect(w-50, h - rightBarHeight - 20, 20, rightBarHeight);
+    }
+
+    function animate(){
+        if(running){
+            stepSimulation();
+            updateReadouts();
+            draw();
+        }
+        requestAnimationFrame(animate);
+    }
+
+    // UI bindings
+    function updateBadge(slider, badge){
+        const val = Number(slider.value);
+        if(slider.id.includes('Conc')){
+            badge.textContent = (val/1000).toFixed(3);
+        }else{
+            badge.textContent = val;
+        }
+    }
+    [leftConcSlider,rightConcSlider,tempSlider].forEach(s=>{
+        const badge = document.getElementById(s.id+'Val');
+        s.addEventListener('input',()=>updateBadge(s,badge));
+        updateBadge(s,badge);
+    });
+
+    playPauseBtn.addEventListener('click',()=>{
+        running = !running;
+        playPauseBtn.textContent = running ? 'Pause' : 'Play';
+    });
+    resetBtn.addEventListener('click',()=>{
+        initParticles();
+        leftConcSlider.value = 50;
+        rightConcSlider.value = 150;
+        tempSlider.value = 25;
+        [leftConcSlider,rightConcSlider,tempSlider].forEach(s=>updateBadge(s,document.getElementById(s.id+'Val')));
+    });
+
+    // init
+    initParticles();
+    animate();
+})();
+</script>
+</body>
+</html>

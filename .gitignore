@@ -1,0 +1,49 @@
+# secrets & sensitive files
+.env
+.env.*
+*.env
+backend/.env
+*.local
+supabase_database_password.txt
+*.pem
+*.key
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# rust
+target/
+**/target/
+Cargo.lock
+
+# local databases & indexes
+*.db
+*.sqlite
+*.sqlite3
+
+# board PDFs (copyrighted — never commit)
+backend/data/**
+!backend/data/README.md
+
+# node & frontend build
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.vite/
+**/coverage/
+
+# IDE & system
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+.system_generated/
+.tempmediaStorage/
+scratch_*
+

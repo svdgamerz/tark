@@ -1,0 +1,35 @@
+/* tslint:disable */
+/* eslint-disable */
+export const memory: WebAssembly.Memory;
+export const __wbg_wasmhnswindex_free: (a: number, b: number) => void;
+export const __wbg_wasmlorenzsimulator_free: (a: number, b: number) => void;
+export const __wbg_wasmsteeringcontroller_free: (a: number, b: number) => void;
+export const __wbg_wasmvoiceactivitydetector_free: (a: number, b: number) => void;
+export const wasm_analyze_logit_lens: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number];
+export const wasm_cas_differentiate: (a: number, b: number, c: number, d: number) => [number, number];
+export const wasm_cas_solve: (a: number, b: number, c: number, d: number) => [number, number];
+export const wasm_double_pendulum_step: (a: number, b: number, c: number, d: number, e: number) => any;
+export const wasm_grade_submission: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number) => [number, number];
+export const wasm_heat_diffusion_step: (a: number, b: number, c: number, d: number, e: number) => any;
+export const wasmhnswindex_benchmark: (a: number, b: number, c: number, d: number, e: number) => [number, number];
+export const wasmhnswindex_insert: (a: number, b: number, c: number, d: number) => void;
+export const wasmhnswindex_new: (a: number, b: number, c: number) => number;
+export const wasmhnswindex_search: (a: number, b: number, c: number, d: number) => [number, number];
+export const wasmhnswindex_size: (a: number) => number;
+export const wasmlorenzsimulator_generate_trajectory: (a: number, b: number, c: number) => any;
+export const wasmlorenzsimulator_new: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
+export const wasmlorenzsimulator_step: (a: number, b: number) => any;
+export const wasmsteeringcontroller_intervene_layer: (a: number, b: number, c: number, d: number, e: any) => void;
+export const wasmsteeringcontroller_new: () => number;
+export const wasmsteeringcontroller_num_vectors: (a: number) => number;
+export const wasmsteeringcontroller_register_vector: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
+export const wasmsteeringcontroller_set_active: (a: number, b: number) => void;
+export const wasmsteeringcontroller_set_multiplier: (a: number, b: number) => void;
+export const wasmvoiceactivitydetector_new: (a: number, b: number, c: number, d: number) => number;
+export const wasmvoiceactivitydetector_process_frame: (a: number, b: number, c: number) => [number, number];
+export const wasmvoiceactivitydetector_set_tts_playing: (a: number, b: number) => void;
+export const __wbindgen_export_0: WebAssembly.Table;
+export const __wbindgen_malloc: (a: number, b: number) => number;
+export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+export const __wbindgen_free: (a: number, b: number, c: number) => void;
+export const __wbindgen_start: () => void;

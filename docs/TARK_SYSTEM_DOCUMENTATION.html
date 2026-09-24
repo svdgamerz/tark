@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tark (तर्क) — Comprehensive System & Feature Documentation</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #3730a3;
+      --primary-light: #eef2ff;
+      --accent: #059669;
+      --accent-light: #ecfdf5;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --code-bg: #0b1120;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --code-bg: #f1f5f9;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2.5rem 1.5rem;
+    }
+
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    .header {
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 2rem;
+      margin-bottom: 2.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .header-title h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .header-title p {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .btn-print {
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+    }
+
+    .btn-print:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.65rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-primary { background: var(--primary-light); color: var(--primary); }
+    .badge-success { background: var(--accent-light); color: var(--accent); }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.75rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .card h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin: 1.25rem 0 0.5rem 0;
+      color: var(--text);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1rem;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .feature-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+
+    .feature-box h4 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.35rem;
+    }
+
+    .feature-box p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.92rem;
+    }
+
+    th, td {
+      padding: 0.85rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      background-color: var(--code-bg);
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    tr:hover {
+      background-color: rgba(79, 70, 229, 0.04);
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.85em;
+      background: var(--code-bg);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      color: var(--primary);
+    }
+
+    .quote-box {
+      border-left: 4px solid var(--primary);
+      padding: 1rem 1.25rem;
+      background: var(--code-bg);
+      border-radius: 0 8px 8px 0;
+      margin: 1rem 0;
+      font-style: italic;
+      color: var(--text);
+    }
+
+    ul, ol {
+      margin-left: 1.5rem;
+      margin-top: 0.5rem;
+      color: var(--text-muted);
+    }
+
+    li {
+      margin-bottom: 0.4rem;
+    }
+
+    li strong {
+      color: var(--text);
+    }
+
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+      }
+      .btn-print { display: none !important; }
+      .card {
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+        margin-bottom: 1.5rem !important;
+      }
+      th { background-color: #f1f5f9 !important; }
+      code { background: #f8fafc !important; color: #1e293b !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="header-title">
+        <h1>TARK (तर्क) <span class="badge badge-primary">V0.0.1</span></h1>
+        <p>Adaptive, Board-Grounded Multi-Agent AI Tutor System</p>
+      </div>
+      <button class="btn-print" onclick="window.print()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 6 2 18 2 18 9"></polyline>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+          <rect x="6" y="14" width="12" height="8"></rect>
+        </svg>
+        Export to PDF / Print
+      </button>
+    </header>
+
+    <!-- Executive Summary -->
+    <section class="card">
+      <h2>1. Executive Summary & Core Philosophy</h2>
+      <div class="quote-box">
+        "The model is the engine; the pedagogy and correctness are the product."
+      </div>
+      <p style="color: var(--text-muted); margin-bottom: 1rem;">
+        <strong>Tark</strong> (derived from the Sanskrit <em>tarka</em>, meaning logic and reasoning) is a multi-agent teaching platform. It eliminates the flaws of generic chatbot tutors through mathematical verification via SymPy, official board curriculum grounding (RAG), dynamic code-rendered visual diagrams, adaptive student learner tracking, and recursive self-improvement loops.
+      </p>
+      <div class="grid-3">
+        <div class="feature-box">
+          <h4>🎯 1. Teaches Correctly</h4>
+          <p>SymPy-backed symbolic and numerical verification. The LLM never computes arithmetic or algebraic results unaided.</p>
+        </div>
+        <div class="feature-box">
+          <h4>🎓 2. Teaches Pedagogically</h4>
+          <p>Scaffolding, misconception detection, progressive hints, and Socratic guardrails that prevent answer-dumping.</p>
+        </div>
+        <div class="feature-box">
+          <h4>🧠 3. Adapts & Improves</h4>
+          <p>Bayesian-style mastery modeling per student and recursive self-improvement (RSI) triggered by student feedback.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Multi-Agent Architecture -->
+    <section class="card">
+      <h2>2. Multi-Agent Orchestration & Intelligence Layer</h2>
+      <p style="color: var(--text-muted); margin-bottom: 1rem;">
+        Tark coordinates specialized autonomous agents on every turn to ensure high pedagogical quality:
+      </p>
+      <div class="grid-2">
+        <div class="feature-box">
+          <h4>🧭 Planner Agent</h4>
+          <p>Analyzes student intent (<code>explain</code>, <code>simpler</code>, <code>example</code>, <code>quiz</code>, <code>doubt</code>), detects greetings vs academic questions, and determines whether to wake the Solver, Retriever, or heavy reasoning models.</p>
+        </div>
+        <div class="feature-box">
+          <h4>📚 Retriever Agent (RAG)</h4>
+          <p>Curriculum grounding across 930+ textbook chunks using local <code>fastembed</code> vectors (<code>BAAI/bge-small-en-v1.5</code>). Features smart query expansion into formal textbook terminology when confidence is low.</p>
+        </div>
+        <div class="feature-box">
+          <h4>📐 Solver Agent (SymPy)</h4>
+          <p>Executes symbolic algebra, root finding, and calculus steps prior to explanation generation. Verifies all post-generation arithmetic to prevent calculation hallucinations.</p>
+        </div>
+        <div class="feature-box">
+          <h4>📊 Diagram Agent</h4>
+          <p>Eliminates flawed image generation by rendering accurate <strong>code-based figures</strong>: Matplotlib function plots, Mermaid process cycles, and sanitized structural SVGs.</p>
+        </div>
+        <div class="feature-box">
+          <h4>🔍 Checker & Cross-Check Agent</h4>
+          <p>Compares tutor explanations against grounded textbook source passages using an independent model (Llama 3.3 70B) to ensure zero contradiction.</p>
+        </div>
+        <div class="feature-box">
+          <h4>🔄 Improver Agent (RSI)</h4>
+          <p>On negative student feedback (👎), the tutor critiques its own answer, extracts actionable teaching directives, and consolidates memory for future turns on that topic.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Model Router & Resilience -->
+    <section class="card">
+      <h2>3. Resilient Model Router & Providers</h2>
+      <p style="color: var(--text-muted); margin-bottom: 1rem;">
+        Zero hardcoded models outside <code>backend/app/config/models.py</code>. Automatic retry with exponential backoff on <code>429 Rate Limits</code> and transparent failover across multiple free-tier providers:
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Model ID</th>
+            <th>Display Name</th>
+            <th>Provider</th>
+            <th>Role & Tier</th>
+            <th>Grounding</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>acharya</code></td>
+            <td><strong>Acharya (Default)</strong></td>
+            <td>Google Gemini / Router</td>
+            <td>Tark's native tutor (Board RAG + Agents)</td>
+            <td><span class="badge badge-success">Enabled</span></td>
+          </tr>
+          <tr>
+            <td><code>gemini-flash</code></td>
+            <td><strong>Gemini Flash 2.5</strong></td>
+            <td>Google AI Studio</td>
+            <td>Multimodal vision & fast lecture delivery</td>
+            <td>Standard</td>
+          </tr>
+          <tr>
+            <td><code>llama-70b</code></td>
+            <td><strong>Llama 3.3 70B</strong></td>
+            <td>Groq</td>
+            <td>Ultra-fast reasoning & verification checker</td>
+            <td>Standard</td>
+          </tr>
+          <tr>
+            <td><code>deepseek-v32</code></td>
+            <td><strong>DeepSeek V3.2</strong></td>
+            <td>SambaNova</td>
+            <td>Heavy academic reasoning & complex proofs</td>
+            <td>Standard</td>
+          </tr>
+          <tr>
+            <td><code>mistral-large</code></td>
+            <td><strong>Mistral Large</strong></td>
+            <td>Mistral AI</td>
+            <td>Strong instruction following & linguistics</td>
+            <td>Standard</td>
+          </tr>
+          <tr>
+            <td><code>gpt-oss-120b</code></td>
+            <td><strong>GPT-OSS 120B</strong></td>
+            <td>Cerebras</td>
+            <td>Ultra-low latency open architecture</td>
+            <td>Standard</td>
+          </tr>
+          <tr>
+            <td><code>deepseek-r1</code></td>
+            <td><strong>DeepSeek R1</strong></td>
+            <td>OpenRouter</td>
+            <td>Deep reasoning (Admin tier)</td>
+            <td>Admin Only</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Teaching Modes -->
+    <section class="card">
+      <h2>4. Pedagogy & Teaching Modes</h2>
+      <div class="grid-2">
+        <div class="feature-box">
+          <h4>👩‍🏫 Teacher / Lecture Mode</h4>
+          <p>Structured 4-stage instructional design: Contextual introduction → Core concept breakdown → Step-by-step worked example → Formative comprehension check.</p>
+        </div>
+        <div class="feature-box">
+          <h4>🏛️ Socratic Tutor Mode</h4>
+          <p>Strict guardrail against answer-dumping: Guides the student through sequential questions, provides tiered hints on repeated struggle, and enables self-discovery.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Frontend & User Interface Features -->
+    <section class="card">
+      <h2>5. Frontend & UI Capabilities</h2>
+      <ul>
+        <li><strong>Real-time Streaming & KaTeX Rendering:</strong> Live token streaming via Server-Sent Events (SSE) with KaTeX math formatting.</li>
+        <li><strong>Multimodal Homework Vision:</strong> Upload photos of worksheets, diagrams, or textbook questions for instant diagnosis.</li>
+        <li><strong>Audio Read-Aloud (TTS):</strong> Natural voice playback powered by Gemini Flash TTS with Web Speech API fallback.</li>
+        <li><strong>Conversation Management:</strong> Full sidebar history with automatic title generation, search, and session deletion.</li>
+        <li><strong>Guest Quota & Gating:</strong> 20 free interactions for guest visitors before prompting account registration.</li>
+        <li><strong>Student Progress Modal:</strong> Real-time mastery visualizer displaying mastered chapters, weak spots, and revision topics.</li>
+        <li><strong>User Authentication:</strong> Email verification via Brevo with 6-digit OTP codes, password reset, and school-to-board autocomplete.</li>
+        <li><strong>Appearance Modes:</strong> System default, Light, and Dark themes with full CSS tokenization.</li>
+      </ul>
+    </section>
+
+    <!-- API Reference Summary -->
+    <section class="card">
+      <h2>6. API Endpoints Overview</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Endpoint</th>
+            <th>Method</th>
+            <th>Function</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>/health</code></td><td><code>GET</code></td><td>Server liveness and database connectivity status</td></tr>
+          <tr><td><code>/curriculum</code></td><td><code>GET</code></td><td>Available boards, grades, and subjects indexed in RAG</td></tr>
+          <tr><td><code>/schools</code></td><td><code>GET</code></td><td>Type-ahead autocomplete for schools and affiliated boards</td></tr>
+          <tr><td><code>/models</code></td><td><code>GET</code></td><td>Registry of models, tiers, and permissions</td></tr>
+          <tr><td><code>/chat</code></td><td><code>POST</code></td><td>Multi-agent SSE streaming chat execution</td></tr>
+          <tr><td><code>/learner</code></td><td><code>GET</code></td><td>Student topic mastery and struggle analytics</td></tr>
+          <tr><td><code>/feedback</code></td><td><code>POST</code></td><td>Negative feedback self-critique trigger (RSI)</td></tr>
+          <tr><td><code>/tts</code></td><td><code>POST</code></td><td>High-fidelity natural voice audio synthesis</td></tr>
+          <tr><td><code>/verify</code></td><td><code>POST</code></td><td>Direct SymPy equation verification seam</td></tr>
+          <tr><td><code>/auth/*</code></td><td><code>POST/GET</code></td><td>Signup, 6-digit email OTP verification, login, profile, and password reset</td></tr>
+          <tr><td><code>/chats/*</code></td><td><code>POST/GET/DELETE</code></td><td>Multi-turn conversation persistence and retrieval</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Compliance & Guardrails -->
+    <section class="card">
+      <h2>7. Compliance & Guardrails Verification</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Standard</th>
+            <th>Requirement</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>CLAUDE.md §1 & §6</strong></td>
+            <td>Zero hardcoded models, fail-fast configuration validation</td>
+            <td><span class="badge badge-success">Verified</span></td>
+          </tr>
+          <tr>
+            <td><strong>CLAUDE.md §7</strong></td>
+            <td>SymPy correctness authoritative over model hallucinations</td>
+            <td><span class="badge badge-success">Verified</span></td>
+          </tr>
+          <tr>
+            <td><strong>CLAUDE.md §9</strong></td>
+            <td>Pedagogical scaffolding & misconception detection</td>
+            <td><span class="badge badge-success">Verified</span></td>
+          </tr>
+          <tr>
+            <td><strong>CLAUDE.md §11</strong></td>
+            <td>Code-rendered diagrams (Matplotlib/Mermaid/SVG), zero image generation</td>
+            <td><span class="badge badge-success">Verified</span></td>
+          </tr>
+          <tr>
+            <td><strong>CLAUDE.md §12</strong></td>
+            <td>Child privacy compliance, PII filtering, secure salted auth</td>
+            <td><span class="badge badge-success">Verified</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+</body>
+</html>

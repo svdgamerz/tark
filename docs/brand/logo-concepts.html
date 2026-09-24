@@ -1,0 +1,147 @@
+<title>Tark — logo concepts (AI-lab family)</title>
+<style>
+  :root {
+    --bg: #faf9f7; --surface: #ffffff; --ink: #23232a; --muted: #86868f;
+    --border: #eceae6; --accent: #4f46e5; --accent-soft: #eef0ff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; line-height: 1.55; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 48px 24px 72px; }
+  header { margin-bottom: 34px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.14em; font-size: 12px; font-weight: 700; color: var(--accent); }
+  h1 { font-size: clamp(28px, 4vw, 40px); margin: 8px 0 6px; font-weight: 750; letter-spacing: -0.02em; text-wrap: balance; }
+  .lede { color: var(--muted); font-size: 16px; max-width: 62ch; margin: 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+  .stage { display: flex; align-items: center; gap: 18px; background: var(--bg); border-radius: 14px; padding: 22px 20px; }
+  .mark { width: 60px; height: 60px; color: var(--accent); flex-shrink: 0; }
+  .mark svg { width: 100%; height: 100%; display: block; }
+  .wordmark { display: flex; align-items: baseline; gap: 2px; font-size: 30px; font-weight: 750; letter-spacing: -0.03em; }
+  .wordmark .k { color: var(--accent); }
+  .chips { display: flex; align-items: center; gap: 12px; }
+  .chip { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; background: var(--accent); color: #fff; }
+  .chip.plain { background: transparent; }
+  .chip.tiny { width: 22px; height: 22px; border-radius: 6px; }
+  .chip svg { width: 70%; height: 70%; display: block; }
+  .chip.plain svg { width: 100%; height: 100%; }
+  .chip-note { font-size: 12.5px; color: var(--muted); }
+  .meta { display: flex; gap: 12px; align-items: flex-start; }
+  .num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font-weight: 800; font-size: 13px; display: grid; place-items: center; }
+  .meta h3 { margin: 0 0 2px; font-size: 16px; font-weight: 700; }
+  .meta p { margin: 0; font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+  footer { margin-top: 40px; padding: 20px 22px; border-radius: 16px; background: var(--accent-soft); color: #34319a; font-size: 15px; font-weight: 550; }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="tg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#a855f7"/>
+  </linearGradient>
+
+  <!-- 1 Interwoven rings (OpenAI-esque) -->
+  <symbol id="m1" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor" stroke-width="3.4">
+      <circle cx="32" cy="23" r="12"/><circle cx="21.5" cy="41" r="12"/><circle cx="42.5" cy="41" r="12"/>
+    </g>
+  </symbol>
+
+  <!-- 2 Radial bloom / spark (Gemini / Anthropic-esque) -->
+  <symbol id="m2" viewBox="0 0 64 64">
+    <g fill="currentColor">
+      <ellipse cx="32" cy="16" rx="4.6" ry="12"/>
+      <ellipse cx="32" cy="16" rx="4.6" ry="12" transform="rotate(60 32 32)"/>
+      <ellipse cx="32" cy="16" rx="4.6" ry="12" transform="rotate(120 32 32)"/>
+      <ellipse cx="32" cy="16" rx="4.6" ry="12" transform="rotate(180 32 32)"/>
+      <ellipse cx="32" cy="16" rx="4.6" ry="12" transform="rotate(240 32 32)"/>
+      <ellipse cx="32" cy="16" rx="4.6" ry="12" transform="rotate(300 32 32)"/>
+    </g>
+  </symbol>
+
+  <!-- 3 Interlocked triangles (shatkona yantra) -->
+  <symbol id="m3" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linejoin="round">
+      <path d="M32 10 52 44 12 44Z"/><path d="M32 54 12 20 52 20Z"/>
+    </g>
+  </symbol>
+
+  <!-- 4 Eight-point star (two woven squares) -->
+  <symbol id="m4" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round">
+      <rect x="17" y="17" width="30" height="30" rx="5"/>
+      <rect x="17" y="17" width="30" height="30" rx="5" transform="rotate(45 32 32)"/>
+    </g>
+  </symbol>
+
+  <!-- 5 Pixel / mosaic spark (Mistral-esque) -->
+  <symbol id="m5" viewBox="0 0 64 64">
+    <g fill="currentColor">
+      <rect x="9"  y="9"  width="13" height="13" rx="3.5" opacity=".33"/>
+      <rect x="25.5" y="9" width="13" height="13" rx="3.5" opacity=".7"/>
+      <rect x="42" y="9"  width="13" height="13" rx="3.5" opacity=".33"/>
+      <rect x="9"  y="25.5" width="13" height="13" rx="3.5" opacity=".7"/>
+      <rect x="25.5" y="25.5" width="13" height="13" rx="3.5"/>
+      <rect x="42" y="25.5" width="13" height="13" rx="3.5" opacity=".7"/>
+      <rect x="9"  y="42" width="13" height="13" rx="3.5" opacity=".33"/>
+      <rect x="25.5" y="42" width="13" height="13" rx="3.5" opacity=".7"/>
+      <rect x="42" y="42" width="13" height="13" rx="3.5" opacity=".33"/>
+    </g>
+  </symbol>
+
+  <!-- 6 Gradient squircle app icon -->
+  <symbol id="m6" viewBox="0 0 64 64">
+    <rect x="5" y="5" width="54" height="54" rx="15" fill="url(#tg)"/>
+    <path d="M32 15c1.5 7.5 3 9 10.5 10.5C35 27 33.5 28.5 32 36c-1.5-7.5-3-9-10.5-10.5C29 27 30.5 25.5 32 18Z" transform="translate(0 3)" fill="#fff"/>
+  </symbol>
+</defs></svg>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Visual identity · round 4</div>
+    <h1>In the language of AI logos</h1>
+    <p class="lede">Abstract, symmetric, geometric — the family OpenAI, Gemini, Claude and Mistral
+      live in. Each still carries a Tark idea (connection, insight, a yantra), but the treatment
+      is a clean AI-lab mark that works monochrome and tiny. Pick a number.</p>
+  </header>
+
+  <div class="grid">
+
+    <article class="card">
+      <div class="stage"><span class="mark"><svg><use href="#m1"/></svg></span><span class="wordmark">Tar<span class="k">k</span></span></div>
+      <div class="chips"><span class="chip"><svg><use href="#m1"/></svg></span><span class="chip tiny"><svg><use href="#m1"/></svg></span><span class="chip-note">app icon · favicon</span></div>
+      <div class="meta"><span class="num">1</span><div><h3>Interwoven rings</h3><p>Three ideas locked together — the “woven” look OpenAI made iconic, but Borromean: remove one and it falls apart. Connection &amp; reasoning.</p></div></div>
+    </article>
+
+    <article class="card">
+      <div class="stage"><span class="mark"><svg><use href="#m2"/></svg></span><span class="wordmark">Tar<span class="k">k</span></span></div>
+      <div class="chips"><span class="chip"><svg><use href="#m2"/></svg></span><span class="chip tiny"><svg><use href="#m2"/></svg></span><span class="chip-note">app icon · favicon</span></div>
+      <div class="meta"><span class="num">2</span><div><h3>Bloom / spark</h3><p>A six-fold radial burst — the Gemini-sparkle / Anthropic-burst family. Reads instantly as “AI” and as a flash of understanding.</p></div></div>
+    </article>
+
+    <article class="card">
+      <div class="stage"><span class="mark"><svg><use href="#m3"/></svg></span><span class="wordmark">Tar<span class="k">k</span></span></div>
+      <div class="chips"><span class="chip"><svg><use href="#m3"/></svg></span><span class="chip tiny"><svg><use href="#m3"/></svg></span><span class="chip-note">app icon · favicon</span></div>
+      <div class="meta"><span class="num">3</span><div><h3>Shatkona</h3><p>Two interlocked triangles — a yantra used for focus and reasoning. Geometric and balanced, with genuine Indian meaning under the modern look.</p></div></div>
+    </article>
+
+    <article class="card">
+      <div class="stage"><span class="mark"><svg><use href="#m4"/></svg></span><span class="wordmark">Tar<span class="k">k</span></span></div>
+      <div class="chips"><span class="chip"><svg><use href="#m4"/></svg></span><span class="chip tiny"><svg><use href="#m4"/></svg></span><span class="chip-note">app icon · favicon</span></div>
+      <div class="meta"><span class="num">4</span><div><h3>Eight-point star</h3><p>Two woven squares = the Star of Lakshmi (prosperity &amp; knowledge). Precise, symmetrical, and striking as an app tile.</p></div></div>
+    </article>
+
+    <article class="card">
+      <div class="stage"><span class="mark"><svg><use href="#m5"/></svg></span><span class="wordmark">Tar<span class="k">k</span></span></div>
+      <div class="chips"><span class="chip"><svg><use href="#m5"/></svg></span><span class="chip tiny"><svg><use href="#m5"/></svg></span><span class="chip-note">app icon · favicon</span></div>
+      <div class="meta"><span class="num">5</span><div><h3>Mosaic spark</h3><p>Tiles brightening toward the centre — the Mistral-style pixel-mosaic. Techy and systematic; hints at the multi-agent grid inside.</p></div></div>
+    </article>
+
+    <article class="card">
+      <div class="stage"><span class="mark"><svg><use href="#m6"/></svg></span><span class="wordmark">Tar<span class="k">k</span></span></div>
+      <div class="chips"><span class="chip plain"><svg><use href="#m6"/></svg></span><span class="chip plain tiny"><svg><use href="#m6"/></svg></span><span class="chip-note">finished app icon</span></div>
+      <div class="meta"><span class="num">6</span><div><h3>Gradient tile</h3><p>The finished product-icon look — a squircle with an indigo→violet gradient and a white spark. Exactly how it'd sit on a phone home screen.</p></div></div>
+    </article>
+
+  </div>
+
+  <footer>Number (1–6), or blend (“the bloom in the gradient tile”). I'll set the winner across the sidebar, login, avatars, and browser tab.</footer>
+</div>
