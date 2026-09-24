@@ -18,6 +18,14 @@ PyJWT>=2.9
 # Correctness engine (CLAUDE.md §7)
 sympy>=1.13
 
+# Diagrams & Visualization
+matplotlib>=3.8
+Pillow>=10.0
+
+# HTTP & Web APIs
+httpx>=0.27
+requests>=2.31
+
 # RAG: curriculum retrieval (PDF parsing + local embeddings + vector math)
 pymupdf>=1.24
 numpy>=1.26
@@ -25,3 +33,4 @@ fastembed>=0.3          # local ONNX embeddings (no API limits, no PyTorch)
 
 # Database (CLAUDE.md §5)
 supabase>=2.10
+
