@@ -3,6 +3,14 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/googlebf6a53b9547e1918.html",
+      "destination": "/googlebf6a53b9547e1918.html"
+    },
+    {
+      "source": "/googlebf6a53b9547e1918",
+      "destination": "/googlebf6a53b9547e1918.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
