@@ -42,15 +42,16 @@ SKIP_KEYWORDS = {
 class PromptOptimizer:
     def __init__(self, settings: Settings) -> None:
         self.api_key = settings.prompt_engineer_api_key or settings.groq_api_key
-        self.primary_model = settings.prompt_engineer_model or "qwen/qwen3.8-27b"
-        self.fallback_model = "openai/gpt-oss-20b"
+        # Use verified fast Groq model IDs
+        self.primary_model = "llama-3.3-70b-versatile"
+        self.fallback_model = "llama-3.1-8b-instant"
         self._client: AsyncOpenAI | None = None
 
         if self.api_key:
             self._client = AsyncOpenAI(
                 base_url="https://api.groq.com/openai/v1",
                 api_key=self.api_key,
-                timeout=2.5,
+                timeout=1.5,
             )
 
     @property
@@ -115,7 +116,7 @@ class PromptOptimizer:
                         temperature=0.3,
                         max_tokens=250,
                     ),
-                    timeout=3.5,
+                    timeout=1.5,
                 )
                 if response.choices and response.choices[0].message.content:
                     engineered = response.choices[0].message.content.strip()

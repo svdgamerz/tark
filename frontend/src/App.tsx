@@ -1000,48 +1000,92 @@ export default function App() {
       )}
 
       {sidebarOpen && (
-        <Sidebar
-          chats={chats}
-          activeId={activeId}
-          onNew={handleNew}
-          onNewTask={() => ensureProfile(() => setShowTaskWizard(true))}
-          onOpenTasks={() => ensureProfile(() => setShowTaskManager(true))}
-          onOpenVirtualLab={() => ensureProfile(() => setShowVirtualLab(true))}
-          onSelect={handleSelect}
-          onDelete={handleDelete}
-          onProfile={() => (user ? setShowSettings(true) : setShowProfileSetup(true))}
-          onProgress={() => setShowProgress(true)}
-          onLogin={openLogin}
-          onClose={() => setSidebarOpen(false)}
-          boardShort={boardShort}
-          onOpenFriends={() => {
-            if (!user) {
-              openLogin()
-              return
-            }
-            ensureProfile(() => setShowFriends(true))
-          }}
-          friendsUnreadCount={friendsUnreadCount}
-        />
+        <>
+          <div
+            className="sidebar-backdrop"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
+          <Sidebar
+            chats={chats}
+            activeId={activeId}
+            onNew={() => {
+              handleNew()
+              if (window.innerWidth <= 768) setSidebarOpen(false)
+            }}
+            onNewTask={() => {
+              ensureProfile(() => setShowTaskWizard(true))
+              if (window.innerWidth <= 768) setSidebarOpen(false)
+            }}
+            onOpenTasks={() => {
+              ensureProfile(() => setShowTaskManager(true))
+              if (window.innerWidth <= 768) setSidebarOpen(false)
+            }}
+            onOpenVirtualLab={() => {
+              ensureProfile(() => setShowVirtualLab(true))
+              if (window.innerWidth <= 768) setSidebarOpen(false)
+            }}
+            onSelect={(id) => {
+              handleSelect(id)
+              if (window.innerWidth <= 768) setSidebarOpen(false)
+            }}
+            onDelete={handleDelete}
+            onProfile={() => {
+              user ? setShowSettings(true) : setShowProfileSetup(true)
+              if (window.innerWidth <= 768) setSidebarOpen(false)
+            }}
+            onProgress={() => {
+              setShowProgress(true)
+              if (window.innerWidth <= 768) setSidebarOpen(false)
+            }}
+            onLogin={openLogin}
+            onClose={() => setSidebarOpen(false)}
+            boardShort={boardShort}
+            onOpenFriends={() => {
+              if (!user) {
+                openLogin()
+                return
+              }
+              ensureProfile(() => setShowFriends(true))
+              if (window.innerWidth <= 768) setSidebarOpen(false)
+            }}
+            friendsUnreadCount={friendsUnreadCount}
+          />
+        </>
       )}
 
       <div className="main">
         <header className="topbar">
-          <button
-            className="icon-btn"
-            onClick={() => setSidebarOpen((o) => !o)}
-            title="Toggle sidebar"
-            aria-label="Toggle sidebar"
-          >
-            ☰
-          </button>
-          {!sidebarOpen && (
+          <div className="topbar-left">
+            <button
+              className="icon-btn"
+              onClick={() => setSidebarOpen((o) => !o)}
+              title="Toggle sidebar"
+              aria-label="Toggle sidebar"
+            >
+              ☰
+            </button>
             <span className="brand">
               <Logo size={20} className="brand-mark" />
               <span className="brand-name">Tark</span>
             </span>
-          )}
+            <div className="topbar-model-badge" title={selectedModel?.description}>
+              <span className="tmb-dot" />
+              <span className="tmb-label">{selectedModel?.label || 'Acharya'}</span>
+            </div>
+          </div>
           <div className="topbar-right">
+            <button
+              type="button"
+              className="topbar-new-chat-btn"
+              onClick={handleNew}
+              title="New conversation"
+              aria-label="New conversation"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
             {!user ? (
               <button className="login-btn" onClick={openLogin}>
                 Log in

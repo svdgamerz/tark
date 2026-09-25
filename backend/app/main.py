@@ -963,7 +963,7 @@ async def chat(
     # then let the Teacher explain using the verified values (best-effort).
     if plan.needs_computation:
         try:
-            system_prompt += await _verified_computations(last_user)
+            system_prompt += await asyncio.wait_for(_verified_computations(last_user), timeout=2.0)
         except Exception:
             pass  # never block the answer on the pre-pass
 
