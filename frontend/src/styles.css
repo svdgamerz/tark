@@ -11138,20 +11138,12 @@ body {
     background: var(--surface, #ffffff) !important;
     border-bottom: 1px solid var(--border) !important;
     flex-shrink: 0 !important;
-    gap: 8px !important;
-  }
-
-  .topbar-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
   }
 
   .topbar .brand {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
   }
 
   .topbar .brand-name {
@@ -11159,55 +11151,11 @@ body {
     font-weight: 700;
   }
 
-  .topbar-model-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    background: var(--accent-soft, #eef0ff);
-    color: var(--accent, #4f46e5);
-    padding: 3px 8px;
-    border-radius: 999px;
-    font-size: 11.5px;
-    font-weight: 650;
-    margin-left: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 110px;
-  }
-
-  .tmb-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #10b981;
-    flex-shrink: 0;
-  }
-
   .topbar-right {
     display: flex !important;
     align-items: center !important;
     gap: 8px !important;
     flex-shrink: 0 !important;
-  }
-
-  .topbar-new-chat-btn {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: #f1f5f9;
-    border: 1px solid var(--border, #e2e8f0);
-    color: var(--text, #1e293b);
-    display: grid;
-    place-items: center;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-
-  [data-theme='dark'] .topbar-new-chat-btn {
-    background: #27272a;
-    border-color: #3f3f46;
-    color: #f4f4f5;
   }
 
   /* Conversation container: tightly bounded, only this part scrolls */

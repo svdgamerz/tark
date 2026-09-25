@@ -1056,36 +1056,21 @@ export default function App() {
 
       <div className="main">
         <header className="topbar">
-          <div className="topbar-left">
-            <button
-              className="icon-btn"
-              onClick={() => setSidebarOpen((o) => !o)}
-              title="Toggle sidebar"
-              aria-label="Toggle sidebar"
-            >
-              ☰
-            </button>
+          <button
+            className="icon-btn"
+            onClick={() => setSidebarOpen((o) => !o)}
+            title="Toggle sidebar"
+            aria-label="Toggle sidebar"
+          >
+            ☰
+          </button>
+          {!sidebarOpen && (
             <span className="brand">
               <Logo size={20} className="brand-mark" />
               <span className="brand-name">Tark</span>
             </span>
-            <div className="topbar-model-badge" title={selectedModel?.description}>
-              <span className="tmb-dot" />
-              <span className="tmb-label">{selectedModel?.label || 'Acharya'}</span>
-            </div>
-          </div>
+          )}
           <div className="topbar-right">
-            <button
-              type="button"
-              className="topbar-new-chat-btn"
-              onClick={handleNew}
-              title="New conversation"
-              aria-label="New conversation"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-            </button>
             {!user ? (
               <button className="login-btn" onClick={openLogin}>
                 Log in
