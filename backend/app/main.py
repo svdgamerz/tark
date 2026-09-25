@@ -545,7 +545,17 @@ class VerifyRequest(BaseModel):
 
 
 # --- Routes ---
+@app.get("/")
+@app.head("/")
+@app.get("/ping")
+@app.head("/ping")
+async def root_ping() -> Response:
+    """Ultra-lightweight 2-byte ping endpoint for cron-job.org and uptime monitors."""
+    return Response(content="OK", media_type="text/plain")
+
+
 @app.get("/health")
+@app.head("/health")
 async def health() -> dict:
     return {"status": "ok", "db": sessions.enabled}
 
