@@ -1005,7 +1005,7 @@ async def chat(
         attempts = [(Provider.GEMINI, GEMINI_FLASH)]
     elif plan.difficulty == "hard" and spec.id == DEFAULT_MODEL_ID:
         # Planner: hand HARD questions to a fast, powerful high-capacity reasoner first
-        strong = (Provider.GROQ, "qwen/qwen3.8-27b")
+        strong = (Provider.GROQ, "llama-3.3-70b-versatile")
         attempts = [strong, *(a for a in attempts if a != strong)]
 
     async def event_stream() -> AsyncIterator[bytes]:

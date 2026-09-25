@@ -1391,7 +1391,7 @@ export default function App() {
                   void sendText(input)
                 }
               }}
-              placeholder="Ask a question or drop files/folders here..."
+              placeholder={typeof window !== 'undefined' && window.innerWidth <= 768 ? "Ask a question..." : "Ask a question or drop files/folders here..."}
               rows={1}
             />
             <select
