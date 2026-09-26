@@ -67,15 +67,16 @@ NIM_HEAVY = "meta/llama-3.3-70b-instruct"
 
 # Primary task → (provider, model_id).
 TASK_MODEL_MAP: dict[Task, tuple[Provider, str]] = {
-    Task.CHAT: (Provider.GEMINI, GEMINI_FLASH),
+    Task.CHAT: (Provider.GROQ, "openai/gpt-oss-120b"),
     Task.VISION: (Provider.GEMINI, GEMINI_FLASH),
-    Task.HEAVY_REASONING: (Provider.NIM, NIM_HEAVY),
+    Task.HEAVY_REASONING: (Provider.OPENROUTER, "deepseek/deepseek-chat"),
 }
 
 # Failover target when a provider is exhausted/unavailable (CLAUDE.md §6).
 FAILOVER_MODEL: dict[Provider, tuple[Provider, str]] = {
-    Provider.GEMINI: (Provider.NIM, NIM_HEAVY),
-    Provider.NIM: (Provider.GEMINI, GEMINI_FLASH),
+    Provider.GROQ: (Provider.OPENROUTER, "deepseek/deepseek-chat"),
+    Provider.OPENROUTER: (Provider.GROQ, "openai/gpt-oss-120b"),
+    Provider.GEMINI: (Provider.GROQ, "openai/gpt-oss-120b"),
 }
 
 
@@ -92,42 +93,31 @@ class ModelSpec:
 
 
 MODELS: list[ModelSpec] = [
-    ModelSpec("acharya", "Acharya", Provider.GEMINI, GEMINI_FLASH, "public", True,
+    ModelSpec("acharya", "Acharya", Provider.GROQ, "openai/gpt-oss-120b", "public", True,
               "Tark's core tutor — tailored to your school syllabus and textbooks."),
-    ModelSpec("gemini-flash", "Gemini Flash", Provider.GEMINI, GEMINI_FLASH, "public", False,
-              "Fast and versatile reasoning model."),
-    ModelSpec("gpt-4o-mini", "GPT-4o Mini", Provider.OPENAI, "gpt-4o-mini", "public", False,
-              "Fast and responsive model for everyday learning."),
-    ModelSpec("gpt-4o", "GPT-4o", Provider.OPENAI, "gpt-4o", "public", False,
-              "High-accuracy flagship model for deep conceptual understanding."),
-    ModelSpec("llama-70b", "Llama 3.3 70B", Provider.GROQ, "llama-3.3-70b-versatile", "public", False,
+    ModelSpec("gpt-oss-120b", "GPT-OSS 120B", Provider.GROQ, "openai/gpt-oss-120b", "public", False,
               "Ultra-fast high-capacity model on Groq hardware."),
-    ModelSpec("llama-8b", "Llama 3.1 8B", Provider.GROQ, "llama-3.1-8b-instant", "public", False,
-              "Instant-response lightweight model for quick explanations."),
-    ModelSpec("mistral-large", "Mistral Large", Provider.MISTRAL, "mistral-large-latest", "public", False,
-              "Comprehensive model for detailed step-by-step answers."),
-    ModelSpec("deepseek-v32", "DeepSeek V3.2", Provider.SAMBANOVA, "DeepSeek-V3.2", "public", False,
-              "Advanced reasoning model for complex STEM problems."),
-    ModelSpec("deepseek-r1", "DeepSeek R1", Provider.OPENROUTER, "deepseek/deepseek-r1", "admin", False,
-              "Deep reasoning model for advanced proofs and derivations."),
-    ModelSpec("claude-35-sonnet", "Claude 3.5 Sonnet", Provider.OPENROUTER, "anthropic/claude-3.5-sonnet", "public", False,
-              "Exceptional model for step-by-step pedagogical explanations."),
+    ModelSpec("deepseek-chat", "DeepSeek V3", Provider.OPENROUTER, "deepseek/deepseek-chat", "public", False,
+              "Top-tier open reasoning model via OpenRouter."),
+    ModelSpec("llama-70b", "Llama 3.3 70B", Provider.OPENROUTER, "meta-llama/llama-3.3-70b-instruct", "public", False,
+              "Flagship 70B open model for STEM reasoning."),
+    ModelSpec("qwen-72b", "Qwen 2.5 72B", Provider.OPENROUTER, "qwen/qwen-2.5-72b-instruct", "public", False,
+              "Advanced multilingual open model for mathematics and science."),
+    ModelSpec("gemini-flash", "Gemini Flash", Provider.GEMINI, GEMINI_FLASH, "public", False,
+              "Fast and versatile Google reasoning model."),
 ]
 
 MODELS_BY_ID: dict[str, ModelSpec] = {m.id: m for m in MODELS}
 DEFAULT_MODEL_ID = "acharya"
 
-# If a chosen model fails (429/error), fall back through these in order — four
-# independent providers, each with its own free quota, so Acharya keeps answering
-# even when one or two are exhausted. Deduped against the chosen model.
+# If a chosen model fails (429/error), fall back through these in order — verified active providers
 FALLBACK_CHAIN: list[tuple[Provider, str]] = [
+    (Provider.GROQ, "openai/gpt-oss-120b"),
+    (Provider.OPENROUTER, "deepseek/deepseek-chat"),
+    (Provider.OPENROUTER, "meta-llama/llama-3.3-70b-instruct"),
+    (Provider.GROQ, "openai/gpt-oss-20b"),
+    (Provider.OPENROUTER, "qwen/qwen-2.5-72b-instruct"),
     (Provider.GEMINI, GEMINI_FLASH),
-    (Provider.GROQ, "llama-3.3-70b-versatile"),
-    (Provider.GROQ, "llama-3.1-8b-instant"),
-    (Provider.OPENAI, "gpt-4o-mini"),
-    (Provider.SAMBANOVA, "DeepSeek-V3.2"),
-    (Provider.NIM, NIM_HEAVY),
-    (Provider.MISTRAL, "mistral-large-latest"),
 ]
 
 

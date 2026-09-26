@@ -42,9 +42,9 @@ SKIP_KEYWORDS = {
 class PromptOptimizer:
     def __init__(self, settings: Settings) -> None:
         self.api_key = settings.prompt_engineer_api_key or settings.groq_api_key
-        # Use verified fast Groq model IDs
-        self.primary_model = "llama-3.3-70b-versatile"
-        self.fallback_model = "llama-3.1-8b-instant"
+        # Use verified fast Groq model IDs (tested active)
+        self.primary_model = "openai/gpt-oss-120b"
+        self.fallback_model = "openai/gpt-oss-20b"
         self._client: AsyncOpenAI | None = None
 
         if self.api_key:
