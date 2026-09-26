@@ -550,8 +550,8 @@ class VerifyRequest(BaseModel):
 @app.get("/ping")
 @app.head("/ping")
 async def root_ping() -> Response:
-    """Ultra-lightweight 2-byte ping endpoint for cron-job.org and uptime monitors."""
-    return Response(content="OK", media_type="text/plain")
+    """Ultra-lightweight 0-byte ping endpoint for cron-job.org and uptime monitors."""
+    return Response(status_code=204, headers={"Content-Length": "0"})
 
 
 @app.get("/health")
