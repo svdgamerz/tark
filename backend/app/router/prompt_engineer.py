@@ -76,6 +76,17 @@ class PromptOptimizer:
         if trimmed.lower() in SKIP_KEYWORDS or (len(trimmed.split()) <= 1 and trimmed.lower().isalpha()):
             return query, False
 
+        # Skip direct factual, navigational, or chapter-name queries so we never distort exact student requests
+        import re
+        low = trimmed.lower()
+        if (
+            re.search(r"\b(name|title|which|what)\s+(is|of)?\s*(the\s+)?(\d+\w*|\w+)?\s*chapter\b", low)
+            or re.search(r"\bchapter\s*\d+\s*(name|title)\b", low)
+            or re.search(r"\b(list|give me|tell me)\s+(the\s+)?(all\s+)?chapters\b", low)
+            or re.search(r"\b(syllabus|curriculum|table of contents|index)\b", low)
+        ):
+            return query, False
+
         # Assemble rich pedagogical context
         ctx = context or {}
         context_lines = []
