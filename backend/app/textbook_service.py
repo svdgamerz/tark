@@ -54,10 +54,24 @@ SUBJECT_NORMALIZE = {
     "science 1": "Science 1",
     "science 1 (physics & chemistry)": "Science 1",
     "science & technology part 1": "Science 1",
+    "science part 1": "Science 1",
+    "science part a": "Science 1",
+    "science a": "Science 1",
+    "science-a": "Science 1",
     "science 2": "Science 2",
     "science 2 (biology & environment)": "Science 2",
     "science & technology part 2": "Science 2",
+    "science part 2": "Science 2",
+    "science part b": "Science 2",
+    "science b": "Science 2",
+    "science-b": "Science 2",
     "science & technology": "Science",
+    "maths a": "Maths 1",
+    "maths b": "Maths 2",
+    "maths part a": "Maths 1",
+    "maths part b": "Maths 2",
+    "maths part 1": "Maths 1",
+    "maths part 2": "Maths 2",
     "physics": "Physics",
     "chemistry": "Chemistry",
     "biology": "Biology",
@@ -347,6 +361,120 @@ KNOWN_CHAPTERS_MAP = {
         {"source": "ICSE_Class10_Sanskrit.pdf", "chapter": "Chapter 3: कर्मण्येवाधिकारस्ते", "start_page": 21, "end_page": 30, "total_doc_pages": 52, "chunks_count": 10},
         {"source": "ICSE_Class10_Sanskrit.pdf", "chapter": "Chapter 4: परोपकारः", "start_page": 31, "end_page": 40, "total_doc_pages": 52, "chunks_count": 10},
         {"source": "ICSE_Class10_Sanskrit.pdf", "chapter": "Chapter 5: नीतिश्लोकाः", "start_page": 41, "end_page": 52, "total_doc_pages": 52, "chunks_count": 12},
+    ],
+    ("CBSE (NCERT)", "9", "Science"): [
+        {"source": "iesc101.pdf", "chapter": "Chapter 1: Matter in Our Surroundings", "start_page": 1, "end_page": 13, "total_doc_pages": 150, "chunks_count": 12},
+        {"source": "iesc102.pdf", "chapter": "Chapter 2: Is Matter Around Us Pure?", "start_page": 14, "end_page": 28, "total_doc_pages": 150, "chunks_count": 14},
+        {"source": "iesc103.pdf", "chapter": "Chapter 3: Atoms and Molecules", "start_page": 29, "end_page": 44, "total_doc_pages": 150, "chunks_count": 15},
+        {"source": "iesc104.pdf", "chapter": "Chapter 4: Structure of the Atom", "start_page": 45, "end_page": 56, "total_doc_pages": 150, "chunks_count": 11},
+        {"source": "iesc105.pdf", "chapter": "Chapter 5: The Fundamental Unit of Life", "start_page": 57, "end_page": 67, "total_doc_pages": 150, "chunks_count": 10},
+        {"source": "iesc106.pdf", "chapter": "Chapter 6: Tissues", "start_page": 68, "end_page": 80, "total_doc_pages": 150, "chunks_count": 12},
+        {"source": "iesc107.pdf", "chapter": "Chapter 7: Motion", "start_page": 81, "end_page": 95, "total_doc_pages": 150, "chunks_count": 14},
+        {"source": "iesc108.pdf", "chapter": "Chapter 8: Force and Laws of Motion", "start_page": 96, "end_page": 109, "total_doc_pages": 150, "chunks_count": 13},
+        {"source": "iesc109.pdf", "chapter": "Chapter 9: Gravitation", "start_page": 110, "end_page": 123, "total_doc_pages": 150, "chunks_count": 13},
+        {"source": "iesc110.pdf", "chapter": "Chapter 10: Work and Energy", "start_page": 124, "end_page": 138, "total_doc_pages": 150, "chunks_count": 14},
+        {"source": "iesc111.pdf", "chapter": "Chapter 11: Sound", "start_page": 139, "end_page": 153, "total_doc_pages": 150, "chunks_count": 14},
+        {"source": "iesc112.pdf", "chapter": "Chapter 12: Improvement in Food Resources", "start_page": 154, "end_page": 168, "total_doc_pages": 150, "chunks_count": 14},
+    ],
+    ("CBSE", "9", "Science"): [
+        {"source": "iesc101.pdf", "chapter": "Chapter 1: Matter in Our Surroundings", "start_page": 1, "end_page": 13, "total_doc_pages": 150, "chunks_count": 12},
+        {"source": "iesc102.pdf", "chapter": "Chapter 2: Is Matter Around Us Pure?", "start_page": 14, "end_page": 28, "total_doc_pages": 150, "chunks_count": 14},
+        {"source": "iesc103.pdf", "chapter": "Chapter 3: Atoms and Molecules", "start_page": 29, "end_page": 44, "total_doc_pages": 150, "chunks_count": 15},
+        {"source": "iesc104.pdf", "chapter": "Chapter 4: Structure of the Atom", "start_page": 45, "end_page": 56, "total_doc_pages": 150, "chunks_count": 11},
+        {"source": "iesc105.pdf", "chapter": "Chapter 5: The Fundamental Unit of Life", "start_page": 57, "end_page": 67, "total_doc_pages": 150, "chunks_count": 10},
+        {"source": "iesc106.pdf", "chapter": "Chapter 6: Tissues", "start_page": 68, "end_page": 80, "total_doc_pages": 150, "chunks_count": 12},
+        {"source": "iesc107.pdf", "chapter": "Chapter 7: Motion", "start_page": 81, "end_page": 95, "total_doc_pages": 150, "chunks_count": 14},
+        {"source": "iesc108.pdf", "chapter": "Chapter 8: Force and Laws of Motion", "start_page": 96, "end_page": 109, "total_doc_pages": 150, "chunks_count": 13},
+        {"source": "iesc109.pdf", "chapter": "Chapter 9: Gravitation", "start_page": 110, "end_page": 123, "total_doc_pages": 150, "chunks_count": 13},
+        {"source": "iesc110.pdf", "chapter": "Chapter 10: Work and Energy", "start_page": 124, "end_page": 138, "total_doc_pages": 150, "chunks_count": 14},
+        {"source": "iesc111.pdf", "chapter": "Chapter 11: Sound", "start_page": 139, "end_page": 153, "total_doc_pages": 150, "chunks_count": 14},
+        {"source": "iesc112.pdf", "chapter": "Chapter 12: Improvement in Food Resources", "start_page": 154, "end_page": 168, "total_doc_pages": 150, "chunks_count": 14},
+    ],
+    ("CBSE (NCERT)", "10", "Science"): [
+        {"source": "jesc101.pdf", "chapter": "Chapter 1: Chemical Reactions and Equations", "start_page": 1, "end_page": 16, "total_doc_pages": 220, "chunks_count": 16},
+        {"source": "jesc102.pdf", "chapter": "Chapter 2: Acids, Bases and Salts", "start_page": 17, "end_page": 35, "total_doc_pages": 220, "chunks_count": 18},
+        {"source": "jesc103.pdf", "chapter": "Chapter 3: Metals and Non-metals", "start_page": 36, "end_page": 56, "total_doc_pages": 220, "chunks_count": 20},
+        {"source": "jesc104.pdf", "chapter": "Chapter 4: Carbon and Its Compounds", "start_page": 57, "end_page": 78, "total_doc_pages": 220, "chunks_count": 21},
+        {"source": "jesc105.pdf", "chapter": "Chapter 5: Life Processes", "start_page": 79, "end_page": 104, "total_doc_pages": 220, "chunks_count": 25},
+        {"source": "jesc106.pdf", "chapter": "Chapter 6: Control and Coordination", "start_page": 105, "end_page": 118, "total_doc_pages": 220, "chunks_count": 13},
+        {"source": "jesc107.pdf", "chapter": "Chapter 7: How do Organisms Reproduce?", "start_page": 119, "end_page": 134, "total_doc_pages": 220, "chunks_count": 15},
+        {"source": "jesc108.pdf", "chapter": "Chapter 8: Heredity and Evolution", "start_page": 135, "end_page": 148, "total_doc_pages": 220, "chunks_count": 13},
+        {"source": "jesc109.pdf", "chapter": "Chapter 9: Light – Reflection and Refraction", "start_page": 149, "end_page": 174, "total_doc_pages": 220, "chunks_count": 25},
+        {"source": "jesc110.pdf", "chapter": "Chapter 10: The Human Eye and the Colourful World", "start_page": 175, "end_page": 189, "total_doc_pages": 220, "chunks_count": 14},
+        {"source": "jesc111.pdf", "chapter": "Chapter 11: Electricity", "start_page": 190, "end_page": 209, "total_doc_pages": 220, "chunks_count": 19},
+        {"source": "jesc112.pdf", "chapter": "Chapter 12: Magnetic Effects of Electric Current", "start_page": 210, "end_page": 226, "total_doc_pages": 220, "chunks_count": 16},
+        {"source": "jesc113.pdf", "chapter": "Chapter 13: Our Environment", "start_page": 227, "end_page": 236, "total_doc_pages": 220, "chunks_count": 10},
+    ],
+    ("CBSE", "10", "Science"): [
+        {"source": "jesc101.pdf", "chapter": "Chapter 1: Chemical Reactions and Equations", "start_page": 1, "end_page": 16, "total_doc_pages": 220, "chunks_count": 16},
+        {"source": "jesc102.pdf", "chapter": "Chapter 2: Acids, Bases and Salts", "start_page": 17, "end_page": 35, "total_doc_pages": 220, "chunks_count": 18},
+        {"source": "jesc103.pdf", "chapter": "Chapter 3: Metals and Non-metals", "start_page": 36, "end_page": 56, "total_doc_pages": 220, "chunks_count": 20},
+        {"source": "jesc104.pdf", "chapter": "Chapter 4: Carbon and Its Compounds", "start_page": 57, "end_page": 78, "total_doc_pages": 220, "chunks_count": 21},
+        {"source": "jesc105.pdf", "chapter": "Chapter 5: Life Processes", "start_page": 79, "end_page": 104, "total_doc_pages": 220, "chunks_count": 25},
+        {"source": "jesc106.pdf", "chapter": "Chapter 6: Control and Coordination", "start_page": 105, "end_page": 118, "total_doc_pages": 220, "chunks_count": 13},
+        {"source": "jesc107.pdf", "chapter": "Chapter 7: How do Organisms Reproduce?", "start_page": 119, "end_page": 134, "total_doc_pages": 220, "chunks_count": 15},
+        {"source": "jesc108.pdf", "chapter": "Chapter 8: Heredity and Evolution", "start_page": 135, "end_page": 148, "total_doc_pages": 220, "chunks_count": 13},
+        {"source": "jesc109.pdf", "chapter": "Chapter 9: Light – Reflection and Refraction", "start_page": 149, "end_page": 174, "total_doc_pages": 220, "chunks_count": 25},
+        {"source": "jesc110.pdf", "chapter": "Chapter 10: The Human Eye and the Colourful World", "start_page": 175, "end_page": 189, "total_doc_pages": 220, "chunks_count": 14},
+        {"source": "jesc111.pdf", "chapter": "Chapter 11: Electricity", "start_page": 190, "end_page": 209, "total_doc_pages": 220, "chunks_count": 19},
+        {"source": "jesc112.pdf", "chapter": "Chapter 12: Magnetic Effects of Electric Current", "start_page": 210, "end_page": 226, "total_doc_pages": 220, "chunks_count": 16},
+        {"source": "jesc113.pdf", "chapter": "Chapter 13: Our Environment", "start_page": 227, "end_page": 236, "total_doc_pages": 220, "chunks_count": 10},
+    ],
+    ("CBSE (NCERT)", "9", "Maths"): [
+        {"source": "iemh101.pdf", "chapter": "Chapter 1: Number Systems", "start_page": 1, "end_page": 27, "total_doc_pages": 200, "chunks_count": 26},
+        {"source": "iemh102.pdf", "chapter": "Chapter 2: Polynomials", "start_page": 28, "end_page": 50, "total_doc_pages": 200, "chunks_count": 22},
+        {"source": "iemh103.pdf", "chapter": "Chapter 3: Coordinate Geometry", "start_page": 51, "end_page": 68, "total_doc_pages": 200, "chunks_count": 17},
+        {"source": "iemh104.pdf", "chapter": "Chapter 4: Linear Equations in Two Variables", "start_page": 69, "end_page": 78, "total_doc_pages": 200, "chunks_count": 10},
+        {"source": "iemh105.pdf", "chapter": "Chapter 5: Introduction to Euclid's Geometry", "start_page": 79, "end_page": 88, "total_doc_pages": 200, "chunks_count": 10},
+        {"source": "iemh106.pdf", "chapter": "Chapter 6: Lines and Angles", "start_page": 89, "end_page": 108, "total_doc_pages": 200, "chunks_count": 19},
+        {"source": "iemh107.pdf", "chapter": "Chapter 7: Triangles", "start_page": 109, "end_page": 136, "total_doc_pages": 200, "chunks_count": 27},
+        {"source": "iemh108.pdf", "chapter": "Chapter 8: Quadrilaterals", "start_page": 137, "end_page": 152, "total_doc_pages": 200, "chunks_count": 15},
+        {"source": "iemh109.pdf", "chapter": "Chapter 9: Circles", "start_page": 153, "end_page": 182, "total_doc_pages": 200, "chunks_count": 29},
+        {"source": "iemh110.pdf", "chapter": "Chapter 10: Heron's Formula", "start_page": 183, "end_page": 194, "total_doc_pages": 200, "chunks_count": 12},
+        {"source": "iemh111.pdf", "chapter": "Chapter 11: Surface Areas and Volumes", "start_page": 195, "end_page": 220, "total_doc_pages": 200, "chunks_count": 25},
+        {"source": "iemh112.pdf", "chapter": "Chapter 12: Statistics", "start_page": 221, "end_page": 240, "total_doc_pages": 200, "chunks_count": 19},
+    ],
+    ("CBSE (NCERT)", "10", "Maths"): [
+        {"source": "jemh101.pdf", "chapter": "Chapter 1: Real Numbers", "start_page": 1, "end_page": 18, "total_doc_pages": 250, "chunks_count": 18},
+        {"source": "jemh102.pdf", "chapter": "Chapter 2: Polynomials", "start_page": 19, "end_page": 38, "total_doc_pages": 250, "chunks_count": 19},
+        {"source": "jemh103.pdf", "chapter": "Chapter 3: Pair of Linear Equations in Two Variables", "start_page": 39, "end_page": 68, "total_doc_pages": 250, "chunks_count": 29},
+        {"source": "jemh104.pdf", "chapter": "Chapter 4: Quadratic Equations", "start_page": 69, "end_page": 90, "total_doc_pages": 250, "chunks_count": 21},
+        {"source": "jemh105.pdf", "chapter": "Chapter 5: Arithmetic Progressions", "start_page": 91, "end_page": 114, "total_doc_pages": 250, "chunks_count": 23},
+        {"source": "jemh106.pdf", "chapter": "Chapter 6: Triangles", "start_page": 115, "end_page": 150, "total_doc_pages": 250, "chunks_count": 35},
+        {"source": "jemh107.pdf", "chapter": "Chapter 7: Coordinate Geometry", "start_page": 151, "end_page": 172, "total_doc_pages": 250, "chunks_count": 21},
+        {"source": "jemh108.pdf", "chapter": "Chapter 8: Introduction to Trigonometry", "start_page": 173, "end_page": 194, "total_doc_pages": 250, "chunks_count": 21},
+        {"source": "jemh109.pdf", "chapter": "Chapter 9: Some Applications of Trigonometry", "start_page": 195, "end_page": 206, "total_doc_pages": 250, "chunks_count": 12},
+        {"source": "jemh110.pdf", "chapter": "Chapter 10: Circles", "start_page": 207, "end_page": 220, "total_doc_pages": 250, "chunks_count": 14},
+        {"source": "jemh111.pdf", "chapter": "Chapter 11: Areas Related to Circles", "start_page": 221, "end_page": 236, "total_doc_pages": 250, "chunks_count": 15},
+        {"source": "jemh112.pdf", "chapter": "Chapter 12: Surface Areas and Volumes", "start_page": 237, "end_page": 254, "total_doc_pages": 250, "chunks_count": 17},
+        {"source": "jemh113.pdf", "chapter": "Chapter 13: Statistics", "start_page": 255, "end_page": 278, "total_doc_pages": 250, "chunks_count": 23},
+        {"source": "jemh114.pdf", "chapter": "Chapter 14: Probability", "start_page": 279, "end_page": 296, "total_doc_pages": 250, "chunks_count": 17},
+    ],
+    ("ICSE (CISCE)", "9", "Physics"): [
+        {"source": "ICSE_Class9_Physics.pdf", "chapter": "Chapter 1: Measurements and Experimentation", "start_page": 1, "end_page": 20, "total_doc_pages": 180, "chunks_count": 20},
+        {"source": "ICSE_Class9_Physics.pdf", "chapter": "Chapter 2: Motion in One Dimension", "start_page": 21, "end_page": 44, "total_doc_pages": 180, "chunks_count": 24},
+        {"source": "ICSE_Class9_Physics.pdf", "chapter": "Chapter 3: Laws of Motion", "start_page": 45, "end_page": 68, "total_doc_pages": 180, "chunks_count": 24},
+        {"source": "ICSE_Class9_Physics.pdf", "chapter": "Chapter 4: Pressure in Fluids and Atmospheric Pressure", "start_page": 69, "end_page": 90, "total_doc_pages": 180, "chunks_count": 22},
+        {"source": "ICSE_Class9_Physics.pdf", "chapter": "Chapter 5: Upthrust in Fluids, Archimedes' Principle and Floatation", "start_page": 91, "end_page": 110, "total_doc_pages": 180, "chunks_count": 20},
+        {"source": "ICSE_Class9_Physics.pdf", "chapter": "Chapter 6: Heat and Energy", "start_page": 111, "end_page": 130, "total_doc_pages": 180, "chunks_count": 20},
+        {"source": "ICSE_Class9_Physics.pdf", "chapter": "Chapter 7: Reflection of Light", "start_page": 131, "end_page": 150, "total_doc_pages": 180, "chunks_count": 20},
+        {"source": "ICSE_Class9_Physics.pdf", "chapter": "Chapter 8: Propagation of Sound Waves", "start_page": 151, "end_page": 165, "total_doc_pages": 180, "chunks_count": 15},
+        {"source": "ICSE_Class9_Physics.pdf", "chapter": "Chapter 9: Current Electricity", "start_page": 166, "end_page": 175, "total_doc_pages": 180, "chunks_count": 10},
+        {"source": "ICSE_Class9_Physics.pdf", "chapter": "Chapter 10: Magnetism", "start_page": 176, "end_page": 185, "total_doc_pages": 180, "chunks_count": 10},
+    ],
+    ("ICSE (CISCE)", "10", "Physics"): [
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 1: Force", "start_page": 1, "end_page": 24, "total_doc_pages": 200, "chunks_count": 24},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 2: Work, Energy and Power", "start_page": 25, "end_page": 46, "total_doc_pages": 200, "chunks_count": 22},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 3: Machines", "start_page": 47, "end_page": 64, "total_doc_pages": 200, "chunks_count": 18},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 4: Refraction of Light at Plane Surfaces", "start_page": 65, "end_page": 90, "total_doc_pages": 200, "chunks_count": 26},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 5: Refraction through a Lens", "start_page": 91, "end_page": 116, "total_doc_pages": 200, "chunks_count": 26},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 6: Spectrum", "start_page": 117, "end_page": 130, "total_doc_pages": 200, "chunks_count": 14},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 7: Sound", "start_page": 131, "end_page": 148, "total_doc_pages": 200, "chunks_count": 18},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 8: Current Electricity", "start_page": 149, "end_page": 172, "total_doc_pages": 200, "chunks_count": 24},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 9: Household Circuits", "start_page": 173, "end_page": 188, "total_doc_pages": 200, "chunks_count": 16},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 10: Electro-magnetism", "start_page": 189, "end_page": 206, "total_doc_pages": 200, "chunks_count": 18},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 11: Calorimetry", "start_page": 207, "end_page": 222, "total_doc_pages": 200, "chunks_count": 16},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 12: Radioactivity", "start_page": 223, "end_page": 236, "total_doc_pages": 200, "chunks_count": 14},
     ],
 }
 
@@ -885,12 +1013,36 @@ def get_chapters_for_subject(board: str, grade: str, subject: str) -> List[Dict[
     ns = normalize_subject(subject)
 
     # 0. Check known chapters map
-    known_chs = KNOWN_CHAPTERS_MAP.get((nb, ng, ns)) or KNOWN_CHAPTERS_MAP.get((nb, ng, subject.strip()))
+    known_chs = (
+        KNOWN_CHAPTERS_MAP.get((nb, ng, ns))
+        or KNOWN_CHAPTERS_MAP.get((nb, ng, subject.strip()))
+        or KNOWN_CHAPTERS_MAP.get((board.strip(), ng, ns))
+    )
+    if not known_chs and ns in ("Science 1", "Science 2", "Science"):
+        known_chs = (
+            KNOWN_CHAPTERS_MAP.get((nb, ng, "Science"))
+            or KNOWN_CHAPTERS_MAP.get((nb, ng, "Science 1"))
+            or KNOWN_CHAPTERS_MAP.get((board.strip(), ng, "Science"))
+        )
+    if not known_chs and ns in ("Maths 1", "Maths 2", "Maths"):
+        known_chs = (
+            KNOWN_CHAPTERS_MAP.get((nb, ng, "Maths"))
+            or KNOWN_CHAPTERS_MAP.get((nb, ng, "Maths 1"))
+            or KNOWN_CHAPTERS_MAP.get((board.strip(), ng, "Maths"))
+        )
     if known_chs:
         return known_chs
 
     # 1. Check known textbook map for direct file match
-    direct_file = KNOWN_TEXTBOOK_MAP.get((nb, ng, ns)) or KNOWN_TEXTBOOK_MAP.get((nb, ng, subject.strip()))
+    direct_file = (
+        KNOWN_TEXTBOOK_MAP.get((nb, ng, ns))
+        or KNOWN_TEXTBOOK_MAP.get((nb, ng, subject.strip()))
+        or KNOWN_TEXTBOOK_MAP.get((board.strip(), ng, ns))
+    )
+    if not direct_file and ns in ("Science 1", "Science 2", "Science"):
+        direct_file = KNOWN_TEXTBOOK_MAP.get((nb, ng, "Science")) or KNOWN_TEXTBOOK_MAP.get((nb, ng, "Science 1"))
+    if not direct_file and ns in ("Maths 1", "Maths 2", "Maths"):
+        direct_file = KNOWN_TEXTBOOK_MAP.get((nb, ng, "Maths")) or KNOWN_TEXTBOOK_MAP.get((nb, ng, "Maths 1"))
     if direct_file:
         pdf_path = find_pdf_path(direct_file)
         if pdf_path:
@@ -1076,3 +1228,79 @@ def generate_page_schedule_milestones(
             m_idx += 1
 
     return milestones
+
+
+def get_chapter_grounding(
+    message: str,
+    req_board: Optional[str] = None,
+    req_grade: Optional[str] = None,
+    req_subject: Optional[str] = None,
+) -> Optional[str]:
+    """Detect if a user query is asking for a chapter name/number or syllabus TOC, and return authoritative grounding text."""
+    low = (message or "").lower()
+
+    # 1. Detect if this is a chapter/syllabus inquiry
+    is_ch_query = bool(
+        re.search(r"\b(?:ch(?:apter|\.?|p\.?)|lesson|unit)\s*(\d+)\b", low)
+        or re.search(r"\b(name|title|which|what)\s+(?:is|of)?\s*(?:the\s+)?(?:(\d+)(?:st|nd|rd|th)?\s+)?(?:ch(?:apter|\.?|p\.?)|lesson|unit)\b", low)
+        or re.search(r"\b(syllabus|table of contents|index|list (of )?chapters|how many chapters)\b", low)
+    )
+    if not is_ch_query:
+        return None
+
+    # 2. Extract grade (e.g. "class 10", "grade 9", "10th std", "10th class", "std 9", "10th", but NOT "1st chapter")
+    grade = req_grade
+    gm = (
+        re.search(r"\b(?:class|grade|std\.?|standard)\s*(\d{1,2})\b", low)
+        or re.search(r"\b(\d{1,2})(?:st|nd|rd|th)\s+(?:std|class|grade)\b", low)
+    )
+    if not gm:
+        gm = re.search(r"\b(\d{1,2})(?:st|nd|rd|th)\s+(?!ch(?:apter|\.?|p\.?)|lesson|unit)\b", low)
+    if gm:
+        grade = gm.group(1)
+
+    # 3. Extract subject
+    subj = req_subject or "Science"
+    for s_cand in [
+        "science b", "science a", "science 1", "science 2", "science",
+        "maths 1", "maths 2", "maths", "algebra", "geometry",
+        "physics", "chemistry", "biology",
+        "history & political science", "history & civics", "history", "geography",
+        "english", "hindi", "marathi", "sanskrit",
+    ]:
+        if re.search(r"\b" + re.escape(s_cand) + r"\b", low):
+            subj = s_cand
+            break
+
+    # 4. Extract board
+    board = req_board
+    if "cbse" in low or "ncert" in low:
+        board = "CBSE (NCERT)"
+    elif "icse" in low or "cisce" in low:
+        board = "ICSE (CISCE)"
+    elif "state board" in low or "maharashtra" in low or "balbharati" in low or "std" in low:
+        board = "Maharashtra State Board (Balbharati)"
+    elif not board:
+        board = "Maharashtra State Board (Balbharati)" if (grade and int(grade) <= 10 and "std" in low) else "CBSE (NCERT)"
+
+    chs = get_chapters_for_subject(board, grade or "10", subj)
+    if not chs:
+        return None
+
+    toc_lines = [f"• {c['chapter']}" for c in chs]
+    target_num = None
+    nm = re.search(r"\b(?:ch(?:apter|\.?|p\.?)|lesson|unit)\s*(\d+)\b", low) or re.search(r"\b(\d+)(?:st|nd|rd|th)\s+(?:ch(?:apter|\.?|p\.?)|lesson|unit)\b", low)
+    if nm:
+        target_num = int(nm.group(1))
+
+    target_ch = None
+    if target_num and target_num <= len(chs):
+        target_ch = chs[target_num - 1]["chapter"]
+
+    grounding = f"OFFICIAL TEXTBOOK TABLE OF CONTENTS ({board} Class {grade or '10'} {subj}):\n" + "\n".join(toc_lines)
+    if target_ch:
+        grounding += (
+            f"\n\nVERIFIED MATCH: Chapter {target_num} is \"{target_ch}\". "
+            "State this exact chapter number and official title immediately as your first sentence without padding."
+        )
+    return grounding

@@ -83,7 +83,7 @@ from app.schools.store import SchoolStore
 from app.search.tavily import TavilySearchClient, format_web_context
 from app.router.base import Message
 from app.router.router import ModelRouter
-from app.router.prompt_engineer import PromptOptimizer
+from app.router.prompt_engineer import PromptOptimizer, _is_academic_query
 from app.simulations import (
     detect_simulation_candidate,
     generate_custom_simulation_html,
@@ -550,8 +550,8 @@ class VerifyRequest(BaseModel):
 @app.get("/ping")
 @app.head("/ping")
 async def root_ping() -> Response:
-    """Ultra-lightweight 0-byte ping endpoint for cron-job.org and uptime monitors."""
-    return Response(status_code=204, headers={"Content-Length": "0"})
+    """Ultra-lightweight ping endpoint for cron-job.org and uptime monitors."""
+    return Response(status_code=204)
 
 
 @app.get("/health")
@@ -595,13 +595,38 @@ async def chat(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
+    last_user = next(
+        (m.content for m in reversed(req.messages) if m.role == "user"), ""
+    )
+    is_academic = _is_academic_query(
+        last_user,
+        {"board": req.board, "grade": req.grade, "exam": req.exam, "subject": req.subject},
+    ) or bool(req.milestone_title)
+
+    # Acharya Academic Mode: When the student is using the curriculum-grounded
+    # Acharya model WITH board/grade/subject context AND the query is genuinely
+    # academic, overlay structured academic response guidelines.
+    # Otherwise, Tark responds naturally like a standard assistant.
+    spec_check = get_model(req.model)
+    has_curriculum = bool(req.board or req.grade or req.exam)
+    if spec_check.id == "acharya" and has_curriculum and is_academic:
+        system_prompt += (
+            "\n\nACHARYA ACADEMIC MODE (ACTIVE — curriculum context detected):\n"
+            "Since this student is studying with their school curriculum, adapt your responses for academic learning:\n"
+            "- For CONCEPTUAL questions: Start with a clear core idea, then provide a structured breakdown with bold key terms.\n"
+            "- For QUANTITATIVE problems: State known variables, show step-by-step substitution in clean LaTeX ($$...$$), and box the final answer: $$\\boxed{...}$$.\n"
+            "- For FACTUAL questions (chapter names, definitions, units): Answer directly and concisely — no padding.\n"
+            "- Stay calibrated to the student's board, grade, and subject level.\n"
+            "- Focus on accuracy and clarity. Do NOT add unsolicited quizzes or test questions unless the student asks."
+        )
+
     # Inject student personalization & learning profile
     profile_instructions: list[str] = []
-    if req.exam:
+    if req.exam and is_academic:
         profile_instructions.append(
             f"• Target Exam / Milestone: {req.exam}. Tailor problem complexity, high-yield shortcuts, standard question patterns, and depth to this exam."
         )
-    if req.goal:
+    if req.goal and is_academic:
         goal_map = {
             "concept": "Deep conceptual mastery and theoretical foundations",
             "exam": "High-yield scoring, exam patterns, and mark maximization",
@@ -611,7 +636,7 @@ async def chat(
         profile_instructions.append(f"• Primary Learning Focus: {goal_map.get(req.goal, req.goal)}")
     if req.tutoring_style:
         style_map = {
-            "step_by_step": "Step-by-Step Teacher — Break down every step and calculation clearly with derivations, formulas, and structured numbered steps.",
+            "step_by_step": "Step-by-Step Teacher — Break down every step and calculation clearly with derivations, formulas, and structured numbered steps (1. 2. 3.).",
             "socratic_step_by_step": (
                 "Step-by-Step Socratic Coach — NEVER reveal or dump the full solution, calculation, or final answer at once. "
                 "For any problem, guide the student one micro-step at a time: "
@@ -630,7 +655,7 @@ async def chat(
                 "4. Provide an encouraging 'Feynman Mastery Score' (e.g., 8.5/10) with specific tips to make their mental model rock-solid."
             ),
             "socratic": "Socratic Coach — Ask guiding questions, give strategic hints, and prompt the student to deduce the answer before revealing it directly.",
-            "quick_direct": "Quick & Direct — Provide crisp, high-yield, exam-oriented bullet points, formula cards, and direct answers without unnecessary filler.",
+            "quick_direct": "Quick & Direct — Provide crisp, high-yield bullet points, formula cards, and direct answers without unnecessary filler.",
             "analogies_eli5": "Everyday Analogies & ELI5 — Use relatable real-world stories, visual mental models, and intuitive physical examples.",
         }
         profile_instructions.append(f"• Tutoring Style: {style_map.get(req.tutoring_style, req.tutoring_style)}")
@@ -641,7 +666,7 @@ async def chat(
             "marathi": "Marathi (मराठी) — Explain concepts in clear, easy-to-understand Marathi, writing standard technical terms and formulas in brackets where helpful.",
         }
         profile_instructions.append(f"• Language Medium: {lang_map.get(req.language.lower(), req.language)}")
-    if req.weak_subjects:
+    if req.weak_subjects and is_academic:
         profile_instructions.append(
             f"• Student's Weak Areas / Extra Help Needed In: {', '.join(req.weak_subjects)}. Pay extra attention when explaining these topics, break them down from fundamental principles, and provide proactive checks for understanding."
         )
@@ -650,7 +675,7 @@ async def chat(
         system_prompt += (
             "\n\nSTUDENT PERSONALIZATION & PROFILE DIRECTIVES:\n"
             + "\n".join(profile_instructions)
-            + "\nAlways calibrate your explanation depth, tone, terminology, exam tips, and language medium according to this profile."
+            + "\nAlways calibrate your explanation depth, tone, terminology, and language medium according to this profile."
         )
 
     # Active Study Schedule & Milestone calibration:
@@ -809,7 +834,7 @@ async def chat(
     # Only optimize individual doubts/questions; do NOT mutate active study schedules or Day-1 chapter starts!
     engineered_query = last_user
     was_engineered = False
-    if last_user and not req.image and not req.milestone_title and plan.intent not in ("chapter_start", "chat"):
+    if last_user and not req.image and not req.milestone_title and plan.intent not in ("chapter_start", "chat") and is_academic:
         student_ctx = {
             "exam": req.exam,
             "grade": req.grade,
@@ -850,9 +875,14 @@ async def chat(
 
     source_items: list[str] = []  # citations, sent as a structured event
     source_excerpts = ""  # the textbook text, for the Checker to verify against
-    grounded_generated = False  # grounded on AI-generated (low-trust) content?
+    # Authoritative Table of Contents & Chapter grounding for syllabus/chapter inquiries
+    from app.textbook_service import get_chapter_grounding
+    ch_grounding = get_chapter_grounding(last_user, req.board or req.exam, req.grade, req.subject)
+    if ch_grounding:
+        system_prompt += f"\n\n{ch_grounding}"
+
     hits = None  # top retrieval hits (also used for the learner model's topic)
-    if not vision and plan.kind != "chat" and spec.grounded and (req.board or req.grade or req.exam):
+    if not vision and plan.kind != "chat" and spec.grounded and (req.board or req.grade or req.exam) and is_academic:
         eff_board = normalize_board(req.board)
         eff_grade = normalize_grade(req.grade)
         eff_subject = normalize_subject(req.subject)

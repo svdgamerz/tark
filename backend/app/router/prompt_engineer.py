@@ -1,13 +1,17 @@
 """Dedicated Autonomous Prompt Engineering Layer.
 
-Uses an isolated Groq API key and high-speed open-weight models (qwen/qwen3.8-27b
-and openai/gpt-oss-120b) to convert raw student queries into rigorous, high-yield
-academic prompts before sending them to the downstream tutor.
+Uses an isolated Groq API key and high-speed open-weight models to convert
+raw student queries into rigorous academic prompts — BUT ONLY when the query
+is genuinely academic/exam-related with curriculum context.
+
+Non-academic queries (coding, how-to, general knowledge, etc.) are ALWAYS
+passed through unchanged to preserve natural response quality.
 """
 from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from typing import Any
 
 from openai import AsyncOpenAI
@@ -16,27 +20,66 @@ from app.config.settings import Settings
 
 logger = logging.getLogger("tark.prompt_engineer")
 
-PROMPT_ENGINEER_SYSTEM_INSTRUCTION = """You are a master pedagogical prompt engineer and instructional architect.
-Convert raw student doubts into an authoritative, high-yield academic query for a STEM tutor.
+PROMPT_ENGINEER_SYSTEM_INSTRUCTION = """You are a master pedagogical prompt engineer.
+Convert a student's raw academic doubt into a clean, focused query for a tutor.
 
 CRITICAL RULES:
-1. Write the prompt as a direct student question or academic instruction (e.g. 'Explain...', 'Break down the mechanism of...', 'Derive...', 'Provide an intuitive first-principles explanation of...').
-2. NEVER write meta-roleplay instructions such as 'You are an expert...', 'Act as a...', 'As a tutor...', or introductory conversational filler.
-3. If the student asks for an image, picture, drawing, diagram, or visual illustration, you MUST retain the visual request and specify the key components, labels, and structures to highlight.
-4. State the exact physical, chemical, or biological laws, mechanisms, and core principles involved.
-5. For conceptual questions (biology, qualitative physics/chemistry), instruct the tutor to ground the explanation in vivid real-world intuition, everyday analogies, and clear step-by-step physical mechanisms. For quantitative calculations, ask for clean LaTeX display math ($$...$$).
-6. Calibrate depth and terminology with the student's target exam (e.g. JEE, NEET, CBSE, ICSE) and grade level.
-7. Instruct the tutor to highlight real-world applications and conclude with an engaging intuition check.
-8. Instruct the tutor to keep the response tightly structured, concise (under 350 words), and focused—using compact contrast cards/bullets, avoiding sprawling textbook walls of text, horizontal divider lines (`---`), robotic numbered headers, and raw ASCII pipe tables.
+1. Write the prompt as a direct student question (e.g. 'Explain...', 'Break down...', 'Derive...').
+2. NEVER write meta-roleplay instructions ('You are an expert...', 'Act as a...').
+3. State the exact physical, chemical, or biological laws/mechanisms involved.
+4. Calibrate depth with the student's target exam and grade level.
+5. Keep it concise — 2 to 4 sentences maximum.
+6. If the student asks for a visual/diagram, retain that request.
 
-Output ONLY the engineered prompt (2 to 4 concise sentences).
-Do NOT output conversational preambles (e.g. 'Here is your prompt:'), explanations, or quotation marks."""
+Output ONLY the engineered prompt. No preamble, explanations, or quotation marks."""
 
 SKIP_KEYWORDS = {
     "hi", "hello", "hey", "hola", "namaste", "good morning", "good afternoon",
     "good evening", "thanks", "thank you", "bye", "goodbye", "ok", "okay",
     "k", "yes", "no", "sure", "got it"
 }
+
+# Patterns that indicate NON-ACADEMIC queries — these must NEVER be transformed
+_NON_ACADEMIC_PATTERNS = [
+    # Programming / coding / tech
+    re.compile(r"\b(install|setup|configure|deploy|docker|npm|pip|git|github|code|coding|programming|debug|compile|build|run|execute|terminal|command|bash|powershell|cmd|vscode|ide)\b", re.I),
+    re.compile(r"\b(python|javascript|typescript|java|c\+\+|react|node|django|flask|fastapi|html|css|mongodb|mysql|postgres|sql|api|http|server|database|backend|frontend|fullstack|full.?stack)\b", re.I),
+    re.compile(r"\b(error|bug|crash|exception|traceback|stack.?trace|undefined|null|nan|syntax|runtime)\b", re.I),
+    # How-to / practical tasks
+    re.compile(r"\b(how\s+to|how\s+do\s+i|how\s+can\s+i|steps\s+to|guide|tutorial|instructions|procedure)\b", re.I),
+    # General knowledge / non-exam
+    re.compile(r"\b(recipe|cook|travel|weather|news|movie|song|game|sport|fitness|health|diet|career|job|resume|interview|salary)\b", re.I),
+    # Creative / writing
+    re.compile(r"\b(write\s+a|create\s+a|draft|essay|poem|story|letter|email|message|speech|presentation|blog)\b", re.I),
+    # System / OS / software
+    re.compile(r"\b(windows|linux|mac|ubuntu|android|ios|app|application|software|download|update|upgrade|uninstall)\b", re.I),
+]
+
+# Patterns that indicate genuinely academic/exam queries worth enhancing
+_ACADEMIC_SIGNALS = [
+    re.compile(r"\b(explain|define|derive|prove|theorem|law|principle|formula|equation|reaction|mechanism|process)\b", re.I),
+    re.compile(r"\b(physics|chemistry|biology|maths?|mathematics|science|geography|history|economics|accountancy|civics)\b", re.I),
+    re.compile(r"\b(ncert|cbse|icse|igcse|jee|neet|board|exam|syllabus|textbook|chapter|class\s*\d|grade\s*\d)\b", re.I),
+    re.compile(r"\b(photosynthesis|mitosis|meiosis|electromagnet|refraction|diffraction|osmosis|respiration|digestion)\b", re.I),
+    re.compile(r"\b(newton|boyle|charles|ohm|faraday|mendel|darwin|archimedes|pythagoras|euclid)\b", re.I),
+]
+
+
+def _is_academic_query(text: str, context: dict[str, Any] | None = None) -> bool:
+    """Determine if a query is genuinely academic and would benefit from prompt engineering."""
+    low = text.lower().strip()
+    ctx = context or {}
+
+    # If the query matches ANY non-academic pattern, skip immediately
+    for pat in _NON_ACADEMIC_PATTERNS:
+        if pat.search(low):
+            return False
+
+    # Must have BOTH academic signal AND curriculum context to qualify
+    has_academic_signal = any(pat.search(low) for pat in _ACADEMIC_SIGNALS)
+    has_curriculum_context = bool(ctx.get("board") or ctx.get("grade") or ctx.get("exam"))
+
+    return has_academic_signal and has_curriculum_context
 
 
 class PromptOptimizer:
@@ -76,8 +119,7 @@ class PromptOptimizer:
         if trimmed.lower() in SKIP_KEYWORDS or (len(trimmed.split()) <= 1 and trimmed.lower().isalpha()):
             return query, False
 
-        # Skip direct factual, navigational, or chapter-name queries so we never distort exact student requests
-        import re
+        # Skip direct factual, navigational, or chapter-name queries
         low = trimmed.lower()
         if (
             re.search(r"\b(name|title|which|what)\s+(is|of)?\s*(the\s+)?(\d+\w*|\w+)?\s*chapter\b", low)
@@ -85,6 +127,10 @@ class PromptOptimizer:
             or re.search(r"\b(list|give me|tell me)\s+(the\s+)?(all\s+)?chapters\b", low)
             or re.search(r"\b(syllabus|curriculum|table of contents|index)\b", low)
         ):
+            return query, False
+
+        # CORE GATE: Only enhance genuinely academic queries with curriculum context
+        if not _is_academic_query(trimmed, context):
             return query, False
 
         # Assemble rich pedagogical context
