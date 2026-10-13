@@ -35,8 +35,8 @@ def test_technical_query_prompt():
     assert "Quick Intuition Check" not in system_prompt
     assert "ACHARYA ACADEMIC MODE" not in system_prompt
     assert "Target Exam" not in system_prompt
-    assert "clean numbered steps (1. 2. 3.)" in system_prompt
-    assert "Never force a rigid structure" in system_prompt
+    assert "BAN ON RAW BULLET-POINT DUMPS" in system_prompt
+    assert "ENGAGING DIRECT LEAD" in system_prompt
     print("✅ test_technical_query_prompt PASSED")
 
 

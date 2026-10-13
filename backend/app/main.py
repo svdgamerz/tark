@@ -87,6 +87,7 @@ from app.router.prompt_engineer import PromptOptimizer, _is_academic_query
 from app.simulations import (
     detect_simulation_candidate,
     generate_custom_simulation_html,
+    is_simulation_eligible_topic,
     get_catalog,
     get_catalog_item,
     save_custom_catalog_item,
@@ -611,13 +612,17 @@ async def chat(
     has_curriculum = bool(req.board or req.grade or req.exam)
     if spec_check.id == "acharya" and has_curriculum and is_academic:
         system_prompt += (
-            "\n\nACHARYA ACADEMIC MODE (ACTIVE — curriculum context detected):\n"
-            "Since this student is studying with their school curriculum, adapt your responses for academic learning:\n"
-            "- For CONCEPTUAL questions: Start with a clear core idea, then provide a structured breakdown with bold key terms.\n"
-            "- For QUANTITATIVE problems: State known variables, show step-by-step substitution in clean LaTeX ($$...$$), and box the final answer: $$\\boxed{...}$$.\n"
-            "- For FACTUAL questions (chapter names, definitions, units): Answer directly and concisely — no padding.\n"
-            "- Stay calibrated to the student's board, grade, and subject level.\n"
-            "- Focus on accuracy and clarity. Do NOT add unsolicited quizzes or test questions unless the student asks."
+            "\n\nACHARYA MASTER TUTOR MODE (ACTIVE — curriculum context detected):\n"
+            "You are Acharya, Tark's curriculum-grounded master tutor calibrated to the student's board & syllabus.\n"
+            "Deliver world-class, pedagogically superior answers with rich formatting and structure:\n"
+            "1. **Direct Intuitive Lead (Opening Paragraph):** Begin immediately with a lucid 1-2 sentence definition, historical overview, or intuitive real-world explanation in cohesive prose. Never open with a raw bullet point.\n"
+            "2. **Strict Ban on 'Wall of Bullets':** NEVER dump a list of 5-10 disconnected bullet points. Explain mechanisms, historical narratives, cause-and-effect, and scientific reasoning in well-written, fluid paragraphs.\n"
+            "3. **Structured Thematic Sections:** Group deeper explanations under clear Markdown subheadings (`### Historical Context`, `### Core Mechanism & Theory`, `### Real-World Working`).\n"
+            "4. **Judicious Lists & Bold Lead-ins:** Use bullet points ONLY when listing discrete components, properties, postulates, or conditions. Every bullet point MUST feature a bold prefix followed by a complete, well-formed sentence (e.g. '• **Concept Name:** Complete explanatory sentence...').\n"
+            "5. **Clean Comparison Tables:** When contrasting two concepts (e.g. Mitosis vs Meiosis, Series vs Parallel, Akbar's court vs contemporaries), use a clean Markdown table with headers instead of twin lists.\n"
+            "6. **Rigorous Problem Solving:** For quantitative/math doubts: state known parameters, declare governing formulas in display LaTeX (`$$ ... $$`), show clean step-by-step numbered steps (`1.`, `2.`), and box the final result: `$$\\boxed{...}$$.\n"
+            "7. **Quick Revision Card (Key Takeaway):** Conclude conceptual explanations with a crisp '💡 **Key Takeaway**' summarizing the core insight in one memorable sentence.\n"
+            "8. **Factual & Chapter Queries:** For syllabus/chapter name queries, state the exact verified title and chapter number immediately without padding."
         )
 
     # Inject student personalization & learning profile
@@ -1115,9 +1120,10 @@ async def chat(
             # Interactive Visual Simulation (Virtualization):
             # If the student's question matches a core curriculum simulation concept, stream it directly!
             try:
-                sim_cand = detect_simulation_candidate(last_user)
-                if sim_cand:
-                    yield _sse({"type": "simulation", "sim": sim_cand})
+                if is_simulation_eligible_topic(last_user, subject=req.subject or ""):
+                    sim_cand = detect_simulation_candidate(last_user, subject=req.subject or "")
+                    if sim_cand:
+                        yield _sse({"type": "simulation", "sim": sim_cand})
             except Exception as e:
                 logger.warning(f"Simulation candidate detection error: {e}")
 
@@ -1498,10 +1504,21 @@ async def generate_simulation_endpoint(req: SimulationRequest) -> dict[str, Any]
     if not target_text:
         raise HTTPException(status_code=400, detail="Topic or question is required")
 
+    # Strictly verify that the topic is an experimentable STEM laboratory or physics/chemistry/biology/math concept
+    if not is_simulation_eligible_topic(
+        target_text,
+        subject=req.subject or "",
+        context=req.context or req.answer or "",
+    ):
+        return {
+            "sim": None,
+            "simulation": None,
+            "eligible": False,
+            "reason": "This topic is not an interactive laboratory or STEM simulation concept.",
+        }
+
     # 1. Check built-in candidates first for instant zero-latency loading
-    sim = detect_simulation_candidate(target_text)
-    if not sim and req.answer:
-        sim = detect_simulation_candidate(req.answer[:300])
+    sim = detect_simulation_candidate(target_text, subject=req.subject or "")
     if sim:
         return {"sim": sim, "simulation": sim}
 
@@ -1510,6 +1527,7 @@ async def generate_simulation_endpoint(req: SimulationRequest) -> dict[str, Any]
         custom_sim = await generate_custom_simulation_html(
             target_text,
             context=req.context or req.answer or req.subject or "",
+            subject=req.subject or "",
         )
         if custom_sim:
             citations = custom_sim.get("textbook_sources", [])
@@ -1552,9 +1570,13 @@ async def generate_simulation_endpoint(req: SimulationRequest) -> dict[str, Any]
     except Exception as e:
         logger.warning(f"Error generating custom simulation: {e}")
 
-    # 3. Graceful fallback to default interactive physics lab
-    fallback = detect_simulation_candidate("projectile trajectory")
-    return {"sim": fallback, "simulation": fallback}
+    # No simulation for non-simulatable queries — never fallback to arbitrary projectile motions!
+    return {
+        "sim": None,
+        "simulation": None,
+        "eligible": True,
+        "message": "No interactive simulation available for this specific topic.",
+    }
 
 
 @app.post("/api/simulations/compute")

@@ -176,19 +176,117 @@ _SIM_TRIGGERS: list[tuple[str, str, str, str, str, dict[str, float]]] = [
 ]
 
 
-def detect_simulation_candidate(text: str) -> dict[str, Any] | None:
+# Non-STEM Disqualifiers: Subjects, Historical/Literary/Social themes that MUST NOT produce simulations
+_INELIGIBLE_SUBJECTS = {
+    "history", "civics", "political science", "geography", "economics",
+    "english", "hindi", "marathi", "sanskrit", "literature", "social studies",
+    "social science", "sst", "moral science", "accountancy", "business studies",
+    "commerce", "arts", "music", "physical education",
+}
+
+_INELIGIBLE_PATTERNS = [
+    # Historical personalities, rulers, dynasties, wars, freedom movement
+    re.compile(
+        r"\b(akbar|birbal|babur|humayun|shah jahan|aurangzeb|shivaji|ashoka|chandragupta|"
+        r"maratha|mughal|british|east india company|harappa|mohenjo|french revolution|"
+        r"russian revolution|nazism|hitler|world war|independence|constitution|parliament|"
+        r"lok sabha|rajya sabha|judiciary|democracy|election|prime minister|president|"
+        r"governor|emperor|king|queen|sultan|nawab|ruler|dynasty|empire|treaty|battle of|"
+        r"gandhi|nehru|patel|bhagat singh|subhash|ambedkar|viceroy|mansabdar|jizya)\b",
+        re.I,
+    ),
+    # Biographical / person-focused queries
+    re.compile(
+        r"\b(who was|who is|biography|autobiography|life of|character sketch of|born in|"
+        r"died in|ruled by|reign of|famous king|great emperor)\b",
+        re.I,
+    ),
+    # Languages, grammar, literature, creative writing
+    re.compile(
+        r"\b(grammar|essay|speech|letter writing|story of|poem|poet|stanza|rhyme scheme|"
+        r"metaphor|simile|comprehension|tense|active voice|passive voice|direct speech|"
+        r"indirect speech|noun|verb|adjective|adverb|preposition|conjunction|idiom|"
+        r"antonym|synonym|dialogue writing|summary of the poem|theme of the story)\b",
+        re.I,
+    ),
+    # Commerce, economics, accounting
+    re.compile(
+        r"\b(journal entry|ledger|balance sheet|trial balance|debit and credit|gdp|"
+        r"inflation|central bank|rbi|monetary policy|fiscal policy|taxation|shares and debentures)\b",
+        re.I,
+    ),
+    # General non-scientific trivia & syllabus queries
+    re.compile(
+        r"\b(recipe|capital of|currency of|full form of|meaning of word|how to make|"
+        r"name of chp|name of chapter|which chapter|list of chapters|table of contents)\b",
+        re.I,
+    ),
+]
+
+_STEM_SIMULATION_SIGNALS = [
+    # Physics dynamic mechanics & kinematics
+    re.compile(r"\b(projectile|trajectory|launch angle|cannonball|parabolic motion|kinematics|pendulum|oscillat|shm|simple harmonic|spring mass|gravity|gravitation|free fall|collision|momentum conservation|centripetal|circular motion|torque|moment of inertia|friction|work energy)\b", re.I),
+    # Physics electromagnetism & circuits
+    re.compile(r"\b(ohm'?s law|electric circuit|resistor|v\s*=\s*i\s*r|current electricity|parallel circuit|series circuit|magnetic field|bar magnet|field lines|faraday'?s law|electromagnetic induction|induced emf|lenz'?s law|solenoid|lorentz force)\b", re.I),
+    # Physics optics & waves
+    re.compile(r"\b(convex lens|concave lens|ray optics|lens formula|snell'?s law|refraction of light|reflection of light|dispersion|prism|young'?s double|double[- ]slit|interference.*light|wave optics|fringe width|diffraction|sound wave|doppler effect)\b", re.I),
+    # Physics / Chemistry thermodynamics & gases
+    re.compile(r"\b(ideal gas|boyle'?s law|charles'?s law|pv\s*=\s*nrt|gas pressure|piston.*gas|thermodynamics|carnot engine|heat engine|brownian motion)\b", re.I),
+    # Chemistry laboratory reactions & electrochemistry
+    re.compile(r"\b(titrat|acid[- ]base titration|ph curve|neutralization curve|electrolysis|hoffman voltameter|water electrolysis|galvanic cell|voltaic cell|daniell cell|bohr'?s? (?:atom|model)|energy level.*electron|spectral line|balmer series|chemical bond.*distance|lennard[- ]jones|reaction rate|activation energy)\b", re.I),
+    # Biology cellular & physiological dynamic mechanisms
+    re.compile(r"\b(mitosis|meiosis|cell division|prophase|metaphase|anaphase|telophase|spindle fiber|human heart|double circulation|cardiac cycle|atrium.*ventricle|ecg|blood flow|dna replication|replication fork|helicase|dna polymerase|photosynthesis|thylakoid|light reaction|photolysis|action potential|neuron potential|synapse|synaptic transmission|osmosis|semi[- ]permeable|water potential|hypotonic|hypertonic|plasmolysis|u[- ]tube.*membrane)\b", re.I),
+    # Mathematics interactive graphs & curves
+    re.compile(r"\b(quadratic.*curve|parabola|vertex.*parabola|roots.*quadratic|unit circle|trigonometric circle|sine wave.*slider|pythagorean theorem|vector addition)\b", re.I),
+]
+
+
+def is_simulation_eligible_topic(text: str, subject: str = "", context: str = "") -> bool:
+    """Strict gate: Determines whether a topic is an experimentable STEM laboratory concept.
+
+    Rejects humanities, history, literature, biographies, non-STEM subjects, general queries,
+    and static facts (e.g. 'who was akbar and birbal' -> strictly False).
+    """
+    if not text or not text.strip():
+        return False
+
+    s_clean = (subject or "").strip().lower()
+    if s_clean in _INELIGIBLE_SUBJECTS:
+        return False
+
+    combined = f"{text} {context}".strip()
+
+    # 1. Reject any query that matches non-STEM disqualifiers
+    for pat in _INELIGIBLE_PATTERNS:
+        if pat.search(combined):
+            return False
+
+    # 2. Must match positive STEM simulation dynamic phenomena
+    has_stem_signal = any(pat.search(combined) for pat in _STEM_SIMULATION_SIGNALS)
+    if has_stem_signal:
+        return True
+
+    # 3. Check if text matches any built-in simulation trigger pattern
+    for _, pattern, _, _, _, _ in _SIM_TRIGGERS:
+        if re.search(pattern, text, re.IGNORECASE):
+            return True
+
+    return False
+
+
+def detect_simulation_candidate(text: str, subject: str = "") -> dict[str, Any] | None:
     """Detect if a user prompt matches one of the high-yield built-in simulation templates."""
-    if not text:
+    if not text or not is_simulation_eligible_topic(text, subject=subject):
         return None
 
     # Check against known curriculum models
-    for sim_type, pattern, title, subject, concept, default_params in _SIM_TRIGGERS:
+    for sim_type, pattern, title, sim_subject, concept, default_params in _SIM_TRIGGERS:
         if re.search(pattern, text, re.IGNORECASE):
             return {
                 "id": f"sim_{sim_type}_{abs(hash(text)) % 10000}",
                 "type": sim_type,
                 "title": title,
-                "subject": subject,
+                "subject": sim_subject,
                 "concept": concept,
                 "description": f"Interactive model for {concept}. Adjust sliders to explore the concept in real time.",
                 "params": default_params,
@@ -237,8 +335,12 @@ VISUAL & ARCHITECTURAL SPECIFICATIONS:
    - Do NOT wrap in markdown fences (no ```html ... ```), no introductory or concluding text."""
 
 
-async def generate_custom_simulation_html(question: str, context: str = "") -> dict[str, Any] | None:
+async def generate_custom_simulation_html(question: str, context: str = "", subject: str = "") -> dict[str, Any] | None:
     """Generate a custom interactive HTML5 Canvas simulation grounded in official textbooks."""
+    if not is_simulation_eligible_topic(question, subject=subject, context=context):
+        logger.info(f"Topic '{question[:40]}' is not eligible for simulation. Skipping generation.")
+        return None
+
     from app.main import _llm_text
 
     # Search indexed textbooks (NCERT, ICSE, State Boards) for official curriculum grounding

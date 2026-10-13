@@ -157,6 +157,31 @@ function speechText(s: string): string {
   return formatPedagogicalSpeech(s)
 }
 
+function isSimulationEligibleQuery(query?: string, content?: string): boolean {
+  const text = `${query || ''} ${content || ''}`.toLowerCase()
+  if (!text.trim()) return false
+
+  // Ineligible filters: history, civics, biographies, people, grammar, literature, general trivia
+  const ineligible = /\b(akbar|birbal|babur|humayun|shah jahan|aurangzeb|shivaji|ashoka|mughal|maratha|british|gandhi|nehru|patel|hitler|revolution|dynasty|emperor|king|queen|sultan|who was|who is|biography|poem|poetry|grammar|essay|speech|story|tense|verb|noun|adjective|recipe|currency|capital of|name of chp|chapter name|table of contents)\b/
+  if (ineligible.test(text)) {
+    return false
+  }
+
+  // STEM simulation phenomena
+  const stemPatterns = [
+    /\b(projectile|trajectory|launch angle|cannon|kinematics|motion|pendulum|oscillat|shm|harmonic|spring|gravity|gravitation|free fall|collision|momentum|centripetal|torque|friction)\b/,
+    /\b(ohm'?s law|circuit|resistor|voltage|current|parallel|series|magnetic field|magnet|faraday|induction|solenoid|lorentz)\b/,
+    /\b(lens|optics|refraction|reflection|snell|prism|dispersion|interference|double[- ]slit|wave|diffraction|doppler)\b/,
+    /\b(ideal gas|boyle|charles|pv\s*=\s*nrt|pressure|thermodynamics|carnot)\b/,
+    /\b(titrat|acid[- ]base|ph curve|neutraliz|electrolysis|voltameter|galvanic|voltaic|bohr|atomic orbital|spectral|reaction rate)\b/,
+    /\b(mitosis|meiosis|cell division|heart|circulation|cardiac|dna replication|photosynthesis|action potential|neuron|synapse|osmosis|membrane)\b/,
+    /\b(quadratic|parabola|trigonometric|unit circle|vector)\b/,
+    /\b(simulation|virtual lab|simulate|experiment|apparatus)\b/,
+  ]
+
+  return stemPatterns.some((p) => p.test(text))
+}
+
 export function MessageView({
   message,
   streaming,
@@ -224,6 +249,8 @@ export function MessageView({
     }
   }, [message.simulation])
 
+  const isEligibleForSim = Boolean(activeSim || message.simulation || isSimulationEligibleQuery(userQuestion, displayText))
+
   async function handleToggleSimulation() {
     if (isSimOpen) {
       setIsSimOpen(false)
@@ -233,9 +260,13 @@ export function MessageView({
       setIsSimOpen(true)
       return
     }
+    const topicQuery = (userQuestion && userQuestion.trim().length > 0) ? userQuestion : displayText
+    if (!isSimulationEligibleQuery(topicQuery, displayText)) {
+      onToast?.('Interactive virtual lab is only available for experimentable STEM topics.')
+      return
+    }
     setSimLoading(true)
     try {
-      const topicQuery = (userQuestion && userQuestion.trim().length > 0) ? userQuestion : displayText
       const sim = await fetchSimulation(topicQuery, displayText)
       if (sim) {
         setActiveSim(sim)
@@ -784,15 +815,17 @@ export function MessageView({
                   <Icon name="mic" />
                   <span className="tl-btn-text">Speak to Master</span>
                 </button>
-                <button
-                  className={`sim-action-btn ${isSimOpen ? 'active' : ''}`}
-                  onClick={handleToggleSimulation}
-                  title={isSimOpen ? 'Hide Interactive Simulation' : 'Launch Interactive Virtual Lab Simulation'}
-                  aria-label="Interactive Simulation"
-                >
-                  <Icon name="sim" />
-                  <span className="sim-btn-text">{simLoading ? 'Loading...' : isSimOpen ? 'Close Lab' : 'Simulate'}</span>
-                </button>
+                {isEligibleForSim && (
+                  <button
+                    className={`sim-action-btn ${isSimOpen ? 'active' : ''}`}
+                    onClick={handleToggleSimulation}
+                    title={isSimOpen ? 'Hide Interactive Simulation' : 'Launch Interactive Virtual Lab Simulation'}
+                    aria-label="Interactive Simulation"
+                  >
+                    <Icon name="sim" />
+                    <span className="sim-btn-text">{simLoading ? 'Loading...' : isSimOpen ? 'Close Lab' : 'Simulate'}</span>
+                  </button>
+                )}
                 <div className="more-wrap">
                   <button
                     onClick={() => setMenuOpen((o) => !o)}
