@@ -22,7 +22,7 @@ logger = logging.getLogger("tark.main")
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import PlainTextResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.auth.router import create_auth_router
@@ -549,9 +549,9 @@ class VerifyRequest(BaseModel):
 @app.head("/")
 @app.get("/ping")
 @app.head("/ping")
-async def root_ping() -> Response:
-    """Ultra-lightweight ping endpoint for cron-job.org and uptime monitors."""
-    return Response(status_code=204)
+async def root_ping() -> PlainTextResponse:
+    """Ultra-lightweight 4-byte 200 OK ping endpoint for cron-job.org and uptime monitors."""
+    return PlainTextResponse("PONG", status_code=200)
 
 
 @app.get("/health")
