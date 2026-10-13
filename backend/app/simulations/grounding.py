@@ -7,42 +7,44 @@ variables, apparatus setups, and formulas to ground the interactive simulation.
 from __future__ import annotations
 
 import logging
+import re
+import sqlite3
 from typing import Any
+
+from app.config.db_path import get_db_path
 
 logger = logging.getLogger("tark.simulations.grounding")
 
 
 def find_textbook_grounding_for_topic(topic: str) -> dict[str, Any]:
-    """Search indexed textbooks for the given concept and return structured grounding."""
-    from app.rag.embeddings import embed_query
-    from app.rag.retrieve import _index
-
+    """Search indexed textbooks for the given concept using fast, memory-safe SQLite queries."""
     clean_topic = topic.strip()
-    search_phrases = [
-        f"{clean_topic} experiment apparatus definition laws formula",
-        f"{clean_topic} mechanism principles theory",
-        clean_topic,
+    words = [
+        w for w in re.findall(r"\b[a-zA-Z]{4,}\b", clean_topic.lower())
+        if w not in {"what", "this", "that", "explain", "process", "about", "describe", "which", "where"}
     ]
+    if not words:
+        words = [clean_topic.lower()]
 
-    best_hits = []
+    db_file = get_db_path("tark_rag.db")
+    top_hits = []
     seen_keys = set()
 
-    for phrase in search_phrases:
-        try:
-            vec = embed_query(phrase)
-            hits = _index.search(vec, top_k=3)
-            for h in hits:
-                if h.score >= 0.60:
-                    key = (h.source, h.page)
+    try:
+        with sqlite3.connect(db_file, timeout=5) as conn:
+            conn.row_factory = sqlite3.Row
+            for word in words[:3]:
+                rows = conn.execute(
+                    "SELECT source, page, chapter, text FROM chunks WHERE lower(text) LIKE ? LIMIT 3",
+                    (f"%{word}%",),
+                ).fetchall()
+                for r in rows:
+                    key = (r["source"], r["page"])
                     if key not in seen_keys:
                         seen_keys.add(key)
-                        best_hits.append(h)
-        except Exception as e:
-            logger.warning(f"Error querying index for topic '{clean_topic}': {e}")
-
-    # Sort by relevance score descending
-    best_hits.sort(key=lambda x: x.score, reverse=True)
-    top_hits = best_hits[:3]
+                        top_hits.append(r)
+    except Exception as e:
+        logger.warning(f"Error querying textbooks for simulation grounding '{clean_topic}': {e}")
 
     if not top_hits:
         return {
@@ -53,15 +55,14 @@ def find_textbook_grounding_for_topic(topic: str) -> dict[str, Any]:
         }
 
     citations = [
-        f"{h.source} (Page {h.page})" if h.source else f"Curriculum Textbook (Page {h.page})"
-        for h in top_hits
+        f"{h['source'] or 'Official Textbook'} (Page {h['page']})" if h["page"] else f"{h['source'] or 'Official Textbook'}"
+        for h in top_hits[:3]
     ]
 
     excerpts = []
-    for h in top_hits:
-        src_label = f"{h.source or 'Official Textbook'} (Page {h.page})"
-        clean_chunk = h.text.strip().replace("\r", " ")
-        excerpts.append(f"--- From {src_label} ---\n{clean_chunk[:500]}")
+    for h, c in zip(top_hits[:3], citations):
+        clean_chunk = (h["text"] or "").strip().replace("\r", " ")
+        excerpts.append(f"--- From {c} ---\n{clean_chunk[:500]}")
 
     grounding_text = "\n\n".join(excerpts)
 

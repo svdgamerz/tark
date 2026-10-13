@@ -20,10 +20,10 @@ _SIM_TRIGGERS: list[tuple[str, str, str, str, str, dict[str, float]]] = [
     # Physics Built-ins
     (
         "projectile",
-        r"\b(projectile|trajectory|launch angle|time of flight|horizontal range|cannonball|parabolic motion)\b",
-        "Projectile Motion Simulator",
+        r"\b(projectile|trajectory|launch angle|time of flight|horizontal range|cannonball|parabolic motion|law[s]? of motion|newton'?s (?:first|second|third|1st|2nd|3rd)?\s*law|f\s*=\s*m\s*a|inertia|action[- ]reaction|force and acceleration|momentum and impulse|kinematics)\b",
+        "Projectile Motion & Newton's Laws Simulator",
         "Physics - Mechanics",
-        "Parabolic 2D Kinematics",
+        "Newton's Laws of Motion & 2D Kinematics",
         {"angle": 45, "speed": 25, "gravity": 9.8},
     ),
     (
@@ -262,13 +262,13 @@ async def generate_custom_simulation_html(question: str, context: str = "") -> d
     )
     raw_html = ""
 
-    # Prioritize Gemini 2.5 Flash for high-fidelity photorealistic simulations, fallback to Llama-70B on Groq
-    for mid in ("gemini-flash", "llama-70b", "qwen-27b"):
+    # Prioritize fast, high-capacity models with low latency (Groq / OpenRouter)
+    for mid in ("gpt-oss-120b", "llama-70b", "deepseek-chat"):
         try:
             logger.info(f"Generating photorealistic simulation with {mid} for topic: {question[:40]}...")
             raw_html = await asyncio.wait_for(
                 _llm_text(CUSTOM_SIM_SYSTEM_PROMPT, prompt, mid),
-                timeout=40.0,
+                timeout=20.0,
             )
             if raw_html and len(raw_html.strip()) > 500:
                 break
