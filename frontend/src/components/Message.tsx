@@ -565,45 +565,65 @@ export function MessageView({
                     </div>
                   </div>
                 )}
-                <div
-                  className="msg-body"
-                  onClick={(e) => {
-                    const target = e.target as HTMLElement
-                    if (target.tagName === 'IMG' && target.classList.contains('md-chat-image')) {
-                      const src = (target as HTMLImageElement).src
-                      if (src) setLightboxImg(src)
-                    }
-                  }}
-                >
-                {segments.map((seg, i) =>
-                  seg.type === 'math' ? (
-                    seg.display ? (
-                      <div
-                        key={i}
-                        className="math-block display-math"
-                        dangerouslySetInnerHTML={{
-                          __html: renderMath(seg.value, true),
-                        }}
-                      />
+                {message.isError ? (
+                  <div className="msg-connection-alert-card">
+                    <div className="msg-connection-alert-header">
+                      <span className="msg-connection-alert-icon">⚡</span>
+                      <strong>Tutor Service Alert</strong>
+                    </div>
+                    <p className="msg-connection-alert-text">{displayText}</p>
+                    {canRegenerate && (
+                      <button
+                        type="button"
+                        className="msg-connection-retry-btn"
+                        onClick={onRegenerate}
+                        title="Retry this question immediately"
+                      >
+                        🔄 Tap to Retry Question
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    className="msg-body"
+                    onClick={(e) => {
+                      const target = e.target as HTMLElement
+                      if (target.tagName === 'IMG' && target.classList.contains('md-chat-image')) {
+                        const src = (target as HTMLImageElement).src
+                        if (src) setLightboxImg(src)
+                      }
+                    }}
+                  >
+                  {segments.map((seg, i) =>
+                    seg.type === 'math' ? (
+                      seg.display ? (
+                        <div
+                          key={i}
+                          className="math-block display-math"
+                          dangerouslySetInnerHTML={{
+                            __html: renderMath(seg.value, true),
+                          }}
+                        />
+                      ) : (
+                        <span
+                          key={i}
+                          className="math-block inline-math"
+                          dangerouslySetInnerHTML={{
+                            __html: renderMath(seg.value, false),
+                          }}
+                        />
+                      )
                     ) : (
                       <span
                         key={i}
-                        className="math-block inline-math"
-                        dangerouslySetInnerHTML={{
-                          __html: renderMath(seg.value, false),
-                        }}
+                        className="text-block"
+                        style={{ whiteSpace: 'pre-wrap' }}
+                        dangerouslySetInnerHTML={{ __html: renderMarkdown(seg.value) }}
                       />
-                    )
-                  ) : (
-                    <span
-                      key={i}
-                      className="text-block"
-                      style={{ whiteSpace: 'pre-wrap' }}
-                      dangerouslySetInnerHTML={{ __html: renderMarkdown(seg.value) }}
-                    />
-                  ),
+                    ),
+                  )}
+                  </div>
                 )}
-                </div>
               </>
             )}
 

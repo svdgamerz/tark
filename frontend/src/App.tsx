@@ -99,7 +99,7 @@ function friendlyError(raw: string): string {
   if (r.includes('429') || r.includes('quota') || r.includes('rate limit') || r.includes('resource_exhausted'))
     return 'The AI provider is temporarily busy. Please wait a few seconds and try again.'
   if (r.includes('failed to connect') || r.includes('network error') || r.includes('could not reach'))
-    return 'Unable to connect to the tutor service. Please check your connection and ensure the backend is running.'
+    return 'Unable to connect to the tutor service. The server may be waking up from idle, or your connection was temporarily interrupted.'
   if (r.includes('all providers failed'))
     return 'AI services are momentarily busy. Please try asking again.'
   return raw || 'Something went wrong. Please try again.'
@@ -230,6 +230,24 @@ export default function App() {
   // Apply the saved appearance theme (light / dark / system) on load.
   useEffect(() => {
     applyTheme(localStorage.getItem('tark_theme') ?? 'system')
+  }, [])
+
+  // Proactively wake up backend service on app mount and tab resume
+  useEffect(() => {
+    const wakeBackend = () => {
+      fetch(`${API_BASE}/ping`, { method: 'GET', keepalive: true }).catch(() => {})
+    }
+    wakeBackend()
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        wakeBackend()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [])
 
   // Automatically prompt student profile setup modal on login if board/grade are incomplete
@@ -634,6 +652,17 @@ export default function App() {
       : {}
 
     await streamChat(MODE, history, { model: modelId, token, ...currentCtx(), ...schedOpts, image }, {
+      onStatus: (statusText) => {
+        setMessages((prev) => {
+          const next = [...prev]
+          next[next.length - 1] = {
+            ...next[next.length - 1],
+            role: 'assistant',
+            content: `⏳ *${statusText}*`,
+          }
+          return next
+        })
+      },
       onToken: (t) => {
         acc += t
         setLast(acc)
@@ -646,7 +675,17 @@ export default function App() {
         const msg = friendlyError(e)
         if (!acc || acc.trim().length === 0) {
           acc = msg
-          setLast(acc)
+          setMessages((prev) => {
+            const next = [...prev]
+            next[next.length - 1] = {
+              ...next[next.length - 1],
+              role: 'assistant',
+              content: msg,
+              isError: true,
+              failedQuestion: history[history.length - 1]?.content,
+            }
+            return next
+          })
         } else {
           console.warn('Post-stream warning occurred after answer was generated:', e)
         }

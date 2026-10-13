@@ -560,46 +560,44 @@ def render_pdf_page_png(
         return None
 
     try:
-        doc = pymupdf.open(resolved_path)
-        total_doc_pages = len(doc)
-        base_name = os.path.basename(resolved_path).lower()
+        with pymupdf.open(resolved_path) as doc:
+            total_doc_pages = len(doc)
+            base_name = os.path.basename(resolved_path).lower()
 
-        target_page = page_number
+            target_page = page_number
 
-        # 1. Check if a chapter was provided to calculate exact chapter-based offset
-        ch_offset = None
-        if chapter:
-            c_num_match = re.search(r'\b(?:chapter|chp|unit)?\s*(\d{1,2})\b', chapter, re.I)
-            c_num = int(c_num_match.group(1)) if c_num_match else None
-            # Search in KNOWN_CHAPTERS_MAP
-            for (b, g, s), ch_list in KNOWN_CHAPTERS_MAP.items():
-                for ch_item in ch_list:
-                    if ch_item.get("source", "").lower() == base_name or base_name in ch_item.get("source", "").lower():
-                        match_title = chapter.lower() in ch_item["chapter"].lower() or ch_item["chapter"].lower() in chapter.lower()
-                        match_num = c_num is not None and (f"chapter {c_num}:" in ch_item["chapter"].lower() or f"chapter {c_num}" == ch_item["chapter"].lower())
-                        if match_title or match_num:
-                            ch_offset = ch_item["start_page"]
-                            break
-                if ch_offset is not None:
-                    break
+            # 1. Check if a chapter was provided to calculate exact chapter-based offset
+            ch_offset = None
+            if chapter:
+                c_num_match = re.search(r'\b(?:chapter|chp|unit)?\s*(\d{1,2})\b', chapter, re.I)
+                c_num = int(c_num_match.group(1)) if c_num_match else None
+                # Search in KNOWN_CHAPTERS_MAP
+                for (b, g, s), ch_list in KNOWN_CHAPTERS_MAP.items():
+                    for ch_item in ch_list:
+                        if ch_item.get("source", "").lower() == base_name or base_name in ch_item.get("source", "").lower():
+                            match_title = chapter.lower() in ch_item["chapter"].lower() or ch_item["chapter"].lower() in chapter.lower()
+                            match_num = c_num is not None and (f"chapter {c_num}:" in ch_item["chapter"].lower() or f"chapter {c_num}" == ch_item["chapter"].lower())
+                            if match_title or match_num:
+                                ch_offset = ch_item["start_page"]
+                                break
+                    if ch_offset is not None:
+                        break
 
-        if ch_offset is not None:
-            # If the user passed a relative page number (e.g. page 1, 2, 3 of that chapter)
-            if page_number < ch_offset:
-                target_page = ch_offset + (page_number - 1)
-            else:
-                target_page = page_number
-        elif page_number < 11 and total_doc_pages >= 20:
-            # In official full-book PDF scans (Balbharti / State Board / NCERT), pages 1..10 are front matter (cover, preface, TOC).
-            # Printed Page 1 of lesson content begins at PDF page 11 (doc[10]).
-            target_page = 10 + page_number
+            if ch_offset is not None:
+                # If the user passed a relative page number (e.g. page 1, 2, 3 of that chapter)
+                if page_number < ch_offset:
+                    target_page = ch_offset + (page_number - 1)
+                else:
+                    target_page = page_number
+            elif page_number < 11 and total_doc_pages >= 20:
+                # In official full-book PDF scans (Balbharti / State Board / NCERT), pages 1..10 are front matter (cover, preface, TOC).
+                # Printed Page 1 of lesson content begins at PDF page 11 (doc[10]).
+                target_page = 10 + page_number
 
-        target_page = max(1, min(target_page, total_doc_pages))
-        page = doc[target_page - 1]
-        pix = page.get_pixmap(dpi=dpi)
-        img_bytes = pix.tobytes("png")
-        doc.close()
-        return img_bytes
+            target_page = max(1, min(target_page, total_doc_pages))
+            page = doc[target_page - 1]
+            pix = page.get_pixmap(dpi=dpi)
+            return pix.tobytes("png")
     except Exception as e:
         print(f"[textbook_service] Error rendering PDF page {pdf_path}:{page_number}: {e}")
         return None
@@ -752,41 +750,40 @@ def get_pdf_page_text(pdf_path: str, page_number: int, chapter: str = "") -> str
         return ""
 
     try:
-        doc = pymupdf.open(resolved_path)
-        total_doc_pages = len(doc)
-        base_name = os.path.basename(resolved_path).lower()
+        with pymupdf.open(resolved_path) as doc:
+            total_doc_pages = len(doc)
+            base_name = os.path.basename(resolved_path).lower()
 
-        target_page = page_number
+            target_page = page_number
 
-        # 1. Check if a chapter was provided to calculate exact chapter-based offset
-        ch_offset = None
-        if chapter:
-            c_num_match = re.search(r'\b(?:chapter|chp|unit)?\s*(\d{1,2})\b', chapter, re.I)
-            c_num = int(c_num_match.group(1)) if c_num_match else None
-            for (b, g, s), ch_list in KNOWN_CHAPTERS_MAP.items():
-                for ch_item in ch_list:
-                    if ch_item.get("source", "").lower() == base_name or base_name in ch_item.get("source", "").lower():
-                        match_title = chapter.lower() in ch_item["chapter"].lower() or ch_item["chapter"].lower() in chapter.lower()
-                        match_num = c_num is not None and (f"chapter {c_num}:" in ch_item["chapter"].lower() or f"chapter {c_num}" == ch_item["chapter"].lower())
-                        if match_title or match_num:
-                            ch_offset = ch_item["start_page"]
-                            break
-                if ch_offset is not None:
-                    break
+            # 1. Check if a chapter was provided to calculate exact chapter-based offset
+            ch_offset = None
+            if chapter:
+                c_num_match = re.search(r'\b(?:chapter|chp|unit)?\s*(\d{1,2})\b', chapter, re.I)
+                c_num = int(c_num_match.group(1)) if c_num_match else None
+                for (b, g, s), ch_list in KNOWN_CHAPTERS_MAP.items():
+                    for ch_item in ch_list:
+                        if ch_item.get("source", "").lower() == base_name or base_name in ch_item.get("source", "").lower():
+                            match_title = chapter.lower() in ch_item["chapter"].lower() or ch_item["chapter"].lower() in chapter.lower()
+                            match_num = c_num is not None and (f"chapter {c_num}:" in ch_item["chapter"].lower() or f"chapter {c_num}" == ch_item["chapter"].lower())
+                            if match_title or match_num:
+                                ch_offset = ch_item["start_page"]
+                                break
+                    if ch_offset is not None:
+                        break
 
-        if ch_offset is not None:
-            if page_number < ch_offset:
-                target_page = ch_offset + (page_number - 1)
-            else:
-                target_page = page_number
-        elif page_number < 11 and total_doc_pages >= 20:
-            target_page = 10 + page_number
+            if ch_offset is not None:
+                if page_number < ch_offset:
+                    target_page = ch_offset + (page_number - 1)
+                else:
+                    target_page = page_number
+            elif page_number < 11 and total_doc_pages >= 20:
+                target_page = 10 + page_number
 
-        target_page = max(1, min(target_page, total_doc_pages))
-        page = doc[target_page - 1]
-        text = page.get_text("text")
-        doc.close()
-        return text.strip()
+            target_page = max(1, min(target_page, total_doc_pages))
+            page = doc[target_page - 1]
+            text = page.get_text("text")
+            return text.strip()
     except Exception as e:
         print(f"[textbook_service] Error getting PDF text {pdf_path}:{page_number}: {e}")
         return ""

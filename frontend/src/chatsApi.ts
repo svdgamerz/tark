@@ -1,7 +1,5 @@
 // Server-side chat history (logged-in users). Guests keep chats in localStorage.
-import type { ChatMessage } from './api'
-
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:8000'
+import { API_BASE, type ChatMessage } from './api'
 
 export interface ChatMeta {
   id: string

@@ -99,7 +99,7 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? 'http://127.0.0.1:8000'
+import { API_BASE } from './api'
 
 // Format markdown text with clean step headers, lists, tables, and images
 export function renderMarkdown(text: string): string {

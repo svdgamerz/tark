@@ -22,12 +22,26 @@ export interface ChatMessage {
   suggestions?: FollowUpSuggestion[] // AI-generated dynamic follow-up exploration chips
   engineeredPrompt?: string // Prompt-engineered version produced by the dedicated Groq layer
   simulation?: SimulationData // Interactive visual simulation (Virtualization)
+  isError?: boolean // Connection or backend error
+  failedQuestion?: string // Stored user prompt for 1-tap retry
 }
 
-// Use the literal IPv4 loopback, not "localhost": on Windows "localhost" can
-// resolve to IPv6 (::1) while uvicorn binds IPv4 (127.0.0.1), which breaks the
-// fetch. 127.0.0.1 is unambiguous.
-export const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:8000'
+// Automatically resolve backend API URL with remote/mobile fallback
+function resolveApiBase(): string {
+  const envUrl = import.meta.env?.VITE_API_BASE
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim().length > 0) {
+    return envUrl.trim().replace(/\/+$/, '')
+  }
+  if (typeof window !== 'undefined' && window.location) {
+    const host = window.location.hostname
+    if (host && host !== 'localhost' && host !== '127.0.0.1') {
+      return 'https://tark-rlv1.onrender.com'
+    }
+  }
+  return 'http://127.0.0.1:8000'
+}
+
+export const API_BASE = resolveApiBase()
 
 export interface ModelInfo {
   id: string
@@ -233,112 +247,173 @@ interface StreamHandlers {
   onSuggestions?: (items: FollowUpSuggestion[]) => void // dynamic contextual follow-up exploration chips
   onPromptEngineered?: (data: { original: string; engineered: string }) => void // dedicated prompt engineering layer
   onSimulation?: (sim: SimulationData) => void // interactive visual simulation
+  onStatus?: (status: string) => void // Live status updates (e.g. server waking up)
 }
 
 export async function streamChat(
   mode: Mode,
   messages: ChatMessage[],
   opts: ChatOptions,
-  { onToken, onReset, onError, onDone, onSources, onFigure, onMermaid, onSuggestions, onPromptEngineered, onSimulation }: StreamHandlers,
+  { onToken, onReset, onError, onDone, onSources, onFigure, onMermaid, onSuggestions, onPromptEngineered, onSimulation, onStatus }: StreamHandlers,
 ): Promise<void> {
-  let res: Response
-  try {
-    res = await fetch(`${API_BASE}/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(opts.token ? { Authorization: `Bearer ${opts.token}` } : {}),
-      },
-      body: JSON.stringify({
-        mode,
-        // Send only role/content in history (strip image/at to keep it lean); the
-        // current image travels in the top-level `image` field.
-        messages: messages.map((m) => ({ role: m.role, content: m.content })),
-        model: opts.model,
-        board: opts.board,
-        grade: opts.grade,
-        subject: opts.subject,
-        chapter: opts.chapter,
-        image: opts.image,
-        exam: opts.exam,
-        tutoring_style: opts.tutoring_style,
-        language: opts.language,
-        weak_subjects: opts.weak_subjects,
-        goal: opts.goal,
-        task_id: opts.task_id,
-        milestone_id: opts.milestone_id,
-        milestone_title: opts.milestone_title,
-        milestone_notes: opts.milestone_notes,
-        milestone_index: opts.milestone_index,
-        milestone_total: opts.milestone_total,
-        chapter_confirmation: opts.chapter_confirmation,
-        textbook_source: opts.textbook_source,
-        page_number: opts.page_number,
-      }),
-    })
-  } catch (err) {
-    onError('Network error: Failed to connect to server. Please ensure the backend is running.')
-    return
-  }
+  const MAX_RETRIES = 3
+  let attempt = 0
+  let tokensReceived = 0
 
-  if (!res.ok || !res.body) {
-    let errDetail = ''
+  while (attempt <= MAX_RETRIES) {
+    let res: Response | null = null
     try {
-      const errJson = await res.json()
-      errDetail = errJson.detail || ''
-    } catch {}
-    onError(`Server error (${res.status}): ${errDetail || res.statusText || 'Unable to process chat request'}`)
-    return
-  }
-
-  const reader = res.body.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
-
-  for (;;) {
-    const { value, done } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
-
-    // SSE events are separated by a blank line.
-    const events = buffer.split('\n\n')
-    buffer = events.pop() ?? ''
-    for (const evt of events) {
-      const dataLine = evt.split('\n').find((l) => l.startsWith('data:'))
-      if (!dataLine) continue
-      let payload: {
-        type: string
-        text?: string
-        message?: string
-        items?: string[]
-        data_url?: string
-        code?: string
-        sim?: SimulationData
+      if (attempt > 0) {
+        onStatus?.(`Connecting to tutor service... (waking up backend, attempt ${attempt + 1}/${MAX_RETRIES + 1})`)
+        // Proactively ping health/ping in background to assist spin-up
+        fetch(`${API_BASE}/ping`, { method: 'GET', keepalive: true }).catch(() => {})
       }
-      try {
-        payload = JSON.parse(dataLine.slice(5).trim())
-      } catch {
+
+      res = await fetch(`${API_BASE}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(opts.token ? { Authorization: `Bearer ${opts.token}` } : {}),
+        },
+        body: JSON.stringify({
+          mode,
+          // Send only role/content in history (strip image/at to keep it lean); the
+          // current image travels in the top-level `image` field.
+          messages: messages.map((m) => ({ role: m.role, content: m.content })),
+          model: opts.model,
+          board: opts.board,
+          grade: opts.grade,
+          subject: opts.subject,
+          chapter: opts.chapter,
+          image: opts.image,
+          exam: opts.exam,
+          tutoring_style: opts.tutoring_style,
+          language: opts.language,
+          weak_subjects: opts.weak_subjects,
+          goal: opts.goal,
+          task_id: opts.task_id,
+          milestone_id: opts.milestone_id,
+          milestone_title: opts.milestone_title,
+          milestone_notes: opts.milestone_notes,
+          milestone_index: opts.milestone_index,
+          milestone_total: opts.milestone_total,
+          chapter_confirmation: opts.chapter_confirmation,
+          textbook_source: opts.textbook_source,
+          page_number: opts.page_number,
+        }),
+      })
+    } catch (err) {
+      if (tokensReceived === 0 && attempt < MAX_RETRIES) {
+        attempt++
+        const backoffMs = attempt * 2000
+        await new Promise((r) => setTimeout(r, backoffMs))
         continue
       }
-      if (payload.type === 'token' && payload.text) onToken(payload.text)
-      else if (payload.type === 'reset') onReset?.()
-      else if (payload.type === 'sources' && payload.items)
-        onSources?.(payload.items)
-      else if (payload.type === 'suggestions' && payload.items)
-        onSuggestions?.(payload.items as unknown as FollowUpSuggestion[])
-      else if (payload.type === 'figure' && payload.data_url)
-        onFigure?.(payload.data_url)
-      else if (payload.type === 'figure_mermaid' && payload.code)
-        onMermaid?.(payload.code)
-      else if (payload.type === 'simulation' && payload.sim)
-        onSimulation?.(payload.sim as SimulationData)
-      else if (payload.type === 'prompt_engineered' && (payload as any).engineered)
-        onPromptEngineered?.({
-          original: (payload as any).original || '',
-          engineered: (payload as any).engineered || '',
-        })
-      else if (payload.type === 'error') onError(payload.message ?? 'unknown error')
-      else if (payload.type === 'done') onDone?.()
+      onError('Network error: Failed to connect to server. Please check your connection and ensure the backend is running.')
+      return
+    }
+
+    if (res && (!res.ok || !res.body)) {
+      const isGatewayOrBusy = res.status === 502 || res.status === 503 || res.status === 504
+      if (isGatewayOrBusy && tokensReceived === 0 && attempt < MAX_RETRIES) {
+        attempt++
+        const backoffMs = attempt * 2500
+        await new Promise((r) => setTimeout(r, backoffMs))
+        continue
+      }
+
+      let errDetail = ''
+      try {
+        const errJson = await res.json()
+        errDetail = errJson.detail || ''
+      } catch {}
+      onError(`Server error (${res.status}): ${errDetail || res.statusText || 'Unable to process chat request'}`)
+      return
+    }
+
+    if (!res || !res.body) {
+      onError('Unable to establish stream connection with tutor service.')
+      return
+    }
+
+    // Reset accumulator if we had displayed a wake-up status
+    if (attempt > 0) {
+      onReset?.()
+    }
+
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    try {
+      for (;;) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+
+        // SSE events are separated by a blank line.
+        const events = buffer.split('\n\n')
+        buffer = events.pop() ?? ''
+        for (const evt of events) {
+          const dataLine = evt.split('\n').find((l) => l.startsWith('data:'))
+          if (!dataLine) continue
+          let payload: {
+            type: string
+            text?: string
+            message?: string
+            items?: string[]
+            data_url?: string
+            code?: string
+            sim?: SimulationData
+            original?: string
+            engineered?: string
+          }
+          try {
+            payload = JSON.parse(dataLine.slice(5).trim())
+          } catch {
+            continue
+          }
+          if (payload.type === 'token' && payload.text) {
+            tokensReceived++
+            onToken(payload.text)
+          } else if (payload.type === 'reset') {
+            tokensReceived = 0
+            onReset?.()
+          } else if (payload.type === 'sources' && payload.items) {
+            onSources?.(payload.items)
+          } else if (payload.type === 'suggestions' && payload.items) {
+            onSuggestions?.(payload.items as unknown as FollowUpSuggestion[])
+          } else if (payload.type === 'figure' && payload.data_url) {
+            onFigure?.(payload.data_url)
+          } else if (payload.type === 'figure_mermaid' && payload.code) {
+            onMermaid?.(payload.code)
+          } else if (payload.type === 'simulation' && payload.sim) {
+            onSimulation?.(payload.sim as SimulationData)
+          } else if (payload.type === 'prompt_engineered' && payload.engineered) {
+            onPromptEngineered?.({
+              original: payload.original || '',
+              engineered: payload.engineered || '',
+            })
+          } else if (payload.type === 'error') {
+            onError(payload.message ?? 'unknown error')
+          } else if (payload.type === 'done') {
+            onDone?.()
+          }
+        }
+      }
+      return
+    } catch (streamErr) {
+      if (tokensReceived > 0) {
+        onDone?.()
+        return
+      }
+      if (attempt < MAX_RETRIES) {
+        attempt++
+        await new Promise((r) => setTimeout(r, 2000))
+        continue
+      }
+      onError('Stream disconnected unexpectedly. Please try asking again.')
+      return
     }
   }
 }
@@ -348,21 +423,34 @@ export async function fetchSimulation(
   answer: string = '',
   token?: string | null,
 ): Promise<SimulationData | null> {
-  try {
-    const res = await fetch(`${API_BASE}/api/simulation/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ question, answer }),
-    })
-    if (!res.ok) return null
-    const data = await res.json()
-    return data.sim ?? null
-  } catch (err) {
-    console.error('Failed to fetch simulation:', err)
-    return null
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(`${API_BASE}/api/simulation/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ question, answer }),
+      })
+      if (!res.ok) {
+        if (attempt === 0 && (res.status === 502 || res.status === 503)) {
+          await new Promise((r) => setTimeout(r, 2000))
+          continue
+        }
+        return null
+      }
+      const data = await res.json()
+      return data.sim || data.simulation || null
+    } catch (err) {
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, 1500))
+        continue
+      }
+      console.error('Failed to fetch simulation:', err)
+      return null
+    }
   }
+  return null
 }
 

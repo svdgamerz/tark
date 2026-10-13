@@ -2,7 +2,7 @@
  * socialApi.ts: Client API and WebSocket connection for Tark Study Friends and Doubt Circles.
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:8000'
+import { API_BASE } from './api'
 
 export interface UserSearchResult {
   id: number
