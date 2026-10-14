@@ -98,15 +98,13 @@ if (typeof window !== 'undefined') {
   preloadFirebase()
 }
 
-export const googleClientId =
-  import.meta.env.VITE_GOOGLE_CLIENT_ID ||
-  '272498781290-p3fje696qsl30103rop74ec6o5on3f3h.apps.googleusercontent.com'
+export const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
 /**
- * Trigger direct Google OAuth 2.0 account chooser (exactly like Koyeb).
- * Routes directly to accounts.google.com/o/oauth2/v2/auth/oauthchooseaccount
+ * Trigger direct Google OAuth 2.0 account chooser only when custom client ID is explicitly configured.
  */
 export function triggerDirectGoogleOAuth(): void {
+  if (!googleClientId) return
   const origin = window.location.origin.replace(/\/$/, '')
   const nonce = Math.random().toString(36).substring(2)
   const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
@@ -120,11 +118,12 @@ export function triggerDirectGoogleOAuth(): void {
 }
 
 /**
- * Trigger seamless Google Sign-In directly in the current window (no popups).
- * If VITE_GOOGLE_CLIENT_ID is set, uses the direct Google OAuth2 endpoint (identical to Koyeb).
+ * Trigger seamless Google Sign-In using Firebase Auth with pre-authorized redirect handlers.
+ * Uses popup by default and falls back seamlessly to redirect if popups are blocked.
  */
-export async function triggerGoogleSignIn(): Promise<void> {
-  if (googleClientId) {
+export async function triggerGoogleSignIn(): Promise<{ idToken?: string; user?: any } | void> {
+  // If explicitly configured for custom direct OAuth
+  if (import.meta.env.VITE_USE_DIRECT_GOOGLE_OAUTH === 'true' && googleClientId) {
     triggerDirectGoogleOAuth()
     return
   }
@@ -133,8 +132,24 @@ export async function triggerGoogleSignIn(): Promise<void> {
     throw new Error('Firebase credentials are not configured yet.')
   }
 
-  const { auth, googleProvider, signInWithRedirect } = await preloadFirebase()
-  await signInWithRedirect(auth, googleProvider)
+  const { auth, googleProvider, signInWithPopup, signInWithRedirect } = await preloadFirebase()
+  try {
+    const result = await signInWithPopup(auth, googleProvider)
+    if (result && result.user) {
+      const idToken = await result.user.getIdToken()
+      return { idToken, user: result.user }
+    }
+  } catch (popupErr: any) {
+    // If popup was blocked or closed by browser policy, fall back to redirect
+    if (
+      popupErr?.code === 'auth/popup-blocked' ||
+      popupErr?.code === 'auth/cancelled-popup-request'
+    ) {
+      await signInWithRedirect(auth, googleProvider)
+      return
+    }
+    throw popupErr
+  }
 }
 
 /**

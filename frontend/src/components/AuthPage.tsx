@@ -173,11 +173,28 @@ export function AuthPage({
         return
       }
 
-      await triggerGoogleSignIn()
-      // Browser automatically redirects to Google in the same tab
+      const res = await triggerGoogleSignIn()
+      if (res && res.idToken) {
+        setInfo('Authenticating with Tark…')
+        const { error: authErr, user: signedInUser } = await signInWithFirebaseToken(res.idToken)
+        if (authErr) {
+          setError(authErr)
+        } else {
+          if (!signedInUser?.board || !signedInUser?.grade) {
+            go('onboard')
+          } else {
+            onClose()
+          }
+        }
+      }
+      // If res is undefined, it fell back to redirect and page will resume on return
     } catch (err: any) {
-      setError(err?.message || 'Google sign-in failed. Please try again.')
+      if (err?.code !== 'auth/popup-closed-by-user') {
+        setError(err?.message || 'Google sign-in failed. Please try again.')
+      }
+    } finally {
       setBusy(false)
+      setInfo('')
     }
   }
 
