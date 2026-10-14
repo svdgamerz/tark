@@ -1232,7 +1232,332 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
   },
 
   // ==========================================
-  // 7. MATHEMATICS: 3D LORENZ STRANGE ATTRACTOR
+  // 7. BIOLOGY: 3D EPIDERMAL LAYERS & SKIN HISTOLOGY
+  // ==========================================
+  epidermis_3d: {
+    type: 'epidermis_3d',
+    title: '3D Epidermal Layers & Skin Architecture',
+    subject: 'Biology · Histology & Anatomy',
+    concept: 'Stratified Squamous Epithelium: Corneum to Basale',
+    description: 'Explore the 5 microscopic layers of the human epidermis and underlying dermis in 3D. Pull layers apart with the Explode slider, rotate 360°, and inspect cellular keratinization, melanocytes, and capillary loops.',
+    emoji: '🔬',
+    difficulty: 'Intermediate',
+    presets: [
+      { label: '🌟 Full Intact Skin Block', params: { layerSeparation: 0, activeLayer: 0, showCells: 1 } },
+      { label: '🔍 Exploded Multi-Layer View', params: { layerSeparation: 75, activeLayer: 0, showCells: 1 } },
+      { label: '🛡️ Stratum Corneum Barrier', params: { layerSeparation: 40, activeLayer: 1, showCells: 1 } },
+      { label: '🧬 Stratum Basale & Mitosis', params: { layerSeparation: 50, activeLayer: 5, showCells: 1 } },
+      { label: '🩸 Dermis & Capillary Loops', params: { layerSeparation: 60, activeLayer: 6, showCells: 1 } },
+    ],
+    params: [
+      { key: 'layerSeparation', label: 'Explode Layers', min: 0, max: 100, step: 5, defaultValue: 0, unit: '%' },
+      { key: 'activeLayer', label: 'Inspect Layer', min: 0, max: 6, step: 1, defaultValue: 0, unit: '' },
+      { key: 'showCells', label: 'Show Cellular Details', min: 0, max: 1, step: 1, defaultValue: 1, unit: '' },
+    ],
+    calculateReadouts: (p) => {
+      const layerId = Math.round(p.activeLayer)
+      const layerDetails: Record<number, { name: string; cells: string; role: string; marker: string }> = {
+        0: {
+          name: 'All 5 Epidermal Layers + Dermis',
+          cells: 'Stratified squamous keratinized epithelium',
+          role: 'Complete physical barrier, thermoregulation & sensation',
+          marker: 'Turnover cycle: 28–40 days from Basale to Corneum',
+        },
+        1: {
+          name: '1. Stratum Corneum (Horny Layer)',
+          cells: '20–30 layers of dead, flat, anucleate corneocytes',
+          role: 'Primary waterproof barrier against desiccation and microbes',
+          marker: 'Packed with insoluble keratin filaments & lipid envelope',
+        },
+        2: {
+          name: '2. Stratum Lucidum (Clear Layer)',
+          cells: '2–3 rows of flat, translucent, dead keratinocytes',
+          role: 'Provides extra thickness & resilience in palms and soles',
+          marker: 'Contains eleidin, an intermediate transformation protein',
+        },
+        3: {
+          name: '3. Stratum Granulosum (Granular Layer)',
+          cells: '3–5 rows of flattening cells with deteriorating nuclei',
+          role: 'Active site of keratinization & lipid secretion',
+          marker: 'Abundant coarse dark keratohyalin & lamellar granules',
+        },
+        4: {
+          name: '4. Stratum Spinosum (Prickle Cell Layer)',
+          cells: '8–10 layers of polyhedral cells with desmosome spines',
+          role: 'Mechanical strength against shear stress + immune defense',
+          marker: 'Desmosomal bridges and intraepidermal Langerhans cells',
+        },
+        5: {
+          name: '5. Stratum Basale (Stratum Germinativum)',
+          cells: 'Single row of actively dividing cuboidal stem cells',
+          role: 'Continuous mitotic replenishment of epidermis + UV melanin',
+          marker: 'Attached to basement membrane; contains 10–25% melanocytes',
+        },
+        6: {
+          name: 'Dermis (Papillary & Reticular Base)',
+          cells: 'Fibroblasts, macrophages, mast cells in collagen matrix',
+          role: 'Nourishes avascular epidermis via dermal papillae capillary loops',
+          marker: 'Contains Meissner corpuscles, sensory nerves & capillaries',
+        },
+      }
+      const cur = layerDetails[layerId] || layerDetails[0]
+      return [
+        { label: 'Anatomical Structure', value: cur.name },
+        { label: 'Cell Architecture', value: cur.cells },
+        { label: 'Physiological Role', value: cur.role },
+        { label: 'Histological Marker', value: cur.marker },
+      ]
+    },
+    initScene: (container, initialParams) => {
+      let params = { ...initialParams }
+      let isPlaying = true
+      let animId: number
+
+      const width = container.clientWidth || 800
+      const height = container.clientHeight || 500
+
+      const scene = new THREE.Scene()
+      // Modern clean scientific studio backdrop
+      scene.background = new THREE.Color(0x0f172a)
+      scene.fog = new THREE.FogExp2(0x0f172a, 0.02)
+
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
+      camera.position.set(14, 12, 22)
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true })
+      renderer.setSize(width, height)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      container.appendChild(renderer.domElement)
+
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.enableDamping = true
+      controls.dampingFactor = 0.06
+      controls.target.set(0, 2.5, 0)
+
+      // Soft laboratory studio lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.85)
+      scene.add(ambientLight)
+
+      const keyLight = new THREE.DirectionalLight(0xfff5ea, 1.2)
+      keyLight.position.set(15, 25, 20)
+      scene.add(keyLight)
+
+      const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.7)
+      fillLight.position.set(-15, 12, -10)
+      scene.add(fillLight)
+
+      const skinGroup = new THREE.Group()
+      scene.add(skinGroup)
+
+      // Define 6 distinct anatomical layers (5 epidermis + dermis base)
+      const layerConfigs = [
+        { id: 1, name: 'Stratum Corneum', thickness: 0.9, color: 0xd4a373, baseElevation: 5.6 },
+        { id: 2, name: 'Stratum Lucidum', thickness: 0.45, color: 0xfefae0, baseElevation: 4.85 },
+        { id: 3, name: 'Stratum Granulosum', thickness: 0.85, color: 0xddb892, baseElevation: 4.1 },
+        { id: 4, name: 'Stratum Spinosum', thickness: 1.6, color: 0xe07a5f, baseElevation: 2.7 },
+        { id: 5, name: 'Stratum Basale', thickness: 0.85, color: 0xb45309, baseElevation: 1.4 },
+        { id: 6, name: 'Dermis', thickness: 2.4, color: 0xbe185d, baseElevation: -0.4 },
+      ]
+
+      const blockWidth = 9.0
+      const blockDepth = 7.0
+
+      interface LayerMeshObj {
+        id: number
+        group: THREE.Group
+        slabMesh: THREE.Mesh
+        cellMeshes: THREE.Object3D[]
+        baseElevation: number
+      }
+
+      const layerObjects: LayerMeshObj[] = []
+
+      layerConfigs.forEach((cfg) => {
+        const layerGrp = new THREE.Group()
+        layerGrp.position.y = cfg.baseElevation
+        skinGroup.add(layerGrp)
+
+        // Main tissue slab with rounded beveled edges
+        const geo = new THREE.BoxGeometry(blockWidth, cfg.thickness, blockDepth)
+        const mat = new THREE.MeshStandardMaterial({
+          color: cfg.color,
+          roughness: 0.4,
+          metalness: 0.05,
+          transparent: true,
+          opacity: 0.94,
+        })
+        const slabMesh = new THREE.Mesh(geo, mat)
+        layerGrp.add(slabMesh)
+
+        // Microscopic Cellular Elements
+        const cellMeshes: THREE.Object3D[] = []
+
+        if (cfg.id === 1) {
+          // Corneum: Flakes / flattened polygonal scales on top
+          const flakeGeo = new THREE.CircleGeometry(0.35, 6)
+          flakeGeo.rotateX(-Math.PI / 2)
+          const flakeMat = new THREE.MeshStandardMaterial({ color: 0xfaedcd, roughness: 0.8, side: THREE.DoubleSide })
+          for (let i = 0; i < 28; i++) {
+            const flake = new THREE.Mesh(flakeGeo, flakeMat)
+            flake.position.set(
+              (Math.random() - 0.5) * (blockWidth - 1),
+              cfg.thickness / 2 + 0.02,
+              (Math.random() - 0.5) * (blockDepth - 1)
+            )
+            flake.rotation.y = Math.random() * Math.PI
+            layerGrp.add(flake)
+            cellMeshes.push(flake)
+          }
+        } else if (cfg.id === 3) {
+          // Granulosum: Keratohyalin dark granule clusters
+          const granGeo = new THREE.SphereGeometry(0.1, 8, 8)
+          const granMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.3 })
+          for (let i = 0; i < 35; i++) {
+            const gran = new THREE.Mesh(granGeo, granMat)
+            gran.position.set(
+              (Math.random() - 0.5) * (blockWidth - 1),
+              (Math.random() - 0.5) * (cfg.thickness * 0.7),
+              (Math.random() - 0.5) * (blockDepth - 1)
+            )
+            layerGrp.add(gran)
+            cellMeshes.push(gran)
+          }
+        } else if (cfg.id === 4) {
+          // Spinosum: Polyhedral cells with desmosome prickly bridges
+          const spinGeo = new THREE.DodecahedronGeometry(0.24, 0)
+          const spinMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.4 })
+          for (let i = 0; i < 24; i++) {
+            const spin = new THREE.Mesh(spinGeo, spinMat)
+            spin.position.set(
+              (Math.random() - 0.5) * (blockWidth - 1.2),
+              (Math.random() - 0.5) * (cfg.thickness * 0.7),
+              (Math.random() - 0.5) * (blockDepth - 1.2)
+            )
+            layerGrp.add(spin)
+            cellMeshes.push(spin)
+          }
+        } else if (cfg.id === 5) {
+          // Basale: Cuboidal cells + Melanocytes (dark star cells)
+          const basalGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.5, 12)
+          const basalMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.3 })
+          const melanMat = new THREE.MeshStandardMaterial({ color: 0x3f1a07, roughness: 0.2 })
+          for (let i = 0; i < 24; i++) {
+            const isMelanocyte = i % 5 === 0
+            const cMesh = new THREE.Mesh(basalGeo, isMelanocyte ? melanMat : basalMat)
+            cMesh.position.set(
+              (Math.random() - 0.5) * (blockWidth - 1.2),
+              0,
+              (Math.random() - 0.5) * (blockDepth - 1.2)
+            )
+            layerGrp.add(cMesh)
+            cellMeshes.push(cMesh)
+          }
+        } else if (cfg.id === 6) {
+          // Dermis: Capillary Loops (Arterial Red & Venous Blue arches)
+          const loopGeo = new THREE.TorusGeometry(0.65, 0.08, 8, 16, Math.PI)
+          const redLoopMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 })
+          const blueLoopMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.3 })
+          for (let i = 0; i < 6; i++) {
+            const loopRed = new THREE.Mesh(loopGeo, redLoopMat)
+            loopRed.position.set(-2.8 + i * 1.1, cfg.thickness / 2 - 0.1, -1.2)
+            layerGrp.add(loopRed)
+            cellMeshes.push(loopRed)
+
+            const loopBlue = new THREE.Mesh(loopGeo, blueLoopMat)
+            loopBlue.position.set(-2.6 + i * 1.1, cfg.thickness / 2 - 0.1, 1.2)
+            layerGrp.add(loopBlue)
+            cellMeshes.push(loopBlue)
+          }
+        }
+
+        layerObjects.push({
+          id: cfg.id,
+          group: layerGrp,
+          slabMesh,
+          cellMeshes,
+          baseElevation: cfg.baseElevation,
+        })
+      })
+
+      // Update positions based on explode separation slider and active layer highlight
+      const applyLayerTransforms = () => {
+        const sepFactor = (params.layerSeparation / 100) * 2.8
+        const activeLyr = Math.round(params.activeLayer)
+        const showCellDetails = params.showCells >= 0.5
+
+        layerObjects.forEach((obj, idx) => {
+          // Expand outward from center along Y axis
+          const explodeY = (2.5 - idx) * sepFactor
+          obj.group.position.y = obj.baseElevation + explodeY
+
+          const isHighlighted = activeLyr === 0 || activeLyr === obj.id
+          const mat = obj.slabMesh.material as THREE.MeshStandardMaterial
+
+          if (isHighlighted) {
+            mat.opacity = 0.94
+            mat.emissive.setHex(activeLyr === obj.id ? 0x223344 : 0x000000)
+          } else {
+            mat.opacity = 0.22
+            mat.emissive.setHex(0x000000)
+          }
+
+          obj.cellMeshes.forEach((cm) => {
+            cm.visible = showCellDetails && isHighlighted
+          })
+        })
+      }
+
+      applyLayerTransforms()
+
+      let time = 0
+      const animate = () => {
+        animId = requestAnimationFrame(animate)
+        if (isPlaying) {
+          time += 0.01
+          // Subtle gentle breathing/rotation of skin block
+          skinGroup.rotation.y += 0.002
+        }
+        controls.update()
+        renderer.render(scene, camera)
+      }
+
+      animate()
+
+      const handleResize = () => {
+        const w = container.clientWidth || 800
+        const h = container.clientHeight || 500
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+        renderer.setSize(w, h)
+      }
+      window.addEventListener('resize', handleResize)
+
+      return {
+        updateParams: (newParams) => {
+          params = { ...newParams }
+          applyLayerTransforms()
+        },
+        setPlaying: (playing) => {
+          isPlaying = playing
+        },
+        reset: () => {
+          skinGroup.rotation.set(0, 0, 0)
+          controls.reset()
+        },
+        dispose: () => {
+          cancelAnimationFrame(animId)
+          window.removeEventListener('resize', handleResize)
+          renderer.dispose()
+          if (container.contains(renderer.domElement)) {
+            container.removeChild(renderer.domElement)
+          }
+        },
+      }
+    },
+  },
+
+  // ==========================================
+  // 8. MATHEMATICS: 3D LORENZ STRANGE ATTRACTOR
   // ==========================================
   lorenz_3d: {
     type: 'lorenz_3d',

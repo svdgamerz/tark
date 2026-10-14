@@ -6,6 +6,7 @@ export type SimulationType =
   | 'molecules_3d'
   | 'dna_helix_3d'
   | 'heart_3d'
+  | 'epidermis_3d'
   | 'lorenz_3d'
   | 'pendulum'
   | 'ohms_law'

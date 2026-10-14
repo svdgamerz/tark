@@ -114,13 +114,21 @@ export function parseSegments(input: string): Segment[] {
 const DIAGRAM_HEAD =
   /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|mindmap|gantt|pie|journey)\b/i
 
-// Pull out ```mermaid ...``` blocks so they render as interactive figures
+function isAsciiBoxDiagram(body: string): boolean {
+  const lines = body.trim().split(/\r?\n/).map((l) => l.trim())
+  if (lines.length < 3) return false
+  const boxBorderCount = lines.filter((l) => /^\+[-=]{3,}\+$/.test(l)).length
+  const boxCellCount = lines.filter((l) => /^\|.+\|$/.test(l)).length
+  return boxBorderCount >= 2 && boxCellCount >= 1
+}
+
+// Pull out ```mermaid ...``` blocks and strip ASCII box pseudo-diagrams so they render as clean figures
 export function extractDiagramCode(text: string): {
   clean: string
   mermaid: string | null
 } {
   let mermaid: string | null = null
-  const clean = text.replace(
+  let clean = text.replace(
     /```[ \t]*([a-zA-Z]*)[ \t]*\r?\n([\s\S]*?)```/g,
     (whole, lang: string, body: string) => {
       const b = body.trim()
@@ -128,9 +136,19 @@ export function extractDiagramCode(text: string): {
         if (!mermaid) mermaid = b.replace(/^mermaid\s*\r?\n/i, '')
         return ''
       }
-      return whole // keep non-diagram code blocks
+      if (isAsciiBoxDiagram(b)) {
+        return '' // strip senseless ASCII box diagram from code blocks
+      }
+      return whole // keep genuine programming code blocks
     },
   )
+
+  // Strip un-fenced multi-tier ASCII box diagrams (e.g. +---+ | ... | +---+)
+  clean = clean.replace(
+    /(?:^[ \t]*\+[-=]{3,}\+[ \t]*(?:\r?\n|$)(?:^[ \t]*\|[^\n]+\|[ \t]*(?:\r?\n|$))+^[ \t]*\+[-=]{3,}\+[ \t]*(?:\r?\n|$)?)+/gm,
+    ''
+  )
+
   return { clean: clean.replace(/\n{3,}/g, '\n\n').trim(), mermaid }
 }
 
@@ -139,6 +157,10 @@ export function stripDiagramForDisplay(text: string): string {
   return t
     .replace(/```[ \t]*mermaid[ \t]*\r?\n[\s\S]*$/i, '')
     .replace(/```[ \t]*\r?\n(graph|flowchart|sequenceDiagram)\b[\s\S]*$/i, '')
+    .replace(
+      /(?:^[ \t]*\+[-=]{3,}\+[ \t]*(?:\r?\n|$)(?:^[ \t]*\|[^\n]+\|[ \t]*(?:\r?\n|$))+^[ \t]*\+[-=]{3,}\+[ \t]*(?:\r?\n|$)?)+/gm,
+      ''
+    )
     .trim()
 }
 

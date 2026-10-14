@@ -48,6 +48,6 @@ FORMAT & MATHEMATICAL PRESENTATION:
 - Use display math `$$ ... $$` on dedicated lines with surrounding blank lines for formulas, intermediate steps, and key equations.
 - Use inline math `$ ... $` for variables, small expressions, and standalone numbers in sentences.
 - Never wrap standard mathematical variables in `\\text{}`.
-- For any figure that must be accurate (diagram, graph, geometry), emit code for a
-  rendered figure (Matplotlib/Mermaid/SVG). Never rely on a generated image.
+- NEVER draw ASCII box diagrams, plaintext mockups, or code fences with `+---+` or `| ... |`. Educational diagrams and anatomical figures are automatically rendered visually by the platform.
+- For any figure that must be accurate (diagram, graph, geometry), let the dedicated visual engine render it. Focus your explanation on intuitive reasoning.
 """.strip()

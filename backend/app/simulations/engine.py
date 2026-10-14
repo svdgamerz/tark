@@ -67,6 +67,14 @@ _SIM_TRIGGERS: list[tuple[str, str, str, str, str, dict[str, float]]] = [
         {"bpm": 72, "strokeVolume": 70, "showValves": 1},
     ),
     (
+        "epidermis_3d",
+        r"\b(epidermis|stratum\s*(?:corneum|lucidum|granulosum|spinosum|basale)|skin layer[s]?|human skin|dermis|integumentary|keratinocyte[s]?|melanocyte[s]?)\b",
+        "3D Epidermal Layers & Skin Architecture",
+        "Biology - Histology & Anatomy",
+        "Stratified Squamous Epithelium: Corneum to Basale",
+        {"layerSeparation": 0, "activeLayer": 0, "showCells": 1},
+    ),
+    (
         "lorenz_3d",
         r"\b(lorenz|strange attractor|chaos theory|butterfly effect|nonlinear dynamics|phase space)\b",
         "3D Lorenz Strange Attractor & Chaos",
@@ -352,32 +360,31 @@ def detect_simulation_candidate(text: str, subject: str = "") -> dict[str, Any] 
     return None
 
 
-CUSTOM_SIM_SYSTEM_PROMPT = """You are a world-class principal educational simulation architect, computational physicist, and visual science engineer.
-The student needs a high-fidelity, photorealistic, 3D interactive laboratory simulation for a STEM curriculum topic.
+CUSTOM_SIM_SYSTEM_PROMPT = """You are a world-class principal educational simulation architect, computational scientist, and visual learning engineer.
+The student needs a high-fidelity, interactive simulation for a STEM curriculum topic.
 
 Generate a COMPLETE, self-contained single-page HTML5 application with embedded CSS and JavaScript that runs directly inside an iframe.
-CRITICAL MANDATE: The simulation must look and feel like an authentic, photorealistic virtual laboratory experiment—NOT a crude cartoon. It must be dynamically alive in 3D / physical depth at 60 FPS immediately upon load with ZERO lag.
+CRITICAL MANDATE: The simulation must look and feel authentic, educational, and engaging—NOT a crude cartoon. It must be dynamically alive at 60 FPS immediately upon load with ZERO lag.
 
-VISUAL & ARCHITECTURAL SPECIFICATIONS:
-1. Photorealistic 3D / Volumetric Laboratory Rendering:
-   - For 3D topics (planets, orbits, atoms, molecular bonds, projectile cannon, electromagnetic fields, optics, waves, anatomical organs): You may include Three.js via CDN `<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>` with WebGLRenderer, OrbitControls or custom mouse-drag 360° camera rotation, directional sun/spotlight with specular highlights, and PBR/volumetric materials.
-   - For 2D/Canvas simulations: Use rich isometric 3D shading, coiled helical springs, volumetric glass beakers with refraction, fluid meniscus curvature, effervescent bubbles, and glowing particle beam tracers.
-   - Laboratory Backdrop: Dark professional workbench theme (#080d1a or #0b1120) with a scientific grid/optical breadboard overlay.
+DOMAIN-SPECIFIC DESIGN & BACKDROP SPECIFICATIONS:
+1. Environment & Studio Backdrop (NO PITCH-BLACK VOIDS FOR BIOLOGY):
+   - For Biology, Anatomy, Cells, Physiology & Life Sciences: Use a clean medical studio backdrop with soft slate/gray gradients (e.g. #0f172a to #1e293b, or clean clinical #f8fafc with dark text) and gentle soft ambient illumination. NEVER use a pitch-black abyss or optical breadboard for anatomical or biological simulations!
+   - For Physics, Astronomy & Space: Sleek dark studio or workbench theme (#080d1a or #0b1120) with subtle coordinate or optical breadboard grid.
+   - For Chemistry & Glassware: Clean lab bench lighting with volumetric fluid refraction, meniscus curvature, and translucent glassware.
 
-2. Silky-Smooth 60 FPS Physics Engine (ZERO LAG):
-   - AUTO-PLAY ON LOAD: The animation loop MUST start running immediately on page load (`let isPlaying = true;`). The canvas must NEVER be frozen or static when opened.
-   - Performance: Pre-allocate all particle pools and object arrays outside the loop.
-   - Smooth Delta Time: Use `const dt = Math.min((now - lastTime) / 1000, 0.04);` for smooth numerical integration.
-   - High-DPI Retina Crispness: Support `window.devicePixelRatio` so lines and curves are razor sharp on all displays.
+2. Presentation Choice (3D vs Clean Plain 2D):
+   - Some topics demand 3D: Volumetric organs (heart, eye, skin layers, brain), celestial orbits, molecular geometry, projectile arcs, magnetic field toroids. Include Three.js via `<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>` with OrbitControls for 360° rotation.
+   - Some topics should be CLEAN & PLAIN: For histological cross-sections, cellular division steps, or simple harmonic oscillators, a crisp, elegant 2D canvas with layered callouts is often much clearer than an overcomplicated 3D mesh. Choose whichever best teaches the concept without visual clutter.
 
-3. Direct Interactive 3D Manipulation (Orbit & Drag):
-   - Allow students to directly rotate the 3D scene (mouse click & drag, touch move) and interact with apparatus (sliders, drag mass, angle adjustments).
-   - Show dynamic cursor feedback (`cursor: grab` on hoverable items, `cursor: grabbing` while dragging).
+3. Domain-Appropriate Instrumentation (DO NOT FORCE NUMERIC PHYSICS FORMULAS ON BIOLOGY):
+   - For Biology & Anatomy: Provide interactive anatomical callouts, layer visibility toggles, histological cell descriptions, and physiological function cards (e.g., "Stratum Corneum: Anucleate keratinized squames", "Water-impermeable barrier"). NEVER invent senseless physics formulas (like F=ma) or fake numeric velocity sensors for biological layers!
+   - For Physics & Math: Sleek telemetry cards displaying calculated physical quantities with exact units (N, m/s, J, V, Hz) and textbook formula cards (e.g. F = ma, v = f·λ).
+   - Only include numeric sliders or values when they are genuinely relevant to the experiment.
 
-4. Real-Time Instrumentation & Readouts HUD:
-   - Sleek digital telemetry cards displaying calculated physical quantities with exact standard units (e.g. N, m/s, m/s², J, V, A, Hz, Pa, mol/L).
-   - Real-time textbook formula card (e.g. F = ma, PV = nRT, E = mc², v = f·λ).
-   - Range sliders with live numeric badges, preset buttons to jump to key curriculum scenarios, Play/Pause toggle, and Reset.
+4. Performance & Interactivity:
+   - Auto-play on load with 60 FPS smooth animation loop (`requestAnimationFrame`).
+   - Direct mouse/touch interaction (drag, rotate, toggle layers, inspect elements on click/hover).
+   - High-DPI crispness using `window.devicePixelRatio`.
 
 5. Output Format:
    - Return ONLY the raw valid HTML document starting with <!DOCTYPE html> and ending with </html>.

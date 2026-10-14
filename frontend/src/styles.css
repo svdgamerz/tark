@@ -41,7 +41,7 @@
 [data-theme='dark'] .edit-cancel,
 [data-theme='dark'] .auth-tabs,
 [data-theme='dark'] .mode-switcher,
-[data-theme='dark'] .msg-tark .content code {
+[data-theme='dark'] .msg-tark .content :not(pre) > code {
   background: var(--hover);
 }
 [data-theme='dark'] .topbar {
@@ -960,7 +960,7 @@ body {
   max-width: 100%;
 }
 
-.msg-tark .content code {
+.msg-tark .content :not(pre) > code {
   background: #f0efec;
   padding: 1px 6px;
   border-radius: 5px;
@@ -2769,16 +2769,20 @@ body {
   margin: 0;
   padding: 14px 16px;
   overflow-x: auto;
-  background: transparent;
+  background: transparent !important;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 13.5px;
   line-height: 1.6;
-  color: #e5e7eb;
+  color: #f3f4f6 !important;
 }
 
 .code-block-pre code {
   font-family: inherit;
   font-size: inherit;
+  background: transparent !important;
+  color: #f3f4f6 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
 }
 
 /* Prism Token Syntax Highlighting (Dark Theme) */
