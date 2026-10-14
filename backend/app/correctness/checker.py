@@ -48,7 +48,10 @@ def check_arithmetic(text: str, max_report: int = 3) -> str:
         if not _OP.search(lhs_raw):
             continue  # needs an operator → it's a computation, not "5 = 5"
         # Skip if the RHS is really a decimal / fraction / percent (rounding is fuzzy).
-        if text[m.end() : m.end() + 1] in (".", "/", "%"):
+        rem = text[m.end():]
+        if rem.startswith(("/", "%")):
+            continue
+        if rem.startswith(".") and len(rem) > 1 and rem[1].isdigit():
             continue
         key = (lhs_raw.strip(), rhs_raw.strip())
         if key in seen:
