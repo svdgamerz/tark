@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class KeyPool:
-    def __init__(self, provider: str, keys: list[str] | str, cooldown_seconds: float = 60.0) -> None:
+    def __init__(self, provider: str, keys: list[str] | str, cooldown_seconds: float = 15.0) -> None:
         self.provider = provider
         if isinstance(keys, str):
             raw = [k.strip() for k in keys.replace("\n", ",").split(",") if k.strip()]
@@ -26,7 +26,7 @@ class KeyPool:
     def has_keys(self) -> bool:
         return len(self.keys) > 0
 
-    def get_candidate_keys(self) -> list[str]:
+    def get_candidate_keys(self, allow_cooling: bool = False) -> list[str]:
         """Return all available keys starting from current index, active first."""
         now = time.time()
         active = []
@@ -41,6 +41,10 @@ class KeyPool:
         if active:
             self._current_idx = (self._current_idx + 1) % len(self.keys)
             return active
+        if allow_cooling and cooling:
+            # Emergency pass: sort by earliest cooldown expiration
+            cooling.sort(key=lambda k: self._cooldowns.get(k, 0))
+            return cooling[:1]
         # All keys are currently on cooldown — return empty so caller fails over instantly!
         return []
 

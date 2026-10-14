@@ -540,6 +540,24 @@ export function FriendsDrawer({
     }
   }
 
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showCreateGroup) {
+          setShowCreateGroup(false)
+        } else if (activeChannelId) {
+          setActiveChannelId(null)
+          refreshChannels()
+        } else {
+          onClose()
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, showCreateGroup, activeChannelId, onClose])
+
   if (!isOpen) return null
 
   // Calculate total unread

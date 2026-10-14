@@ -95,4 +95,78 @@ class ModelRouter:
                     last_error = e
                     break  # fail over to the next attempt
 
+        has_image = any(bool(m.image_data) for m in messages)
+        # Universal emergency fallback pool for zero-downtime tutoring
+        if has_image:
+            safety_pool = [
+                (Provider.OPENROUTER, "google/gemini-2.5-flash"),
+                (Provider.NIM, "meta/llama-3.2-11b-vision-instruct"),
+                (Provider.GEMINI, "gemini-flash-latest"),
+            ]
+        else:
+            safety_pool = [
+                (Provider.GROQ, "openai/gpt-oss-120b"),
+                (Provider.OPENROUTER, "deepseek/deepseek-chat"),
+                (Provider.OPENROUTER, "meta-llama/llama-3.3-70b-instruct"),
+                (Provider.NIM, "meta/llama-3.2-11b-vision-instruct"),
+                (Provider.GROQ, "openai/gpt-oss-20b"),
+                (Provider.OPENROUTER, "qwen/qwen-2.5-72b-instruct"),
+            ]
+
+        tried_set = set(attempts)
+        untried = [c for c in safety_pool if c not in tried_set]
+
+        # Try any safety pool candidates not previously attempted
+        for provider, model in untried:
+            adapter = self._adapters.get(provider)
+            if adapter is None:
+                continue
+            attempt_started = False
+            try:
+                async for token in adapter.stream(
+                    model=model,
+                    system_prompt=system_prompt,
+                    messages=messages,
+                ):
+                    if not attempt_started:
+                        attempt_started = True
+                        if emitted_any:
+                            yield ("reset", "")
+                            emitted_any = False
+                    emitted_any = True
+                    yield ("token", token)
+                return  # safety fallback finished cleanly!
+            except Exception as e:
+                last_error = e
+                continue
+
+        # Final short backoff pass on top providers (recovering from transient quota window)
+        await asyncio.sleep(0.5)
+        top_candidates = [(Provider.OPENROUTER, "google/gemini-2.5-flash" if has_image else "deepseek/deepseek-chat")]
+        if not has_image:
+            top_candidates.insert(0, (Provider.GROQ, "openai/gpt-oss-120b"))
+
+        for provider, model in top_candidates:
+            adapter = self._adapters.get(provider)
+            if adapter is None:
+                continue
+            attempt_started = False
+            try:
+                async for token in adapter.stream(
+                    model=model,
+                    system_prompt=system_prompt,
+                    messages=messages,
+                ):
+                    if not attempt_started:
+                        attempt_started = True
+                        if emitted_any:
+                            yield ("reset", "")
+                            emitted_any = False
+                    emitted_any = True
+                    yield ("token", token)
+                return
+            except Exception as e:
+                last_error = e
+                continue
+
         raise ProviderError(f"All providers failed. Last error: {last_error}")

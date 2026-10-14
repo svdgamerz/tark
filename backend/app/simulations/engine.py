@@ -17,10 +17,67 @@ logger = logging.getLogger(__name__)
 
 # Matchers for core curriculum simulations
 _SIM_TRIGGERS: list[tuple[str, str, str, str, str, dict[str, float]]] = [
-    # Physics Built-ins
+    # 3D Photorealistic WebGL Interactive Lab Simulators
+    (
+        "projectile_3d",
+        r"\b(projectile|trajectory|launch angle|time of flight|horizontal range|cannonball|parabolic motion|law[s]? of motion|newton'?s (?:first|second|third|1st|2nd|3rd)?\s*law|f\s*=\s*m\s*a|inertia|action[- ]reaction|force and acceleration|momentum and impulse|kinematics)\b",
+        "3D Projectile Motion Cannon & Field",
+        "Physics - Mechanics",
+        "Newton's Laws of Motion & 3D Kinematics",
+        {"angle": 45, "azimuth": 0, "speed": 28, "gravity": 9.8},
+    ),
+    (
+        "solar_system_3d",
+        r"\b(solar system|planet[s]?|orbit[s]?|kepler'?s? (?:law|laws)|gravitat.*orbit|heliocentric|earth.*sun|planetary motion)\b",
+        "3D Solar System & Planetary Orbits",
+        "Physics - Astrophysics",
+        "Kepler's Laws & Gravitational Orbits",
+        {"speedMult": 1.0, "scaleDist": 1.0, "gravityConst": 1.0},
+    ),
+    (
+        "bohr_atom_3d",
+        r"\b(bohr'?s? (?:atom|model)|energy level|balmer|lyman|paschen|spectral (?:line|series)|electron jump|quantum jump|orbital[s]?)\b",
+        "3D Bohr Atom & Quantum Orbitals",
+        "Chemistry / Physics - Quantum",
+        "Bohr Postulates & Photon Energy Transitions",
+        {"nInitial": 3, "nFinal": 2, "orbitalMode": 0},
+    ),
+    (
+        "molecules_3d",
+        r"\b(molecule[s]?|vsepr|chemical bond.*3d|molecular geometry|bond angle|tetrahedral|h2o structure|methane.*structure|polar.*molecule)\b",
+        "3D Molecular Geometry & VSEPR Bonding",
+        "Chemistry - Chemical Structure",
+        "VSEPR Molecular Geometry & Polarity",
+        {"moleculeId": 0, "bondScale": 1.0, "showDipoles": 1},
+    ),
+    (
+        "dna_helix_3d",
+        r"\b(dna|double helix|nucleotide[s]?|base pair[s]?|adenine|thymine|guanine|cytosine|replication fork|helicase)\b",
+        "3D DNA Double Helix & Base Pairing",
+        "Biology - Genetics",
+        "Antiparallel Strands & Base Complementarity",
+        {"twistSpeed": 1.0, "baseRadius": 3.2, "unzipping": 0},
+    ),
+    (
+        "heart_3d",
+        r"\b(heart|cardiac|circulat.*system|atrium|ventricle|bicuspid|tricuspid|blood flow|heartbeat|pulse|systole|diastole)\b",
+        "3D Beating Human Heart & Circulation",
+        "Biology - Physiology",
+        "4-Chambered Double Circulation & Cardiac Cycle",
+        {"bpm": 72, "strokeVolume": 70, "showValves": 1},
+    ),
+    (
+        "lorenz_3d",
+        r"\b(lorenz|strange attractor|chaos theory|butterfly effect|nonlinear dynamics|phase space)\b",
+        "3D Lorenz Strange Attractor & Chaos",
+        "Mathematics - Dynamical Systems",
+        "Deterministic Chaos & Phase Space Flow",
+        {"sigma": 10, "rho": 28, "beta": 2.67},
+    ),
+    # 2D Built-ins Fallbacks
     (
         "projectile",
-        r"\b(projectile|trajectory|launch angle|time of flight|horizontal range|cannonball|parabolic motion|law[s]? of motion|newton'?s (?:first|second|third|1st|2nd|3rd)?\s*law|f\s*=\s*m\s*a|inertia|action[- ]reaction|force and acceleration|momentum and impulse|kinematics)\b",
+        r"\b(projectile 2d|flat trajectory)\b",
         "Projectile Motion & Newton's Laws Simulator",
         "Physics - Mechanics",
         "Newton's Laws of Motion & 2D Kinematics",
@@ -296,41 +353,33 @@ def detect_simulation_candidate(text: str, subject: str = "") -> dict[str, Any] 
 
 
 CUSTOM_SIM_SYSTEM_PROMPT = """You are a world-class principal educational simulation architect, computational physicist, and visual science engineer.
-The student needs a high-fidelity, photorealistic, interactive laboratory simulation for a STEM curriculum topic.
+The student needs a high-fidelity, photorealistic, 3D interactive laboratory simulation for a STEM curriculum topic.
 
 Generate a COMPLETE, self-contained single-page HTML5 application with embedded CSS and JavaScript that runs directly inside an iframe.
-CRITICAL MANDATE: The simulation must look and feel like an authentic, premium virtual laboratory experiment—NOT a crude or simplistic cartoon. It must be dynamically alive at 60 FPS immediately upon load with ZERO lag.
+CRITICAL MANDATE: The simulation must look and feel like an authentic, photorealistic virtual laboratory experiment—NOT a crude cartoon. It must be dynamically alive in 3D / physical depth at 60 FPS immediately upon load with ZERO lag.
 
 VISUAL & ARCHITECTURAL SPECIFICATIONS:
-1. Photorealistic Laboratory Rendering & Physical Depth:
-   - Laboratory Backdrop: Dark professional workbench theme (#080d1a or #0b1120) with a subtle scientific grid/optical breadboard overlay.
-   - 3D Volumetric Shading & Real Material Properties:
-     * METALS & SPRINGS: Springs must NEVER be single 2D zig-zag lines. Draw coiled helical 3D springs with overlapping front/back passes, cylindrical lighting gradients (steel/chrome with specular highlight streak and shadow depth), hanging brass/cast-iron slotted weights with metallic sheen, suspension clamps, and realistic centimeter ruler scales.
-     * SPHERES & MASSES: Use off-center radial gradients (createRadialGradient(x - r*0.35, y - r*0.35, 1, x, y, r)) with bright specular hotspots, ambient gradient, and soft contact drop-shadows beneath them.
-     * VOLUMETRIC GLASSWARE & FLUIDS: Beakers, flasks, and U-tubes must have realistic glass rim reflections (rgba(255,255,255,0.45)), fluid meniscus curvature, wave dynamics at the liquid surface, and rising effervescent bubbles with light refraction.
-     * OPTICS & LIGHT RAYS: Render beams with glowing additive blending (ctx.globalCompositeOperation = 'lighter'), soft Gaussian aura, realistic glass prism refraction, and chromatic dispersion into rainbow spectral bands.
-     * BIOLOGY & ORGANELLES: Phospholipid bilayers with double-headed hydrophilic spheres, fluid membrane elastic deformation, realistic organelle textures, and Brownian movement of cytoplasmic vesicles.
-     * VECTORS & FIELDS: Real-time dynamic vector arrows (Force in Amber #f59e0b, Velocity in Sky Blue #38bdf8, Acceleration in Pink #f472b6) with sleek arrowheads and live magnitude readouts.
+1. Photorealistic 3D / Volumetric Laboratory Rendering:
+   - For 3D topics (planets, orbits, atoms, molecular bonds, projectile cannon, electromagnetic fields, optics, waves, anatomical organs): You may include Three.js via CDN `<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>` with WebGLRenderer, OrbitControls or custom mouse-drag 360° camera rotation, directional sun/spotlight with specular highlights, and PBR/volumetric materials.
+   - For 2D/Canvas simulations: Use rich isometric 3D shading, coiled helical springs, volumetric glass beakers with refraction, fluid meniscus curvature, effervescent bubbles, and glowing particle beam tracers.
+   - Laboratory Backdrop: Dark professional workbench theme (#080d1a or #0b1120) with a scientific grid/optical breadboard overlay.
 
 2. Silky-Smooth 60 FPS Physics Engine (ZERO LAG):
    - AUTO-PLAY ON LOAD: The animation loop MUST start running immediately on page load (`let isPlaying = true;`). The canvas must NEVER be frozen or static when opened.
-   - Performance: Pre-allocate all particle pools and object arrays outside the loop. NEVER create new objects, strings, or arrays inside requestAnimationFrame.
-   - Smooth Delta Time: Use `const dt = Math.min((now - lastTime) / 1000, 0.04);` for smooth, lag-free numerical integration (Euler/Verlet/RK4).
+   - Performance: Pre-allocate all particle pools and object arrays outside the loop.
+   - Smooth Delta Time: Use `const dt = Math.min((now - lastTime) / 1000, 0.04);` for smooth numerical integration.
    - High-DPI Retina Crispness: Support `window.devicePixelRatio` so lines and curves are razor sharp on all displays.
 
-3. Direct Interactive Manipulation (Grab & Drag):
-   - Allow students to directly interact with the canvas via mouse and touch events (e.g. click and drag the spring mass to stretch/release it, drag the pendulum bob, rotate the prism, slide the piston).
+3. Direct Interactive 3D Manipulation (Orbit & Drag):
+   - Allow students to directly rotate the 3D scene (mouse click & drag, touch move) and interact with apparatus (sliders, drag mass, angle adjustments).
    - Show dynamic cursor feedback (`cursor: grab` on hoverable items, `cursor: grabbing` while dragging).
 
 4. Real-Time Instrumentation & Readouts HUD:
-   - Digital telemetry cards at the bottom displaying calculated physical quantities with exact standard units (e.g. N, m/s, m/s², J, V, A, Hz, Pa, mol/L).
-   - Real-time textbook formula card (e.g. F = -k·x, PV = nRT, E = mc², v = f·λ).
+   - Sleek digital telemetry cards displaying calculated physical quantities with exact standard units (e.g. N, m/s, m/s², J, V, A, Hz, Pa, mol/L).
+   - Real-time textbook formula card (e.g. F = ma, PV = nRT, E = mc², v = f·λ).
    - Range sliders with live numeric badges, preset buttons to jump to key curriculum scenarios, Play/Pause toggle, and Reset.
 
-5. Self-Contained & Secure:
-   - Absolutely NO external scripts, NO CDN links, NO external images. Pure vanilla ES6+ and HTML5 Canvas API only.
-
-6. Output Format:
+5. Output Format:
    - Return ONLY the raw valid HTML document starting with <!DOCTYPE html> and ending with </html>.
    - Do NOT wrap in markdown fences (no ```html ... ```), no introductory or concluding text."""
 

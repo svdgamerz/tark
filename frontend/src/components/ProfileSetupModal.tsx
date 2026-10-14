@@ -104,7 +104,13 @@ export function ProfileSetupModal({ onClose, onSuccess, isMandatory = false }: P
       const distinct = Array.from(new Set(items.map((i) => i.board))).filter(Boolean)
       if (distinct.length > 0) setBoards(distinct)
     })
-  }, [])
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
 
   function toggleWeakTopic(topic: string) {
     setWeakTopics((prev) =>
@@ -169,17 +175,15 @@ export function ProfileSetupModal({ onClose, onSuccess, isMandatory = false }: P
   ]
 
   return (
-    <div className="modal-overlay" onClick={() => { if (!isMandatory) onClose() }}>
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
       <div className="profile-setup-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="profile-setup-header">
           <div className="profile-setup-badge">
-            {isMandatory ? '🎓 Student Profile Required' : 'Profile Configuration'}
+            {isMandatory ? '🎓 Student Profile Setup' : 'Profile Configuration'}
           </div>
-          {!isMandatory && (
-            <button className="icon-btn close-btn" onClick={onClose} aria-label="Close">
-              ✕
-            </button>
-          )}
+          <button className="icon-btn close-btn" onClick={onClose} aria-label="Close modal" title="Close (Esc)">
+            ✕
+          </button>
         </div>
 
         <div className="profile-setup-body">
@@ -394,18 +398,17 @@ export function ProfileSetupModal({ onClose, onSuccess, isMandatory = false }: P
               </div>
 
               <div className="action-buttons-right">
-                {!isMandatory && (
-                  <button
-                    type="button"
-                    className="skip-btn"
-                    onClick={() => {
-                      localStorage.setItem('tark_profile_snoozed_at', String(Date.now()))
-                      onClose()
-                    }}
-                  >
-                    Dismiss
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="skip-btn"
+                  onClick={() => {
+                    localStorage.setItem('tark_profile_snoozed_at', String(Date.now()))
+                    onClose()
+                  }}
+                  title="Exit and return to Tark"
+                >
+                  {isMandatory ? 'Exit / Decide Later' : 'Dismiss'}
+                </button>
                 <button
                   type="submit"
                   className="save-profile-btn"

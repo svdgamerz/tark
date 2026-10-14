@@ -1,5 +1,12 @@
 export type SimulationType =
   | 'projectile'
+  | 'projectile_3d'
+  | 'solar_system_3d'
+  | 'bohr_atom_3d'
+  | 'molecules_3d'
+  | 'dna_helix_3d'
+  | 'heart_3d'
+  | 'lorenz_3d'
   | 'pendulum'
   | 'ohms_law'
   | 'waves'

@@ -46,4 +46,8 @@ desktop.ini
 .system_generated/
 .tempmediaStorage/
 scratch_*
+scratch/
+data/student_vault/
+tark_memory.json
+tark_goals.json
 

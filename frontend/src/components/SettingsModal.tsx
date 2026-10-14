@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { useAuth } from '../auth'
 import type { ModelInfo } from '../api'
 import {
@@ -121,6 +121,14 @@ export function SettingsModal({
     () => localStorage.getItem('tark_theme') ?? 'system',
   )
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
   if (!user) return null
 
   function toggleWeakTopic(topic: string) {
@@ -220,9 +228,19 @@ export function SettingsModal({
         </aside>
 
         <section className="settings-panel">
-          <h2 className="settings-panel-title">
-            {NAV.find((n) => n.id === tab)?.label}
-          </h2>
+          <div className="settings-panel-header-wrap">
+            <h2 className="settings-panel-title">
+              {NAV.find((n) => n.id === tab)?.label}
+            </h2>
+            <button
+              className="icon-btn settings-panel-close-btn"
+              onClick={onClose}
+              aria-label="Close settings"
+              title="Close (Esc)"
+            >
+              ✕
+            </button>
+          </div>
 
           {tab === 'general' && (
             <>

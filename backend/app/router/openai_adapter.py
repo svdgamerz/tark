@@ -5,6 +5,7 @@ Supports multi-key pool with automatic round-robin failover on 429 quota exhaust
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+from typing import Any
 
 from openai import APIStatusError, AsyncOpenAI, RateLimitError
 
@@ -32,9 +33,19 @@ class OpenAICompatAdapter(ModelAdapter):
     @staticmethod
     def _to_messages(
         system_prompt: str, messages: list[Message]
-    ) -> list[dict[str, str]]:
-        out: list[dict[str, str]] = [{"role": "system", "content": system_prompt}]
-        out.extend({"role": m.role, "content": m.content} for m in messages)
+    ) -> list[dict[str, Any]]:
+        out: list[dict[str, Any]] = [{"role": "system", "content": system_prompt}]
+        for m in messages:
+            if m.image_data:
+                mime = m.image_mime or "image/jpeg"
+                data_url = f"data:{mime};base64,{m.image_data}"
+                content: list[dict[str, Any]] = []
+                if m.content:
+                    content.append({"type": "text", "text": m.content})
+                content.append({"type": "image_url", "image_url": {"url": data_url}})
+                out.append({"role": m.role, "content": content})
+            else:
+                out.append({"role": m.role, "content": m.content})
         return out
 
     async def stream(
@@ -46,7 +57,9 @@ class OpenAICompatAdapter(ModelAdapter):
     ) -> AsyncIterator[str]:
         keys = self.key_pool.get_candidate_keys()
         if not keys:
-            raise ProviderError(f"No API keys configured for provider {self.provider_name}.")
+            if not self.key_pool.has_keys():
+                raise ProviderError(f"No API keys configured for provider {self.provider_name}.")
+            raise ProviderRateLimit(f"All {len(self.key_pool.keys)} {self.provider_name} keys exhausted (cooling down).")
 
         last_err: Exception | None = None
 

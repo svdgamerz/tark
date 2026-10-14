@@ -863,6 +863,15 @@ export function TaskWizardModal({
     }
   }
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -877,12 +886,23 @@ export function TaskWizardModal({
               {step === 3 && 'Your Customized Study Roadmap'}
             </h2>
           </div>
-          <div className="tw-steps">
-            <span className={`tw-step-dot ${step >= 1 ? 'active' : ''}`}>1</span>
-            <span className="tw-step-line" />
-            <span className={`tw-step-dot ${step >= 2 ? 'active' : ''}`}>2</span>
-            <span className="tw-step-line" />
-            <span className={`tw-step-dot ${step >= 3 ? 'active' : ''}`}>3</span>
+          <div className="tw-header-right">
+            <div className="tw-steps">
+              <span className={`tw-step-dot ${step >= 1 ? 'active' : ''}`}>1</span>
+              <span className="tw-step-line" />
+              <span className={`tw-step-dot ${step >= 2 ? 'active' : ''}`}>2</span>
+              <span className="tw-step-line" />
+              <span className={`tw-step-dot ${step >= 3 ? 'active' : ''}`}>3</span>
+            </div>
+            <button
+              type="button"
+              className="icon-btn close-btn tw-close-btn"
+              onClick={onClose}
+              aria-label="Close"
+              title="Close (Esc)"
+            >
+              ✕
+            </button>
           </div>
         </div>
 

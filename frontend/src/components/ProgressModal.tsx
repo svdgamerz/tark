@@ -16,6 +16,14 @@ export function ProgressModal({ onClose }: { onClose: () => void }) {
     if (token) fetchLearner(token).then(setTopics)
   }, [token])
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
   const list = topics ?? []
   const due = list.filter((t) => t.due_for_revision)
   const sorted = [...list].sort((a, b) => a.strength - b.strength)
@@ -23,7 +31,18 @@ export function ProgressModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal settings-modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Curriculum Progress</h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+          <h2 style={{ margin: 0 }}>Curriculum Progress</h2>
+          <button
+            type="button"
+            className="icon-btn close-btn"
+            onClick={onClose}
+            aria-label="Close"
+            title="Close (Esc)"
+          >
+            ✕
+          </button>
+        </div>
 
         {topics === null ? (
           <p className="auth-sub">Loading progress data…</p>

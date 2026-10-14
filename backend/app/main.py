@@ -230,6 +230,8 @@ async def _consolidate_directives(existing: list[str], new: str) -> list[str]:
         ):
             if kind == "token":
                 raw += payload
+            elif kind == "reset":
+                raw = ""
     except Exception:
         return [*existing, new][:4]
     lines = [ln.strip(" -•\t0123456789.") for ln in raw.splitlines() if ln.strip()]
@@ -260,6 +262,8 @@ async def _self_critique(question: str, answer: str) -> str:
     ):
         if kind == "token":
             raw += payload
+        elif kind == "reset":
+            raw = ""
     return raw.strip().strip('"')[:400]
 
 
@@ -289,6 +293,8 @@ async def _verify_against_source(question: str, answer: str, excerpts: str) -> s
     ):
         if kind == "token":
             raw += payload
+        elif kind == "reset":
+            raw = ""
     raw = raw.strip()
     if raw[:12].upper().startswith("CONTRADICT"):
         fix = raw.split(":", 1)[1].strip() if ":" in raw else raw
@@ -318,6 +324,8 @@ async def _cross_check(question: str, answer: str) -> str:
     ):
         if kind == "token":
             raw += payload
+        elif kind == "reset":
+            raw = ""
     raw = raw.strip()
     if raw[:10].upper().startswith("CORRECTION"):
         fix = raw.split(":", 1)[1].strip() if ":" in raw else raw
@@ -342,6 +350,8 @@ async def _verified_computations(message: str) -> str:
     ):
         if kind == "token":
             raw += payload
+        elif kind == "reset":
+            raw = ""
     return compute_block(raw)
 
 
@@ -358,6 +368,8 @@ async def _llm_text(system: str, user: str, model_id: str) -> str:
     ):
         if kind == "token":
             raw += payload
+        elif kind == "reset":
+            raw = ""
     return raw
 
 
@@ -464,6 +476,8 @@ async def _generate_followup_suggestions(
         ):
             if kind == "token":
                 raw += payload
+            elif kind == "reset":
+                raw = ""
         m = re.search(r"\[.*\]", raw, re.DOTALL)
         if m:
             data = json.loads(m.group(0))
@@ -505,6 +519,8 @@ async def _expand_query(message: str) -> list[str]:
         ):
             if kind == "token":
                 raw += payload
+            elif kind == "reset":
+                raw = ""
     except Exception:
         return []
     lines = [ln.strip(" -•\t0123456789.") for ln in raw.splitlines() if ln.strip()]
@@ -531,6 +547,8 @@ async def _refine_plan(plan: Plan, message: str) -> Plan:
         ):
             if kind == "token":
                 raw += payload
+            elif kind == "reset":
+                raw = ""
     except Exception:
         return plan
     if "GREET" in raw.upper():
@@ -887,6 +905,7 @@ async def chat(
         system_prompt += f"\n\n{ch_grounding}"
 
     hits = None  # top retrieval hits (also used for the learner model's topic)
+    grounded_generated = False
     if not vision and plan.kind != "chat" and spec.grounded and (req.board or req.grade or req.exam) and is_academic:
         eff_board = normalize_board(req.board)
         eff_grade = normalize_grade(req.grade)
@@ -1036,8 +1055,16 @@ async def chat(
 
     attempts = attempts_for(spec)
     if vision:
-        # Only Gemini reads images here — don't fail over to text-only models.
-        attempts = [(Provider.GEMINI, GEMINI_FLASH)]
+        # Multimodal vision models: OpenRouter (Gemini 2.5 Flash), NVIDIA NIM (Llama 3.2 Vision), Google Gemini Flash
+        vision_fallbacks = [
+            (Provider.OPENROUTER, "google/gemini-2.5-flash"),
+            (Provider.NIM, "meta/llama-3.2-11b-vision-instruct"),
+            (Provider.GEMINI, GEMINI_FLASH),
+        ]
+        if spec.provider == Provider.GEMINI:
+            attempts = [(Provider.GEMINI, GEMINI_FLASH), (Provider.OPENROUTER, "google/gemini-2.5-flash"), (Provider.NIM, "meta/llama-3.2-11b-vision-instruct")]
+        else:
+            attempts = vision_fallbacks
     elif plan.difficulty == "hard" and spec.id == DEFAULT_MODEL_ID:
         # Planner: hand HARD questions to a fast, powerful high-capacity reasoner first
         strong = (Provider.GROQ, "openai/gpt-oss-120b")
@@ -1198,7 +1225,7 @@ async def tts(req: TTSRequest) -> Response:
     falls back to the browser's built-in voice."""
     wav = await tts_synthesize(req.text, settings.gemini_api_key, req.voice or "Aoede")
     if not wav:
-        raise HTTPException(status_code=503, detail="TTS unavailable")
+        return Response(status_code=204)
     return Response(content=wav, media_type="audio/wav")
 
 

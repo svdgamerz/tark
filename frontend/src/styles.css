@@ -441,10 +441,37 @@ body {
   overflow-y: auto;
 }
 
+.settings-panel-header-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
 .settings-panel-title {
   font-size: 20px;
   font-weight: 650;
-  margin: 0 0 6px;
+  margin: 0;
+}
+
+.settings-panel-close-btn {
+  font-size: 16px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  background: transparent;
+  color: var(--text-muted, #94a3b8);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.settings-panel-close-btn:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.08));
+  color: var(--text, #f8fafc);
 }
 
 .set-row {
@@ -4141,6 +4168,32 @@ body {
   color: var(--text, #0f172a);
 }
 
+.tw-header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.tw-close-btn {
+  font-size: 16px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  background: transparent;
+  color: var(--text-muted, #94a3b8);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tw-close-btn:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.08));
+  color: var(--text, #f8fafc);
+}
+
 .tw-steps {
   display: flex;
   align-items: center;
@@ -5012,6 +5065,32 @@ body {
 
 .tm-btn-new:hover {
   opacity: 0.92;
+}
+
+.tm-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tm-close-btn {
+  font-size: 16px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  background: transparent;
+  color: var(--text-muted, #94a3b8);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tm-close-btn:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.08));
+  color: var(--text, #f8fafc);
 }
 
 .tm-body {
@@ -8791,6 +8870,142 @@ body {
 .sim-btn-text {
   font-size: 0.75rem;
   letter-spacing: 0.01em;
+}
+
+/* ==========================================================================
+   3D WebGL Simulation Styles (Three.js Virtual Laboratory)
+   ========================================================================== */
+
+.sim-3d-wrapper {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.sim-3d-wrapper:hover {
+  box-shadow: 0 8px 30px rgba(6, 182, 212, 0.15);
+}
+
+.sim-3d-inline {
+  max-width: 100%;
+  margin: 10px 0;
+}
+
+.sim-3d-fullscreen {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.sim-badge-3d {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(99, 102, 241, 0.15)) !important;
+  color: #06b6d4 !important;
+  border: 1px solid rgba(6, 182, 212, 0.3) !important;
+  font-weight: 700 !important;
+}
+
+.sim-3d-viewport-container {
+  position: relative;
+  width: 100%;
+  height: 340px;
+  background: #060914;
+  overflow: hidden;
+}
+
+.sim-3d-fullscreen .sim-3d-viewport-container {
+  flex: 1;
+  height: 100%;
+  min-height: 480px;
+}
+
+.sim-3d-canvas-host {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.sim-3d-canvas-host:active {
+  cursor: grabbing;
+}
+
+.sim-3d-gesture-hint {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  border-radius: 8px;
+  pointer-events: none;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  z-index: 10;
+}
+
+.sim-3d-gesture-hint strong {
+  color: #38bdf8;
+}
+
+.sim-3d-fps-badge {
+  position: absolute;
+  bottom: 10px;
+  right: 12px;
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #10b981;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  z-index: 10;
+}
+
+.sim-presets-strip {
+  padding: 8px 14px;
+  background: var(--surface, #ffffff);
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sim-presets-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted, #64748b);
+}
+
+.sim-presets-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+[data-theme='dark'] .sim-3d-wrapper {
+  background: #0b1120;
+  border-color: #1e293b;
+}
+
+[data-theme='dark'] .sim-presets-strip {
+  background: #0f172a;
+  border-color: #1e293b;
 }
 
 /* Talk Live Action Button in Message Actions Bar */

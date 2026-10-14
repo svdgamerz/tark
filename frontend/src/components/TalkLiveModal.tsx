@@ -141,21 +141,6 @@ export function TalkLiveModal({
   const concept = useMemo(() => extractRecitationConcept(referenceText), [referenceText])
   const { title, coreConcept, keyBullets, fullCleanText, workedExample, targetForEvaluation } = concept
 
-  // Clean up timers & speech on unmount
-  useEffect(() => {
-    return () => {
-      stopListening()
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current = null
-      }
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel()
-      }
-    }
-  }, [])
-
   /* ── Speech Recognition ── */
   const startListening = useCallback(() => {
     setError('')
@@ -234,6 +219,26 @@ export function TalkLiveModal({
       recognitionRef.current = null
     }
   }, [])
+
+  // Clean up timers & speech on unmount, handle Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      stopListening()
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+      }
+    }
+  }, [onClose, stopListening])
 
   /* ── Play / Pause Voice Feedback ── */
   const playFeedbackAudio = useCallback(

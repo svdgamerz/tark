@@ -94,7 +94,7 @@ class PromptOptimizer:
             self._client = AsyncOpenAI(
                 base_url="https://api.groq.com/openai/v1",
                 api_key=self.api_key,
-                timeout=1.5,
+                timeout=4.0,
             )
 
     @property
@@ -173,7 +173,7 @@ class PromptOptimizer:
                         temperature=0.3,
                         max_tokens=250,
                     ),
-                    timeout=1.5,
+                    timeout=3.5,
                 )
                 if response.choices and response.choices[0].message.content:
                     engineered = response.choices[0].message.content.strip()

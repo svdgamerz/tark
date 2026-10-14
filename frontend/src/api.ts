@@ -167,8 +167,10 @@ export async function fetchTts(text: string, voice?: string): Promise<Blob | nul
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, voice }),
     })
-    if (!res.ok) return null
-    return await res.blob()
+    if (!res.ok || res.status === 204) return null
+    const blob = await res.blob()
+    if (!blob || blob.size === 0) return null
+    return blob
   } catch {
     return null
   }
@@ -314,10 +316,10 @@ export async function streamChat(
     }
 
     if (res && (!res.ok || !res.body)) {
-      const isGatewayOrBusy = res.status === 502 || res.status === 503 || res.status === 504
+      const isGatewayOrBusy = res.status === 429 || res.status === 502 || res.status === 503 || res.status === 504
       if (isGatewayOrBusy && tokensReceived === 0 && attempt < MAX_RETRIES) {
         attempt++
-        const backoffMs = attempt * 2500
+        const backoffMs = attempt * 2000
         await new Promise((r) => setTimeout(r, backoffMs))
         continue
       }
@@ -344,6 +346,7 @@ export async function streamChat(
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
+    let shouldRetry = false
 
     try {
       for (;;) {
@@ -395,11 +398,24 @@ export async function streamChat(
               engineered: payload.engineered || '',
             })
           } else if (payload.type === 'error') {
+            if (tokensReceived === 0 && attempt < MAX_RETRIES) {
+              shouldRetry = true
+              attempt++
+              onReset?.()
+              try { await reader.cancel() } catch {}
+              await new Promise((r) => setTimeout(r, attempt * 1500))
+              break
+            }
             onError(payload.message ?? 'unknown error')
+            return
           } else if (payload.type === 'done') {
             onDone?.()
           }
         }
+        if (shouldRetry) break
+      }
+      if (shouldRetry) {
+        continue
       }
       return
     } catch (streamErr) {

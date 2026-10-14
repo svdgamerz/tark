@@ -30,6 +30,20 @@ export function TaskManagerModal({ onClose, onOpenWizard, onLaunchStudy, onLaunc
     })
   }, [token])
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (taskToDelete) {
+          setTaskToDelete(null)
+        } else {
+          onClose()
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [taskToDelete, onClose])
+
   async function handleToggle(taskId: number, milestoneId: string, currentStatus: boolean) {
     // Optimistic UI update
     setTasks((prev) =>
@@ -67,20 +81,31 @@ export function TaskManagerModal({ onClose, onOpenWizard, onLaunchStudy, onLaunc
             <span className="tm-badge">Academic Schedule &amp; Roadmap</span>
             <h2 className="tm-title">Study Planner &amp; Milestones</h2>
           </div>
-          <button
-            type="button"
-            className="tm-btn-new"
-            onClick={() => {
-              onClose()
-              onOpenWizard()
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            New Schedule
-          </button>
+          <div className="tm-header-right">
+            <button
+              type="button"
+              className="tm-btn-new"
+              onClick={() => {
+                onClose()
+                onOpenWizard()
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              New Schedule
+            </button>
+            <button
+              type="button"
+              className="icon-btn close-btn tm-close-btn"
+              onClick={onClose}
+              aria-label="Close"
+              title="Close (Esc)"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         <div className="tm-body">

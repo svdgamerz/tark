@@ -2,6 +2,30 @@ import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import type { SimulationData } from '../simulations/types'
 import { BUILTIN_TEMPLATES } from '../simulations/templates'
+import { BUILTIN_TEMPLATES_3D } from '../simulations/templates3d'
+import { ThreeSimulationCanvas } from './ThreeSimulationCanvas'
+
+const TYPE_3D_MAPPING: Record<string, string> = {
+  projectile: 'projectile_3d',
+  projectile_3d: 'projectile_3d',
+  solar_system: 'solar_system_3d',
+  solar_system_3d: 'solar_system_3d',
+  atomic_orbitals: 'bohr_atom_3d',
+  bohr_atom: 'bohr_atom_3d',
+  bohr_atom_3d: 'bohr_atom_3d',
+  chemical_bonding: 'molecules_3d',
+  molecules: 'molecules_3d',
+  molecules_3d: 'molecules_3d',
+  dna_replication: 'dna_helix_3d',
+  dna_helix: 'dna_helix_3d',
+  dna_helix_3d: 'dna_helix_3d',
+  circulatory_heart: 'heart_3d',
+  heart: 'heart_3d',
+  heart_3d: 'heart_3d',
+  lorenz: 'lorenz_3d',
+  lorenz_chaos: 'lorenz_3d',
+  lorenz_3d: 'lorenz_3d',
+}
 
 function Icon({ name }: { name: 'zoom' | 'close' }) {
   if (name === 'close') {
@@ -27,6 +51,10 @@ interface Props {
 }
 
 export function InteractiveSimulation({ simulation }: Props) {
+  const target3DKey = TYPE_3D_MAPPING[simulation.type] || simulation.type
+  const template3D = BUILTIN_TEMPLATES_3D[target3DKey]
+  const [isMode3D, setIsMode3D] = useState(Boolean(template3D))
+
   const template = BUILTIN_TEMPLATES[simulation.type]
   const [params, setParams] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {}
@@ -115,6 +143,49 @@ export function InteractiveSimulation({ simulation }: Props) {
 
   const readouts = template ? template.calculateReadouts(params) : []
 
+  // If 3D WebGL simulation is available and active
+  if (template3D && isMode3D) {
+    return (
+      <>
+        <div className="sim-3d-wrapper sim-3d-inline">
+          <ThreeSimulationCanvas
+            template={template3D}
+            initialParams={simulation.params}
+            isFullscreen={false}
+            onOpenFullscreen={() => setIsFullscreen(true)}
+          />
+          {template && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '6px 14px', background: 'var(--surface, #ffffff)', borderTop: '1px solid var(--border, #e2e8f0)' }}>
+              <button
+                type="button"
+                className="sim-btn"
+                onClick={() => setIsMode3D(false)}
+                title="Switch to 2D Canvas Schematic"
+              >
+                📊 Switch to 2D Schematic
+              </button>
+            </div>
+          )}
+        </div>
+
+        {isFullscreen &&
+          createPortal(
+            <div className="sim-fullscreen-backdrop" onClick={() => setIsFullscreen(false)}>
+              <div className="sim-fullscreen-modal" onClick={(e) => e.stopPropagation()}>
+                <ThreeSimulationCanvas
+                  template={template3D}
+                  initialParams={simulation.params}
+                  isFullscreen={true}
+                  onCloseFullscreen={() => setIsFullscreen(false)}
+                />
+              </div>
+            </div>,
+            document.body,
+          )}
+      </>
+    )
+  }
+
   // If custom AI-generated HTML simulation
   if (simulation.type === 'custom_html' && simulation.htmlContent) {
     return (
@@ -194,6 +265,16 @@ export function InteractiveSimulation({ simulation }: Props) {
             <span className="sim-concept-pill">{template?.concept || simulation.concept}</span>
           </div>
           <div className="sim-actions">
+            {template3D && (
+              <button
+                type="button"
+                className="sim-btn sim-badge-3d"
+                onClick={() => setIsMode3D(true)}
+                title="Switch to 3D Interactive WebGL"
+              >
+                <span>🌐 3D View</span>
+              </button>
+            )}
             <button className="sim-btn" onClick={handleReset} title="Reset sliders to defaults">
               <span>↺ Reset</span>
             </button>

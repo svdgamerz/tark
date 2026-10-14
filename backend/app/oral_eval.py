@@ -212,5 +212,43 @@ async def evaluate_oral(
         except Exception as e:
             logger.warning(f"Oral eval failed on Gemini key ending in ...{k[-6:] if len(k) >= 6 else k}: {e}")
             continue
+    # High-speed resilient AI fallback using Groq or OpenRouter if Gemini is unavailable
+    for prov_name, base_url, api_key, model_name in [
+        ("groq", "https://api.groq.com/openai/v1", settings.groq_api_key, "openai/gpt-oss-120b"),
+        ("openrouter", "https://openrouter.ai/api/v1", settings.openrouter_api_key, "deepseek/deepseek-chat"),
+    ]:
+        if not api_key:
+            continue
+        try:
+            from openai import AsyncOpenAI
+            ai_client = AsyncOpenAI(base_url=base_url, api_key=api_key, timeout=5.0)
+            ai_resp = await ai_client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": _EVAL_SYSTEM},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.3,
+                max_tokens=400,
+            )
+            raw = ai_resp.choices[0].message.content or ""
+            if raw:
+                m = re.search(r"\{[\s\S]*\}", raw)
+                if m:
+                    result = json.loads(m.group(0))
+                    score = max(0, min(100, int(result.get("accuracy_score", 50))))
+                    return {
+                        "accuracy_score": score,
+                        "grade_label": result.get("grade_label", "Good Effort"),
+                        "key_points_covered": result.get("key_points_covered", [])[:6],
+                        "key_points_missing": result.get("key_points_missing", [])[:4],
+                        "matched_keywords": result.get("matched_keywords", [])[:10],
+                        "tutor_tip": result.get("tutor_tip", "Remember the core definition and its real-world effect!"),
+                        "feedback_speech": result.get("feedback_speech", "Good effort! Keep practicing."),
+                        "feedback_markdown": result.get("feedback_markdown", "### Assessment Complete\nGood attempt."),
+                    }
+        except Exception as e:
+            logger.warning(f"Oral eval fallback on {prov_name} failed: {e}")
+            continue
 
     return _fallback_heuristic(student_text, reference_text)

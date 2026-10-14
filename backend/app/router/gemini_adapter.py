@@ -58,7 +58,9 @@ class GeminiAdapter(ModelAdapter):
     ) -> AsyncIterator[str]:
         keys = self.key_pool.get_candidate_keys()
         if not keys:
-            raise ProviderError("No Gemini API keys configured.")
+            if not self.key_pool.has_keys():
+                raise ProviderError("No Gemini API keys configured.")
+            raise ProviderRateLimit(f"All {len(self.key_pool.keys)} Gemini keys exhausted (cooling down).")
 
         config = types.GenerateContentConfig(system_instruction=system_prompt)
         last_err: Exception | None = None

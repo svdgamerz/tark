@@ -55,20 +55,14 @@ GEMINI_FLASH = "gemini-flash-latest"
 # Gemini text-to-speech (read-aloud). Free-tier flash TTS works on this key; the
 # pro TTS model is paywalled (429). Voice/adapter live in app/tts/.
 GEMINI_TTS = "gemini-2.5-flash-preview-tts"
-# Heavy reasoning + failover model on NVIDIA NIM. NIM's public catalog rotates:
-# the `deepseek-ai/deepseek-v4-pro` id from the build.nvidia.com snippet does not
-# respond on integrate.api.nvidia.com (it hangs), and the deepseek-r1/v3 / qwen
-# ids 404 for this key. `meta/llama-3.3-70b-instruct` is confirmed working and is
-# explicitly sanctioned by CLAUDE.md §6 (a large open Llama/DeepSeek/Qwen-class
-# model). To switch back to a DeepSeek model, change only this line — the NIM
-# adapter auto-enables the DeepSeek `thinking` flag when the id contains "deepseek".
-NIM_HEAVY = "meta/llama-3.3-70b-instruct"
+# Multimodal reasoning + failover model on NVIDIA NIM (verified active).
+NIM_HEAVY = "meta/llama-3.2-11b-vision-instruct"
 
 
 # Primary task → (provider, model_id).
 TASK_MODEL_MAP: dict[Task, tuple[Provider, str]] = {
     Task.CHAT: (Provider.GROQ, "openai/gpt-oss-120b"),
-    Task.VISION: (Provider.GEMINI, GEMINI_FLASH),
+    Task.VISION: (Provider.OPENROUTER, "google/gemini-2.5-flash"),
     Task.HEAVY_REASONING: (Provider.OPENROUTER, "deepseek/deepseek-chat"),
 }
 
@@ -77,6 +71,7 @@ FAILOVER_MODEL: dict[Provider, tuple[Provider, str]] = {
     Provider.GROQ: (Provider.OPENROUTER, "deepseek/deepseek-chat"),
     Provider.OPENROUTER: (Provider.GROQ, "openai/gpt-oss-120b"),
     Provider.GEMINI: (Provider.GROQ, "openai/gpt-oss-120b"),
+    Provider.NIM: (Provider.OPENROUTER, "google/gemini-2.5-flash"),
 }
 
 
@@ -115,6 +110,7 @@ FALLBACK_CHAIN: list[tuple[Provider, str]] = [
     (Provider.GROQ, "openai/gpt-oss-120b"),
     (Provider.OPENROUTER, "deepseek/deepseek-chat"),
     (Provider.OPENROUTER, "meta-llama/llama-3.3-70b-instruct"),
+    (Provider.NIM, "meta/llama-3.2-11b-vision-instruct"),
     (Provider.GROQ, "openai/gpt-oss-20b"),
     (Provider.OPENROUTER, "qwen/qwen-2.5-72b-instruct"),
     (Provider.GEMINI, GEMINI_FLASH),

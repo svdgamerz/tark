@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Chat } from '../useChats'
 import { useAuth } from '../auth'
 import { Logo } from './Logo'
@@ -40,6 +40,18 @@ export function Sidebar({
 }: Props) {
   const { user } = useAuth()
   const [chatToDelete, setChatToDelete] = useState<Chat | null>(null)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (chatToDelete) {
+          setChatToDelete(null)
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [chatToDelete])
 
   return (
     <>
