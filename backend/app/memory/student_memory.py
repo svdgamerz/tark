@@ -176,10 +176,16 @@ class StudentMemoryStore:
 
         # 3. School / Institution
         school_match = re.search(
-            r"\b(?:my school is|i (?:study at|go to|attend))\s+([A-Za-z0-9\s.,'&-]{3,60}?)(?:[.,;!]|\s+and\s+(?:i\s+am|i'm|my|i\s+study)|\n|$)",
+            r"\b(?:my school is|i (?:study at|go to|attend|am at)|student at|studying at)\s+([A-Za-z0-9\s.,'&-]{3,60}?)(?:[.,;!]|\s+and\b|\n|$)",
             cleaned,
             re.I,
         )
+        if not school_match:
+            school_match = re.search(
+                r"\b(?:at|from)\s+([A-Za-z0-9\s.,'&-]{2,50}?\s+(?:School|Academy|College|Vidyalaya|Institute|DPS|High School))\b",
+                cleaned,
+                re.I,
+            )
         if school_match:
             sch = school_match.group(1).strip()
             if len(sch) >= 3 and sch.lower() not in ("home", "here", "school", "college"):
