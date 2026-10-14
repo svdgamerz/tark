@@ -140,6 +140,12 @@ export async function triggerGoogleSignIn(): Promise<{ idToken?: string; user?: 
       return { idToken, user: result.user }
     }
   } catch (popupErr: any) {
+    if (popupErr?.code === 'auth/unauthorized-domain') {
+      const currentHost = window.location.hostname
+      throw new Error(
+        `Domain authorization needed: Add '${currentHost}' to Firebase Console (Authentication > Settings > Authorized domains).`
+      )
+    }
     // If popup was blocked or closed by browser policy, fall back to redirect
     if (
       popupErr?.code === 'auth/popup-blocked' ||
