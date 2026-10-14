@@ -52,6 +52,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
   const [loading, setLoading] = useState(true)
 
+  function syncAndSetUser(u: AuthUser, authToken?: string | null) {
+    const localBoard = localStorage.getItem('tark_board') || localStorage.getItem('board')
+    const localGrade = localStorage.getItem('tark_grade') || localStorage.getItem('grade')
+    const localSchool = localStorage.getItem('tark_school') || localStorage.getItem('school')
+
+    if (u.board && u.grade) {
+      localStorage.setItem('tark_board', u.board)
+      localStorage.setItem('tark_grade', u.grade)
+      if (u.school) localStorage.setItem('tark_school', u.school)
+      localStorage.setItem('tark_profile_completed', '1')
+      setUser(u)
+      return
+    }
+
+    if (localBoard && localGrade) {
+      const effBoard = (u.board || localBoard) ?? undefined
+      const effGrade = (u.grade || localGrade) ?? undefined
+      const effSchool = (u.school || localSchool || '') ?? undefined
+      const mergedUser: AuthUser = {
+        ...u,
+        board: effBoard,
+        grade: effGrade,
+        school: effSchool,
+      }
+      setUser(mergedUser)
+      const tk = authToken || token || localStorage.getItem(TOKEN_KEY)
+      if (tk) {
+        authApi.updateProfile(tk, {
+          board: effBoard,
+          grade: effGrade,
+          school: effSchool,
+          exam: localStorage.getItem('tark_target_exam') || undefined,
+          tutoring_style: localStorage.getItem('tark_tutoring_style') || undefined,
+          language: localStorage.getItem('tark_language_pref') || undefined,
+          weak_subjects: localStorage.getItem('tark_weak_subjects') || undefined,
+        }).catch(() => {})
+      }
+      return
+    }
+
+    setUser(u)
+  }
+
+  function save(newToken: string | undefined, u: AuthUser | undefined) {
+    if (newToken) {
+      localStorage.setItem(TOKEN_KEY, newToken)
+      setToken(newToken)
+    }
+    if (u) {
+      syncAndSetUser(u, newToken)
+    }
+  }
+
   useEffect(() => {
     // 1. Direct Google OAuth2 return (hash contains id_token)
     if (window.location.hash.includes('id_token=')) {
@@ -86,8 +139,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return
       }
       authApi.me(t).then((r) => {
-        if (r.ok && r.user) setUser(r.user)
-        else {
+        if (r.ok && r.user) {
+          syncAndSetUser(r.user, t)
+        } else {
           localStorage.removeItem(TOKEN_KEY)
           setToken(null)
         }
@@ -95,14 +149,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
     })
   }, [])
-
-  function save(newToken: string | undefined, u: AuthUser | undefined) {
-    if (newToken) {
-      localStorage.setItem(TOKEN_KEY, newToken)
-      setToken(newToken)
-    }
-    if (u) setUser(u)
-  }
 
   const value: AuthValue = {
     user,
@@ -143,7 +189,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const r = await authApi.firebaseAuth(idToken)
       if (!r.ok) return { error: r.error }
       save(r.token, r.user)
-      return { user: r.user }
+      const localBoard = localStorage.getItem('tark_board') || localStorage.getItem('board')
+      const localGrade = localStorage.getItem('tark_grade') || localStorage.getItem('grade')
+      const effectiveUser = r.user ? {
+        ...r.user,
+        board: r.user.board || localBoard || undefined,
+        grade: r.user.grade || localGrade || undefined,
+      } : undefined
+      return { user: effectiveUser }
     },
     updateProfile: async (profile) => {
       if (!token) return { error: 'Not logged in.' }

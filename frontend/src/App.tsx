@@ -106,7 +106,7 @@ function friendlyError(raw: string): string {
 }
 
 export default function App() {
-  const { user, token } = useAuth()
+  const { user, token, updateProfile } = useAuth()
   const userKey = user?.email ?? 'guest'
 
   const {
@@ -250,19 +250,53 @@ export default function App() {
     }
   }, [])
 
-  // Automatically prompt student profile setup modal on login if board/grade are incomplete
+  // Automatically check if profile is already configured in DB or localStorage
   useEffect(() => {
-    if (user && (!user.board || !user.grade)) {
-      setShowProfileSetup(true)
-      setShowProfileBanner(false)
+    const localBoard = localStorage.getItem('tark_board') || localStorage.getItem('board')
+    const localGrade = localStorage.getItem('tark_grade') || localStorage.getItem('grade')
+    const isCompleted = localStorage.getItem('tark_profile_completed') === '1'
+
+    if (user) {
+      // If user in DB lacks board/grade, but localStorage ALREADY has them from earlier:
+      if ((!user.board || !user.grade) && localBoard && localGrade) {
+        updateProfile({
+          board: localBoard,
+          grade: localGrade,
+          school: localStorage.getItem('tark_school') || undefined,
+          exam: localStorage.getItem('tark_target_exam') || undefined,
+          tutoring_style: localStorage.getItem('tark_tutoring_style') || undefined,
+          language: localStorage.getItem('tark_language_pref') || undefined,
+          weak_subjects: localStorage.getItem('tark_weak_subjects') || undefined,
+        }).catch(() => {})
+        setShowProfileSetup(false)
+        setShowProfileBanner(false)
+        return
+      }
+
+      // If user already has board and grade in DB:
+      if (user.board && user.grade) {
+        localStorage.setItem('tark_board', user.board)
+        localStorage.setItem('tark_grade', user.grade)
+        if (user.school) localStorage.setItem('tark_school', user.school)
+        localStorage.setItem('tark_profile_completed', '1')
+        setShowProfileSetup(false)
+        setShowProfileBanner(false)
+        return
+      }
+
+      // Only prompt if neither DB nor localStorage has board/grade and user hasn't completed it
+      if (!localBoard && !localGrade && !isCompleted) {
+        setShowProfileSetup(true)
+        setShowProfileBanner(false)
+      } else {
+        setShowProfileSetup(false)
+        setShowProfileBanner(false)
+      }
       return
     }
 
-    const isProfileIncomplete = user
-      ? !user.board || !user.grade
-      : localStorage.getItem('tark_profile_completed') !== '1'
-
-    if (isProfileIncomplete) {
+    // Guest user (not logged in):
+    if (!isCompleted && (!localBoard || !localGrade)) {
       const snoozedAt = Number(localStorage.getItem('tark_profile_snoozed_at') ?? 0)
       if (Date.now() - snoozedAt > 20 * 60 * 1000) {
         setShowProfileBanner(true)
@@ -281,11 +315,12 @@ export default function App() {
   }, [activeScheduleTask])
 
   function triggerRandomProfileCheck() {
-    const isProfileIncomplete = user
-      ? !user.board || !user.grade
-      : localStorage.getItem('tark_profile_completed') !== '1'
+    const localBoard = localStorage.getItem('tark_board') || localStorage.getItem('board')
+    const localGrade = localStorage.getItem('tark_grade') || localStorage.getItem('grade')
+    const isCompleted = localStorage.getItem('tark_profile_completed') === '1'
+    const hasProfile = Boolean((user?.board && user?.grade) || (localBoard && localGrade) || isCompleted)
 
-    if (isProfileIncomplete && !showProfileBanner) {
+    if (!hasProfile && !showProfileBanner) {
       // ~35% chance to randomly pop up above composer
       if (Math.random() < 0.35) {
         setShowProfileBanner(true)

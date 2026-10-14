@@ -86,9 +86,9 @@ export function AuthPage({
   const [showPw, setShowPw] = useState(false)
 
   const [boards, setBoards] = useState<string[]>([])
-  const [board, setBoard] = useState('')
-  const [grade, setGrade] = useState('')
-  const [school, setSchool] = useState('')
+  const [board, setBoard] = useState(() => localStorage.getItem('tark_board') || localStorage.getItem('board') || 'CBSE')
+  const [grade, setGrade] = useState(() => localStorage.getItem('tark_grade') || localStorage.getItem('grade') || '10')
+  const [school, setSchool] = useState(() => localStorage.getItem('tark_school') || localStorage.getItem('school') || '')
   const [schoolResults, setSchoolResults] = useState<SchoolItem[]>([])
   const debounceRef = useRef<number | undefined>(undefined)
 
@@ -96,6 +96,40 @@ export function AuthPage({
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
   const [resendIn, setResendIn] = useState(0)
+
+  function handlePostAuthRedirect(signedInUser: any) {
+    const localBoard = localStorage.getItem('tark_board') || localStorage.getItem('board')
+    const localGrade = localStorage.getItem('tark_grade') || localStorage.getItem('grade')
+    const localSchool = localStorage.getItem('tark_school') || localStorage.getItem('school')
+    const localExam = localStorage.getItem('tark_target_exam') || localStorage.getItem('exam')
+
+    const effBoard = signedInUser?.board || localBoard
+    const effGrade = signedInUser?.grade || localGrade
+
+    // If student ALREADY configured profile before (or in DB):
+    if (effBoard && effGrade) {
+      if (!signedInUser?.board || !signedInUser?.grade) {
+        updateProfile({
+          board: effBoard,
+          grade: effGrade,
+          school: localSchool || undefined,
+          exam: localExam || undefined,
+          tutoring_style: localStorage.getItem('tark_tutoring_style') || undefined,
+          language: localStorage.getItem('tark_language_pref') || undefined,
+          weak_subjects: localStorage.getItem('tark_weak_subjects') || undefined,
+        }).catch(() => {})
+      }
+      localStorage.setItem('tark_board', effBoard)
+      localStorage.setItem('tark_grade', effGrade)
+      if (localSchool) localStorage.setItem('tark_school', localSchool)
+      localStorage.setItem('tark_profile_completed', '1')
+      onClose()
+      return
+    }
+
+    // Only if brand new student with no profile in DB or localStorage:
+    go('onboard')
+  }
 
   useEffect(() => {
     fetchCurriculum().then((items) =>
@@ -115,11 +149,7 @@ export function AuthPage({
         setBusy(true)
         const { error: authErr, user: signedInUser } = await signInWithFirebaseToken(res.idToken)
         if (!authErr) {
-          if (!signedInUser?.board || !signedInUser?.grade) {
-            go('onboard')
-          } else {
-            onClose()
-          }
+          handlePostAuthRedirect(signedInUser)
         } else {
           setError(authErr)
         }
@@ -180,11 +210,7 @@ export function AuthPage({
         if (authErr) {
           setError(authErr)
         } else {
-          if (!signedInUser?.board || !signedInUser?.grade) {
-            go('onboard')
-          } else {
-            onClose()
-          }
+          handlePostAuthRedirect(signedInUser)
         }
       }
       // If res is undefined, it fell back to redirect and page will resume on return
@@ -211,11 +237,7 @@ export function AuthPage({
         const { idToken } = await triggerFirebaseEmailLogin(email.trim(), password)
         const { error: authErr, user: signedInUser } = await signInWithFirebaseToken(idToken)
         if (!authErr) {
-          if (!signedInUser?.board || !signedInUser?.grade) {
-            go('onboard')
-          } else {
-            onClose()
-          }
+          handlePostAuthRedirect(signedInUser)
           setBusy(false)
           return
         }
@@ -247,11 +269,7 @@ export function AuthPage({
           setError(authErr)
         } else {
           setInfo(`Verification email sent directly to ${email}!`)
-          if (!signedInUser?.board || !signedInUser?.grade) {
-            go('onboard')
-          } else {
-            onClose()
-          }
+          handlePostAuthRedirect(signedInUser)
         }
         setBusy(false)
         return
@@ -272,7 +290,7 @@ export function AuthPage({
       setResendIn(30)
       go('verify')
       setInfo(`We've sent a 6-digit code to ${email}.`)
-    } else go('onboard')
+    } else handlePostAuthRedirect(null)
     setBusy(false)
   }
 
@@ -284,7 +302,7 @@ export function AuthPage({
     if (error) setError(error)
     else {
       setCode('')
-      go('onboard')
+      handlePostAuthRedirect(null)
     }
     setBusy(false)
   }
@@ -321,7 +339,7 @@ export function AuthPage({
     setBusy(true)
     const { error } = await resetPassword(email, code.trim(), password)
     if (error) setError(error)
-    else onClose() // logged in with the new password
+    else handlePostAuthRedirect(null) // logged in with the new password
     setBusy(false)
   }
 
@@ -329,13 +347,20 @@ export function AuthPage({
     e.preventDefault()
     setError('')
     setBusy(true)
+    const effBoard = board === '__other' ? undefined : board
     const { error } = await updateProfile({
-      board: board === '__other' ? undefined : board,
+      board: effBoard,
       grade,
       school: school.trim() || undefined,
     })
     if (error) setError(error)
-    else onClose()
+    else {
+      if (effBoard) localStorage.setItem('tark_board', effBoard)
+      if (grade) localStorage.setItem('tark_grade', grade)
+      if (school.trim()) localStorage.setItem('tark_school', school.trim())
+      localStorage.setItem('tark_profile_completed', '1')
+      onClose()
+    }
     setBusy(false)
   }
 
