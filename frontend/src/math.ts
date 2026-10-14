@@ -6,63 +6,110 @@
 import katex from 'katex'
 
 export interface Segment {
-  type: 'text' | 'math'
+  type: 'text' | 'math' | 'code'
   value: string
   display: boolean
+  language?: string
 }
 
 // Regex matching display math ($$...$$, \[...\], \begin{env}...\end{env}) and inline math ($...$, \(...\))
 const MATH_RE =
   /\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\\begin\{(matrix|pmatrix|bmatrix|vmatrix|Vmatrix|align|aligned|gather|gathered|equation|equation\*)\}([\s\S]+?)\\end\{\1\}|\\\(([\s\S]+?)\\\)|\$([^$\n]+?)\$/g
 
+// Regex matching code blocks: ```lang\n...``` or unclosed ```lang\n... during streaming
+const CODE_BLOCK_RE = /(?:^|\n)```([a-zA-Z0-9_+#.-]*)[ \t]*\r?\n([\s\S]*?)(?:```(?:\r?\n|$)|$)/g
+
 export function parseSegments(input: string): Segment[] {
   const segments: Segment[] = []
-  let lastIndex = 0
-  let match: RegExpExecArray | null
+  if (!input) return segments
 
-  MATH_RE.lastIndex = 0
-  while ((match = MATH_RE.exec(input)) !== null) {
-    if (match.index > lastIndex) {
+  // Helper to parse math inside regular text slices
+  function pushTextAndMath(slice: string) {
+    if (!slice) return
+    MATH_RE.lastIndex = 0
+    let lastIdx = 0
+    let match: RegExpExecArray | null
+
+    while ((match = MATH_RE.exec(slice)) !== null) {
+      if (match.index > lastIdx) {
+        segments.push({
+          type: 'text',
+          value: slice.slice(lastIdx, match.index),
+          display: false,
+        })
+      }
+
+      // Display math: $$...$$
+      if (match[1] !== undefined) {
+        segments.push({ type: 'math', value: match[1].trim(), display: true })
+      }
+      // Display math: \[...\]
+      else if (match[2] !== undefined) {
+        segments.push({ type: 'math', value: match[2].trim(), display: true })
+      }
+      // Environment: \begin{env}...\end{env}
+      else if (match[3] !== undefined && match[4] !== undefined) {
+        segments.push({
+          type: 'math',
+          value: `\\begin{${match[3]}}${match[4]}\\end{${match[3]}}`,
+          display: true,
+        })
+      }
+      // Inline math: \(...\)
+      else if (match[5] !== undefined) {
+        segments.push({ type: 'math', value: match[5].trim(), display: false })
+      }
+      // Inline math: $...$
+      else if (match[6] !== undefined) {
+        segments.push({ type: 'math', value: match[6].trim(), display: false })
+      }
+
+      lastIdx = MATH_RE.lastIndex
+    }
+
+    if (lastIdx < slice.length) {
       segments.push({
         type: 'text',
-        value: input.slice(lastIndex, match.index),
+        value: slice.slice(lastIdx),
         display: false,
       })
     }
-
-    // Display math: $$...$$
-    if (match[1] !== undefined) {
-      segments.push({ type: 'math', value: match[1].trim(), display: true })
-    }
-    // Display math: \[...\]
-    else if (match[2] !== undefined) {
-      segments.push({ type: 'math', value: match[2].trim(), display: true })
-    }
-    // Environment: \begin{env}...\end{env}
-    else if (match[3] !== undefined && match[4] !== undefined) {
-      segments.push({
-        type: 'math',
-        value: `\\begin{${match[3]}}${match[4]}\\end{${match[3]}}`,
-        display: true,
-      })
-    }
-    // Inline math: \(...\)
-    else if (match[5] !== undefined) {
-      segments.push({ type: 'math', value: match[5].trim(), display: false })
-    }
-    // Inline math: $...$
-    else if (match[6] !== undefined) {
-      segments.push({ type: 'math', value: match[6].trim(), display: false })
-    }
-
-    lastIndex = MATH_RE.lastIndex
   }
 
-  if (lastIndex < input.length) {
-    segments.push({ type: 'text', value: input.slice(lastIndex), display: false })
+  CODE_BLOCK_RE.lastIndex = 0
+  let lastEnd = 0
+  let codeMatch: RegExpExecArray | null
+
+  while ((codeMatch = CODE_BLOCK_RE.exec(input)) !== null) {
+    const matchStart = codeMatch.index
+    // If the regex matched a leading newline, adjust the start position
+    const hasLeadingNewline = input[matchStart] === '\n'
+    const actualStart = hasLeadingNewline ? matchStart + 1 : matchStart
+
+    if (actualStart > lastEnd) {
+      pushTextAndMath(input.slice(lastEnd, actualStart))
+    }
+
+    const lang = codeMatch[1]?.trim() || 'text'
+    const code = codeMatch[2] ?? ''
+
+    segments.push({
+      type: 'code',
+      value: code,
+      display: false,
+      language: lang,
+    })
+
+    lastEnd = CODE_BLOCK_RE.lastIndex
   }
+
+  if (lastEnd < input.length) {
+    pushTextAndMath(input.slice(lastEnd))
+  }
+
   return segments
 }
+
 
 const DIAGRAM_HEAD =
   /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|mindmap|gantt|pie|journey)\b/i
@@ -145,13 +192,36 @@ export function renderMarkdown(text: string): string {
   // Remove standalone horizontal rule dividers (---, ***, ___) that visually slice text into distracting lines
   s = s.replace(/^\s*[-*_]{3,}\s*$/gm, '')
 
-  // Step headers: **Step 1: ...** or # Heading
-  s = s.replace(/^\s{0,3}#{1,6}\s+(.+)$/gm, '<div class="md-heading">$1</div>')
+  // Headings: # and ## as major headings, ### to ###### as sub headings
+  s = s.replace(/^\s{0,3}#{1,2}\s+(.+)$/gm, '<h3 class="md-heading-major">$1</h3>')
+  s = s.replace(/^\s{0,3}#{3,6}\s+(.+)$/gm, '<h4 class="md-heading-sub">$1</h4>')
   s = s.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>')
   s = s.replace(/__([^_\n]+?)__/g, '<strong>$1</strong>')
-  s = s.replace(/^\s*[-*]\s+(.+)$/gm, '<div class="md-bullet"><span class="md-dot">•</span><span>$1</span></div>')
   s = s.replace(/(^|[^\w*])\*(\S[^*\n]*?)\*(?!\*)/g, '$1<em>$2</em>')
   s = s.replace(/`([^`\n]+?)`/g, '<code class="md-inline-code">$1</code>')
+
+  // Blockquotes: > quote
+  s = s.replace(/(?:^[ \t]*&gt;[ \t]*(.+)(?:\r?\n|$))+/gm, (block) => {
+    const inner = block
+      .split(/\r?\n/)
+      .map((line) => line.replace(/^[ \t]*&gt;[ \t]*/, '').trim())
+      .filter(Boolean)
+      .join('<br />')
+    return `<blockquote class="md-quote">${inner}</blockquote>`
+  })
+
+  // Ordered list items: 1. Item
+  s = s.replace(/^\s*(\d+)\.\s+(.+)$/gm, '<div class="md-ordered-item"><span class="md-num">$1.</span><span class="md-item-content">$2</span></div>')
+
+  // Unordered list items / bullets: - item, * item, • item
+  s = s.replace(/^\s*[-*•]\s+(.+)$/gm, '<div class="md-bullet"><span class="md-dot">•</span><span class="md-bullet-content">$1</span></div>')
+
+  // Callout cards for Key Takeaways / Tips (e.g. 💡 **Key Takeaway**)
+  s = s.replace(
+    /<div class="md-bullet"><span class="md-dot">•<\/span><span class="md-bullet-content">(?:💡|📌)\s*<strong>(Key Takeaway|Takeaway|Important Note):?<\/strong>(.*?)<\/span><\/div>/gi,
+    '<div class="md-callout-card md-callout-takeaway"><span class="md-callout-icon">💡</span><div class="md-callout-text"><strong>$1:</strong>$2</div></div>'
+  )
+
 
   // Parse Markdown pipe tables (| col1 | col2 |) into sleek HTML tables
   s = s.replace(/(?:^[ \t]*\|[^\n]+\|[ \t]*(?:\r?\n|$))+/gm, (tableBlock) => {

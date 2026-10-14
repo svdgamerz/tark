@@ -2555,6 +2555,34 @@ body {
 }
 
 /* --- Mathematical Step Formatting & KaTeX Polish --- */
+.text-block {
+  line-height: 1.65;
+  font-size: 15px;
+  word-break: break-word;
+}
+
+.text-block p {
+  margin: 8px 0;
+}
+
+.md-heading-major {
+  font-weight: 700;
+  font-size: 17px;
+  margin: 18px 0 8px;
+  color: var(--fg);
+  letter-spacing: -0.3px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding-bottom: 4px;
+}
+
+.md-heading-sub {
+  font-weight: 600;
+  font-size: 15px;
+  margin: 14px 0 6px;
+  color: var(--fg);
+  letter-spacing: -0.2px;
+}
+
 .md-heading {
   font-weight: 700;
   font-size: 14.5px;
@@ -2566,26 +2594,220 @@ body {
 .md-bullet {
   display: flex;
   align-items: flex-start;
-  gap: 7px;
-  margin: 2.5px 0;
-  line-height: 1.5;
+  gap: 8px;
+  margin: 4px 0;
+  line-height: 1.6;
+}
+
+.md-bullet-content {
+  flex: 1;
 }
 
 .md-dot {
   color: var(--accent);
   font-weight: bold;
   user-select: none;
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.6;
+  flex-shrink: 0;
+}
+
+.md-ordered-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 5px 0;
+  line-height: 1.6;
+}
+
+.md-num {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
+  min-width: 20px;
+  line-height: 1.6;
+}
+
+.md-item-content {
+  flex: 1;
+}
+
+.md-quote {
+  border-left: 3px solid var(--accent);
+  background: rgba(0, 0, 0, 0.03);
+  padding: 10px 16px;
+  margin: 12px 0;
+  border-radius: 0 8px 8px 0;
+  color: var(--fg-muted, #64748b);
+  font-style: italic;
+  line-height: 1.6;
+}
+
+.md-callout-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin: 14px 0;
+  line-height: 1.55;
+  font-size: 14px;
+}
+
+.md-callout-takeaway {
+  background: rgba(14, 165, 233, 0.08);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  color: var(--fg);
+}
+
+.md-callout-icon {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.md-callout-text {
+  flex: 1;
 }
 
 .md-inline-code {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(0, 0, 0, 0.06);
   padding: 2px 6px;
   border-radius: 4px;
-  font-family: monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 13px;
+  color: var(--accent, #6366f1);
 }
+
+/* --- ChatGPT-Style Interactive Code Block --- */
+.code-block-card {
+  margin: 14px 0;
+  border-radius: 10px;
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+  overflow: hidden;
+}
+
+.code-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1f2937;
+  padding: 7px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  user-select: none;
+}
+
+.code-lang-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #9ca3af;
+  text-transform: lowercase;
+  letter-spacing: 0.3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+}
+
+.code-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.code-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f3f4f6;
+}
+
+.code-copy-btn.copied {
+  color: #10b981;
+}
+
+.code-copy-icon {
+  flex-shrink: 0;
+}
+
+.code-block-pre {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  background: transparent;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #e5e7eb;
+}
+
+.code-block-pre code {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Prism Token Syntax Highlighting (Dark Theme) */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.token.punctuation {
+  color: #abb2bf;
+}
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol {
+  color: #d19a66;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin {
+  color: #98c379;
+}
+
+.token.operator,
+.token.entity,
+.token.url {
+  color: #56b6c2;
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: #c678dd;
+  font-weight: 600;
+}
+
+.token.function,
+.token.class-name {
+  color: #61afef;
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+  color: #e5c07b;
+}
+
 
 /* --- Markdown Tables (Clean, Sleek & Responsive) --- */
 .md-table-container {

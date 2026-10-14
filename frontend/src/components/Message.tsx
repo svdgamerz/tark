@@ -13,6 +13,8 @@ import {
 } from '../math'
 import { Logo } from './Logo'
 import { DiagramLightbox } from './DiagramLightbox'
+import { CodeBlock } from './CodeBlock'
+
 
 /* ---- Minimal line icons (Lucide-style), 16px, inherit color ---- */
 function Icon({ name }: { name: string }) {
@@ -626,7 +628,13 @@ export function MessageView({
                     }}
                   >
                   {segments.map((seg, i) =>
-                    seg.type === 'math' ? (
+                    seg.type === 'code' ? (
+                      <CodeBlock
+                        key={i}
+                        code={seg.value}
+                        language={seg.language || 'text'}
+                      />
+                    ) : seg.type === 'math' ? (
                       seg.display ? (
                         <div
                           key={i}
@@ -645,10 +653,9 @@ export function MessageView({
                         />
                       )
                     ) : (
-                      <span
+                      <div
                         key={i}
                         className="text-block"
-                        style={{ whiteSpace: 'pre-wrap' }}
                         dangerouslySetInnerHTML={{ __html: renderMarkdown(seg.value) }}
                       />
                     ),
