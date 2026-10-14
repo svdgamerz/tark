@@ -65,10 +65,31 @@ _ACADEMIC_SIGNALS = [
 ]
 
 
+# Patterns that indicate CONVERSATIONAL, MULTI-TURN, OR MEMORY queries
+_CONVERSATIONAL_AND_MEMORY_PATTERNS = [
+    # Reference to past turns or memory
+    re.compile(r"\b(remember|remind|earlier|mentioned|told\s+you|said|previous|before|again|last\s+(prompt|time|message|turn)|first\s+(prompt|time|message|turn)|above|recall|forgot|forget|what\s+did\s+i\s+say|as\s+i\s+told\s+you|as\s+i\s+said)\b", re.I),
+    # Questions about personal context / identity / history
+    re.compile(r"\b(who\s+am\s+i|my\s+name|what\s+is\s+my|which\s+(exam|board|grade|school|class|subject)\s+(did\s+i|am\s+i|was\s+it)|do\s+you\s+know\s+me|do\s+you\s+remember)\b", re.I),
+    # Follow-ups and deictic references
+    re.compile(r"\b(why\s+(did|does|is|was)\s+(that|this|it|you)|why\s+so|how\s+(come|so)|what\s+about\s+(the\s+)?(second|first|third|other|next|that|this)|can\s+you\s+elaborate|explain\s+more|what\s+do\s+you\s+mean|in\s+that\s+case|what\s+next)\b", re.I),
+]
+
+
+def is_conversational_or_memory_query(text: str) -> bool:
+    """Determine if a query is checking memory, referring to earlier turns, or a conversational follow-up."""
+    low = text.lower().strip()
+    return any(p.search(low) for p in _CONVERSATIONAL_AND_MEMORY_PATTERNS)
+
+
 def _is_academic_query(text: str, context: dict[str, Any] | None = None) -> bool:
     """Determine if a query is genuinely academic and would benefit from prompt engineering."""
     low = text.lower().strip()
     ctx = context or {}
+
+    # If the query is conversational or refers to memory/prior context, skip immediately!
+    if is_conversational_or_memory_query(text):
+        return False
 
     # If the query matches ANY non-academic pattern, skip immediately
     for pat in _NON_ACADEMIC_PATTERNS:
@@ -113,6 +134,10 @@ class PromptOptimizer:
         """
         trimmed = query.strip()
         if not trimmed or not self.is_available:
+            return query, False
+
+        # Skip conversational or memory questions
+        if is_conversational_or_memory_query(trimmed):
             return query, False
 
         # Skip trivial greetings or small-talk

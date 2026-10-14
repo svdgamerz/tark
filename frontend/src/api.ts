@@ -279,9 +279,11 @@ export async function streamChat(
         },
         body: JSON.stringify({
           mode,
-          // Send only role/content in history (strip image/at to keep it lean); the
+          // Send only clean, valid role/content in history (strip errors/transient status); the
           // current image travels in the top-level `image` field.
-          messages: messages.map((m) => ({ role: m.role, content: m.content })),
+          messages: messages
+            .filter((m) => !m.isError && m.content && !m.content.trim().startsWith('⏳'))
+            .map((m) => ({ role: m.role, content: m.content })),
           model: opts.model,
           board: opts.board,
           grade: opts.grade,

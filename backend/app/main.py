@@ -81,9 +81,52 @@ from app.rag.retrieve import (
 )
 from app.schools.store import SchoolStore
 from app.search.tavily import TavilySearchClient, format_web_context
+from app.memory import student_memory
 from app.router.base import Message
 from app.router.router import ModelRouter
-from app.router.prompt_engineer import PromptOptimizer, _is_academic_query
+from app.router.prompt_engineer import (
+    PromptOptimizer,
+    _is_academic_query,
+    is_conversational_or_memory_query,
+)
+
+
+def _contextualize_query_for_rag(last_user: str, messages: list[Message]) -> str:
+    """Enrich short or pronoun-heavy follow-up questions with context from prior turns."""
+    low = last_user.lower()
+    has_pronoun = bool(
+        re.search(
+            r"\b(this|that|it|these|those|there|here|the\s+formula|the\s+reaction|the\s+process|the\s+law|the\s+second|the\s+first)\b",
+            low,
+        )
+    )
+    if len(last_user.split()) > 10 and not has_pronoun:
+        return last_user
+
+    prior_keywords: list[str] = []
+    for m in reversed(messages[:-1]):
+        if m.role == "user" and m.content:
+            words = [
+                w
+                for w in m.content.split()
+                if len(w) > 3
+                and w.lower()
+                not in (
+                    "what", "when", "where", "which", "explain", "please", "about",
+                    "could", "would", "should", "there", "their", "another", "hello",
+                )
+            ]
+            prior_keywords.extend(words[:6])
+            break
+        elif m.role == "assistant" and m.content:
+            headings = re.findall(r"###?\s+([A-Za-z0-9\s]{3,30})", m.content)
+            if headings:
+                prior_keywords.extend(headings[0].split()[:4])
+            break
+
+    if prior_keywords:
+        return f"{last_user} {' '.join(prior_keywords)}"
+    return last_user
 from app.simulations import (
     detect_simulation_candidate,
     generate_custom_simulation_html,
@@ -617,10 +660,56 @@ async def chat(
     last_user = next(
         (m.content for m in reversed(req.messages) if m.role == "user"), ""
     )
-    is_academic = _is_academic_query(
-        last_user,
-        {"board": req.board, "grade": req.grade, "exam": req.exam, "subject": req.subject},
-    ) or bool(req.milestone_title)
+    is_mem_query = is_conversational_or_memory_query(last_user)
+
+    # 1. Student Memory Engine: capture and recall student facts across turns
+    user_key = _email_opt(authorization)
+    student_memory.extract_and_save(user_key, last_user)
+
+    # Seed memories from request profile if provided
+    if req.board:
+        student_memory.remember(user_key, "academic", "board", req.board)
+    if req.grade:
+        student_memory.remember(user_key, "academic", "grade", f"Class {req.grade}")
+    if req.exam:
+        student_memory.remember(user_key, "academic", "target_exam", req.exam)
+    if req.weak_subjects:
+        student_memory.remember(user_key, "academic", "weak_topic", ", ".join(req.weak_subjects))
+
+    # Format and inject the active student memory block into system prompt
+    mem_block = student_memory.format_memory_context(
+        user_key,
+        profile_fallback={
+            "board": req.board,
+            "grade": req.grade,
+            "exam": req.exam,
+            "weak_subjects": req.weak_subjects,
+        },
+    )
+    if mem_block:
+        system_prompt += f"\n\n{mem_block}"
+
+    # Always inject the Conversational Memory & Continuity Protocol:
+    system_prompt += (
+        "\n\nCONVERSATIONAL CONTINUITY & ATTENTIVE MEMORY DIRECTIVE (CRITICAL):\n"
+        "1. **Never Forget Context Across Prompts:**\n"
+        "   - You are in an active, continuous conversation with the student. All prior messages in this conversation are active context.\n"
+        "   - When the student refers to something they mentioned earlier ('as I told you', 'remember when I said', 'what was my...', 'which exam did I say', 'do you remember'), look at the conversation history and your student memory and recall it immediately, accurately, and warmly!\n"
+        "   - NEVER claim you don't know or don't have access to context when the student told you in a previous turn or when it is listed in the student memory.\n"
+        "2. **Natural Follow-Up Answering:**\n"
+        "   - When the student asks follow-up questions ('why?', 'what about the second one?', 'how does that work?', 'can you give another example of this?'), refer directly to the previous explanation without restarting from scratch.\n"
+        "   - Maintain the flow of learning naturally like an attentive private tutor sitting right beside them.\n"
+        "3. **Personalization in Action:**\n"
+        "   - Weave in their target exam, grade level, and preferred analogies naturally to make every lesson feel tailored specifically to them."
+    )
+
+    is_academic = (not is_mem_query) and (
+        _is_academic_query(
+            last_user,
+            {"board": req.board, "grade": req.grade, "exam": req.exam, "subject": req.subject},
+        )
+        or bool(req.milestone_title)
+    )
 
     # Acharya Academic Mode: When the student is using the curriculum-grounded
     # Acharya model WITH board/grade/subject context AND the query is genuinely
@@ -854,10 +943,17 @@ async def chat(
         )
 
     # Dedicated Autonomous Prompt Engineering Layer (Isolated Key):
-    # Only optimize individual doubts/questions; do NOT mutate active study schedules or Day-1 chapter starts!
+    # Only optimize individual doubts/questions; do NOT mutate active study schedules, Day-1 chapter starts, or conversational/memory turns!
     engineered_query = last_user
     was_engineered = False
-    if last_user and not req.image and not req.milestone_title and plan.intent not in ("chapter_start", "chat") and is_academic:
+    if (
+        last_user
+        and not req.image
+        and not req.milestone_title
+        and plan.intent not in ("chapter_start", "chat")
+        and is_academic
+        and not is_mem_query
+    ):
         student_ctx = {
             "exam": req.exam,
             "grade": req.grade,
@@ -871,15 +967,10 @@ async def chat(
         try:
             engineered_query, was_engineered = await prompt_optimizer.optimize(last_user, student_ctx)
             if was_engineered:
-                for i in range(len(messages) - 1, -1, -1):
-                    if messages[i].role == "user":
-                        messages[i] = Message(
-                            role="user",
-                            content=engineered_query,
-                            image_data=messages[i].image_data,
-                            image_mime=messages[i].image_mime,
-                        )
-                        break
+                # CRITICAL: We NEVER overwrite messages[i].content with the synthetic prompt!
+                # Overwriting the user turn destroys the student's authentic words and conversational context.
+                # Instead, we provide the engineered pedagogical focus directly to the system prompt:
+                system_prompt += f"\n\nPEDAGOGICAL SYLLABUS ALIGNMENT FOR THIS QUESTION:\n{engineered_query}"
         except Exception as e:
             logger.warning(f"Prompt optimization non-fatal exception: {e}")
 
@@ -900,15 +991,16 @@ async def chat(
 
     source_items: list[str] = []  # citations, sent as a structured event
     source_excerpts = ""  # the textbook text, for the Checker to verify against
-    # Authoritative Table of Contents & Chapter grounding for syllabus/chapter inquiries
-    from app.textbook_service import get_chapter_grounding
-    ch_grounding = get_chapter_grounding(last_user, req.board or req.exam, req.grade, req.subject)
-    if ch_grounding:
-        system_prompt += f"\n\n{ch_grounding}"
+    # Authoritative Table of Contents & Chapter grounding for syllabus/chapter inquiries (only when not a memory query)
+    if not is_mem_query:
+        from app.textbook_service import get_chapter_grounding
+        ch_grounding = get_chapter_grounding(last_user, req.board or req.exam, req.grade, req.subject)
+        if ch_grounding:
+            system_prompt += f"\n\n{ch_grounding}"
 
     hits = None  # top retrieval hits (also used for the learner model's topic)
     grounded_generated = False
-    if not vision and plan.kind != "chat" and spec.grounded and (req.board or req.grade or req.exam) and is_academic:
+    if not is_mem_query and not vision and plan.kind != "chat" and spec.grounded and (req.board or req.grade or req.exam) and is_academic:
         eff_board = normalize_board(req.board)
         eff_grade = normalize_grade(req.grade)
         eff_subject = normalize_subject(req.subject)
@@ -951,18 +1043,19 @@ async def chat(
             except Exception as e:
                 logger.warning(f"Chapter RAG retrieval non-fatal failure: {e}")
 
-        # Standard question retrieval fallback if chapter retrieval yielded nothing or not applicable
+        # Standard question retrieval fallback with conversational context enrichment
         if not hits and eff_board:
             try:
+                rag_query = _contextualize_query_for_rag(last_user, messages)
                 hits = await run_in_threadpool(
-                    retrieve, last_user,
+                    retrieve, rag_query,
                     board=eff_board, grade=eff_grade, subject=eff_subject,
                 )
                 if not hits or hits[0].score < CONFIDENT_SCORE:
-                    expanded = await _expand_query(last_user)
+                    expanded = await _expand_query(rag_query)
                     if expanded:
                         better = await run_in_threadpool(
-                            retrieve_multi, [last_user, *expanded],
+                            retrieve_multi, [rag_query, *expanded],
                             board=eff_board, grade=eff_grade, subject=eff_subject,
                         )
                         if better and (not hits or better[0].score > hits[0].score):
