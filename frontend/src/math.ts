@@ -12,9 +12,9 @@ export interface Segment {
   language?: string
 }
 
-// Regex matching display math ($$...$$, \[...\], \begin{env}...\end{env}) and inline math ($...$, \(...\))
-const MATH_RE =
-  /\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\\begin\{(matrix|pmatrix|bmatrix|vmatrix|Vmatrix|align|aligned|gather|gathered|equation|equation\*)\}([\s\S]+?)\\end\{\1\}|\\\(([\s\S]+?)\\\)|\$([^$\n]+?)\$/g
+// Regex matching display math blocks ($$...$$, \[...\], \begin{env}...\end{env})
+const DISPLAY_MATH_RE =
+  /\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\\begin\{(matrix|pmatrix|bmatrix|vmatrix|Vmatrix|align|aligned|gather|gathered|equation|equation\*)\}([\s\S]+?)\\end\{\1\}/g
 
 // Regex matching code blocks: ```lang\n...``` or unclosed ```lang\n... during streaming
 const CODE_BLOCK_RE = /(?:^|\n)```([a-zA-Z0-9_+#.-]*)[ \t]*\r?\n([\s\S]*?)(?:```(?:\r?\n|$)|$)/g
@@ -23,14 +23,14 @@ export function parseSegments(input: string): Segment[] {
   const segments: Segment[] = []
   if (!input) return segments
 
-  // Helper to parse math inside regular text slices
+  // Helper to parse display math inside regular text slices
   function pushTextAndMath(slice: string) {
     if (!slice) return
-    MATH_RE.lastIndex = 0
+    DISPLAY_MATH_RE.lastIndex = 0
     let lastIdx = 0
     let match: RegExpExecArray | null
 
-    while ((match = MATH_RE.exec(slice)) !== null) {
+    while ((match = DISPLAY_MATH_RE.exec(slice)) !== null) {
       if (match.index > lastIdx) {
         segments.push({
           type: 'text',
@@ -55,16 +55,8 @@ export function parseSegments(input: string): Segment[] {
           display: true,
         })
       }
-      // Inline math: \(...\)
-      else if (match[5] !== undefined) {
-        segments.push({ type: 'math', value: match[5].trim(), display: false })
-      }
-      // Inline math: $...$
-      else if (match[6] !== undefined) {
-        segments.push({ type: 'math', value: match[6].trim(), display: false })
-      }
 
-      lastIdx = MATH_RE.lastIndex
+      lastIdx = DISPLAY_MATH_RE.lastIndex
     }
 
     if (lastIdx < slice.length) {
@@ -172,7 +164,19 @@ import { API_BASE } from './api'
 
 // Format markdown text with clean step headers, lists, tables, and images
 export function renderMarkdown(text: string): string {
-  // First extract images so their URLs aren't mangled by html escaping
+  // Extract inline math ($...$ or \(...\)) into safe placeholders so HTML escaping and table parsing keep them intact
+  const mathPlaceholders: { id: string; html: string }[] = []
+  let s = text.replace(/\\\(([\s\S]+?)\\\)|\$([^$\n]+?)\$/g, (_all, p1, p2) => {
+    const formula = (p1 ?? p2).trim()
+    const placeholder = `__MATH_INLINE_${mathPlaceholders.length}__`
+    mathPlaceholders.push({
+      id: placeholder,
+      html: `<span class="math-block inline-math">${renderMath(formula, false)}</span>`,
+    })
+    return placeholder
+  })
+
+  // Next extract images so their URLs aren't mangled by html escaping
   const images: { id: string; html: string }[] = []
 
   function resolveSrc(raw: string): string {
@@ -185,7 +189,7 @@ export function renderMarkdown(text: string): string {
   }
 
   // 1. Markdown images: ![alt](url)
-  let s = text.replace(/!\[([^\]]*?)\]\(([^)]+?)\)/g, (_all, alt, src) => {
+  s = s.replace(/!\[([^\]]*?)\]\(([^)]+?)\)/g, (_all, alt, src) => {
     const placeholder = `__IMG_PLACEHOLDER_${images.length}__`
     const safeAlt = escapeHtml(alt || 'Textbook Page')
     const fullSrc = resolveSrc(src)
@@ -294,6 +298,11 @@ export function renderMarkdown(text: string): string {
     return html
   })
 
+  // Restore inline math placeholders
+  for (const m of mathPlaceholders) {
+    s = s.split(m.id).join(m.html)
+  }
+
   // Restore image placeholders
   for (const img of images) {
     s = s.replace(img.id, img.html)
@@ -322,7 +331,7 @@ export function renderMath(value: string, display: boolean): string {
       throwOnError: false,
       trust: true,
       strict: false,
-      output: 'htmlAndMathml',
+      output: 'html',
     })
   } catch {
     return `<span class="katex-error">${escapeHtml(value)}</span>`
