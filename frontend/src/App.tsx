@@ -98,7 +98,7 @@ function friendlyError(raw: string): string {
     return 'The tutor is experiencing high demand right now. Please try again in a moment.'
   if (r.includes('429') || r.includes('quota') || r.includes('rate limit') || r.includes('resource_exhausted'))
     return 'The AI provider is temporarily busy. Please wait a few seconds and try again.'
-  if (r.includes('failed to connect') || r.includes('network error') || r.includes('could not reach'))
+  if (r.includes('502') || r.includes('bad gateway') || r.includes('failed to connect') || r.includes('network error') || r.includes('could not reach'))
     return 'Unable to connect to the tutor service. Please check your connection and tap retry below.'
   if (r.includes('all providers failed'))
     return 'AI services are momentarily busy. Please try asking again.'

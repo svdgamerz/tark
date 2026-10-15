@@ -10,14 +10,12 @@ from app.modes.teacher import TEACHER_SYSTEM_PROMPT
 
 MODES: dict[str, str] = {
     "teacher": TEACHER_SYSTEM_PROMPT,
+    "tutor": TEACHER_SYSTEM_PROMPT,
     "socratic": SOCRATIC_SYSTEM_PROMPT,
 }
 
 
 def get_mode_prompt(mode: str) -> str:
-    try:
-        return MODES[mode]
-    except KeyError:
-        raise ValueError(
-            f"Unknown mode '{mode}'. Available: {', '.join(MODES)}"
-        ) from None
+    key = mode.lower().strip() if mode else "teacher"
+    return MODES.get(key, TEACHER_SYSTEM_PROMPT)
+

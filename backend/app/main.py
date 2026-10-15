@@ -655,9 +655,10 @@ async def chat(
     try:
         return await _chat_impl(req, authorization)
     except Exception as setup_err:
-        logger.error(f"Fatal setup error in chat: {setup_err}", exc_info=True)
+        err_msg = str(setup_err)
+        logger.error(f"Fatal setup error in chat: {err_msg}", exc_info=True)
         async def fatal_stream():
-            yield _sse({"type": "error", "message": f"Server setup error: {setup_err}"})
+            yield _sse({"type": "error", "message": f"Server setup error: {err_msg}"})
             yield _sse({"type": "done"})
         return StreamingResponse(fatal_stream(), media_type="text/event-stream")
 
