@@ -99,7 +99,7 @@ function friendlyError(raw: string): string {
   if (r.includes('429') || r.includes('quota') || r.includes('rate limit') || r.includes('resource_exhausted'))
     return 'The AI provider is temporarily busy. Please wait a few seconds and try again.'
   if (r.includes('failed to connect') || r.includes('network error') || r.includes('could not reach'))
-    return 'Unable to connect to the tutor service. The server may be waking up from idle, or your connection was temporarily interrupted.'
+    return 'Unable to connect to the tutor service. Please check your connection and tap retry below.'
   if (r.includes('all providers failed'))
     return 'AI services are momentarily busy. Please try asking again.'
   return raw || 'Something went wrong. Please try again.'

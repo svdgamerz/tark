@@ -266,7 +266,7 @@ export async function streamChat(
     let res: Response | null = null
     try {
       if (attempt > 0) {
-        onStatus?.(`Connecting to tutor service... (waking up cloud backend, attempt ${attempt + 1}/${MAX_RETRIES + 1})`)
+        onStatus?.(`Connecting to tutor service... (attempt ${attempt + 1}/${MAX_RETRIES + 1})`)
         // Proactively ping health/ping in background to assist spin-up
         fetch(`${API_BASE}/ping`, { method: 'GET', keepalive: true }).catch(() => {})
       }
@@ -310,11 +310,11 @@ export async function streamChat(
       if (tokensReceived === 0 && attempt < MAX_RETRIES) {
         attempt++
         const backoffMs = Math.min(2000 + attempt * 1000, 5000)
-        onStatus?.(`Connecting to tutor service... (waking up cloud backend, attempt ${attempt + 1}/${MAX_RETRIES + 1})`)
+        onStatus?.(`Connecting to tutor service... (attempt ${attempt + 1}/${MAX_RETRIES + 1})`)
         await new Promise((r) => setTimeout(r, backoffMs))
         continue
       }
-      onError('Network error: Unable to connect to tutor service. The server may be waking up from idle. Please tap retry below.')
+      onError('Network error: Unable to connect to tutor service. Please check your connection and tap retry below.')
       return
     }
 
@@ -323,7 +323,7 @@ export async function streamChat(
       if (isGatewayOrBusy && tokensReceived === 0 && attempt < MAX_RETRIES) {
         attempt++
         const backoffMs = Math.min(2000 + attempt * 1000, 5000)
-        onStatus?.(`Connecting to tutor service... (waking up cloud backend, attempt ${attempt + 1}/${MAX_RETRIES + 1})`)
+        onStatus?.(`Connecting to tutor service... (attempt ${attempt + 1}/${MAX_RETRIES + 1})`)
         await new Promise((r) => setTimeout(r, backoffMs))
         continue
       }
