@@ -4,8 +4,8 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite --config vite.config.ts --configLoader runner",
-    "build": "tsc --noEmit && vite build --config vite.config.ts --configLoader runner",
+    "dev": "vite --configLoader runner",
+    "build": "tsc --noEmit && vite build --configLoader runner",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -1,10 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import os from 'os'
+import path from 'path'
 
-// https://vite.dev/config/
+const tempCache = path.join(os.tmpdir(), 'tark_vite_cache')
+
 export default defineConfig({
   plugins: [react()],
-  cacheDir: 'node_modules/.vite_cache',
+  cacheDir: tempCache,
   server: {
     host: '0.0.0.0',
     port: 5173,
