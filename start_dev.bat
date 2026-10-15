@@ -5,7 +5,7 @@ echo Starting Tark Development Servers...
 echo ========================================================
 
 echo [1/2] Launching Backend Server on port 8000...
-start "Tark Backend (FastAPI)" cmd /k "cd /d "%~dp0backend" && .venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000"
+start "Tark Backend (FastAPI)" cmd /k "cd /d "%~dp0backend" && .venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
 
 timeout /t 2 >nul
 

@@ -653,6 +653,19 @@ async def chat(
     req: ChatRequest, authorization: str | None = Header(default=None)
 ) -> StreamingResponse:
     try:
+        return await _chat_impl(req, authorization)
+    except Exception as setup_err:
+        logger.error(f"Fatal setup error in chat: {setup_err}", exc_info=True)
+        async def fatal_stream():
+            yield _sse({"type": "error", "message": f"Server setup error: {setup_err}"})
+            yield _sse({"type": "done"})
+        return StreamingResponse(fatal_stream(), media_type="text/event-stream")
+
+
+async def _chat_impl(
+    req: ChatRequest, authorization: str | None = None
+) -> StreamingResponse:
+    try:
         system_prompt = get_mode_prompt(req.mode)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e

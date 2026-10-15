@@ -37,8 +37,9 @@ function resolveApiBase(): string {
     if (host && host !== 'localhost' && host !== '127.0.0.1') {
       return 'https://tark-rlv1.onrender.com'
     }
+    return `http://${host || 'localhost'}:8000`
   }
-  return 'http://127.0.0.1:8000'
+  return 'http://localhost:8000'
 }
 
 export const API_BASE = resolveApiBase()
