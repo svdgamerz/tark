@@ -258,7 +258,7 @@ export async function streamChat(
   opts: ChatOptions,
   { onToken, onReset, onError, onDone, onSources, onFigure, onMermaid, onSuggestions, onPromptEngineered, onSimulation, onStatus }: StreamHandlers,
 ): Promise<void> {
-  const MAX_RETRIES = 3
+  const MAX_RETRIES = 14
   let attempt = 0
   let tokensReceived = 0
 
@@ -266,7 +266,7 @@ export async function streamChat(
     let res: Response | null = null
     try {
       if (attempt > 0) {
-        onStatus?.(`Connecting to tutor service... (waking up backend, attempt ${attempt + 1}/${MAX_RETRIES + 1})`)
+        onStatus?.(`Connecting to tutor service... (waking up cloud backend, attempt ${attempt + 1}/${MAX_RETRIES + 1})`)
         // Proactively ping health/ping in background to assist spin-up
         fetch(`${API_BASE}/ping`, { method: 'GET', keepalive: true }).catch(() => {})
       }
@@ -309,11 +309,12 @@ export async function streamChat(
     } catch (err) {
       if (tokensReceived === 0 && attempt < MAX_RETRIES) {
         attempt++
-        const backoffMs = attempt * 2000
+        const backoffMs = Math.min(2000 + attempt * 1000, 5000)
+        onStatus?.(`Connecting to tutor service... (waking up cloud backend, attempt ${attempt + 1}/${MAX_RETRIES + 1})`)
         await new Promise((r) => setTimeout(r, backoffMs))
         continue
       }
-      onError('Network error: Failed to connect to server. Please check your connection and ensure the backend is running.')
+      onError('Network error: Unable to connect to tutor service. The server may be waking up from idle. Please tap retry below.')
       return
     }
 
@@ -321,7 +322,8 @@ export async function streamChat(
       const isGatewayOrBusy = res.status === 429 || res.status === 502 || res.status === 503 || res.status === 504
       if (isGatewayOrBusy && tokensReceived === 0 && attempt < MAX_RETRIES) {
         attempt++
-        const backoffMs = attempt * 2000
+        const backoffMs = Math.min(2000 + attempt * 1000, 5000)
+        onStatus?.(`Connecting to tutor service... (waking up cloud backend, attempt ${attempt + 1}/${MAX_RETRIES + 1})`)
         await new Promise((r) => setTimeout(r, backoffMs))
         continue
       }

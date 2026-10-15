@@ -232,12 +232,15 @@ export default function App() {
     applyTheme(localStorage.getItem('tark_theme') ?? 'system')
   }, [])
 
-  // Proactively wake up backend service on app mount and tab resume
+  // Proactively wake up backend service on app mount, tab resume, and keep warm with heartbeat
   useEffect(() => {
     const wakeBackend = () => {
       fetch(`${API_BASE}/ping`, { method: 'GET', keepalive: true }).catch(() => {})
     }
     wakeBackend()
+
+    // 3-minute heartbeat to prevent Render free-tier idle spin-down while user is studying
+    const heartbeat = setInterval(wakeBackend, 180000)
 
     const onVisible = () => {
       if (document.visibilityState === 'visible') {
@@ -246,6 +249,7 @@ export default function App() {
     }
     document.addEventListener('visibilitychange', onVisible)
     return () => {
+      clearInterval(heartbeat)
       document.removeEventListener('visibilitychange', onVisible)
     }
   }, [])
