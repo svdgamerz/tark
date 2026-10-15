@@ -994,13 +994,12 @@ async def _chat_impl(
     if plan.kind != "chat" and not vision and wants_diagram(last_user):
         figure_task = asyncio.create_task(_make_figure(last_user))
         system_prompt += (
-            "\n\nVISUAL FIGURE ATTACHED DIRECTIVE:\n"
-            "An authentic, high-resolution scientific/anatomical textbook diagram is being fetched and rendered separately "
-            "and will appear directly below your answer. Therefore:\n"
-            "1. ABSOLUTELY NEVER draw diagrams in text, ASCII boxes, or code blocks (NO `+---+`, NO `| ... |`, NO fake text boxes).\n"
-            "2. DO NOT output code blocks (``` ... ```) for diagrams.\n"
-            "3. Explain the anatomical layers, functions, or apparatus clearly in rich, articulate prose with subheadings.\n"
-            "4. Naturally refer to 'the labelled diagram below' for visual study."
+            "\n\nVISUAL FIGURE & DIAGRAM DIRECTIVE:\n"
+            "An authentic scientific/anatomical textbook illustration is being fetched separately and will appear below your answer.\n"
+            "1. ABSOLUTELY NEVER draw diagrams in raw ASCII text boxes (NO `+---+`, NO `| ... |`, NO fake plaintext rectangles).\n"
+            "2. For sequential processes, pathways, cycles, or workflows (e.g. Calvin cycle, reflex arc, Haber process, blood circulation), feel free to output clean ```mermaid\\nflowchart TD\\n...``` blocks which Tark renders interactively.\n"
+            "3. Explain the structures or mechanisms clearly in rich, articulate prose with subheadings.\n"
+            "4. Naturally refer students to the visual diagram and 3D simulation attached below for visual study."
         )
 
     source_items: list[str] = []  # citations, sent as a structured event

@@ -8,6 +8,8 @@ export type SimulationType =
   | 'heart_3d'
   | 'epidermis_3d'
   | 'lorenz_3d'
+  | 'prism_optics_3d'
+  | 'motor_3d'
   | 'pendulum'
   | 'ohms_law'
   | 'waves'

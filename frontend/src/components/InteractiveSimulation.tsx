@@ -29,6 +29,14 @@ const TYPE_3D_MAPPING: Record<string, string> = {
   lorenz: 'lorenz_3d',
   lorenz_chaos: 'lorenz_3d',
   lorenz_3d: 'lorenz_3d',
+  ray_optics: 'prism_optics_3d',
+  prism: 'prism_optics_3d',
+  prism_optics: 'prism_optics_3d',
+  prism_optics_3d: 'prism_optics_3d',
+  em_induction: 'motor_3d',
+  motor: 'motor_3d',
+  motor_3d: 'motor_3d',
+  electric_motor: 'motor_3d',
 }
 
 function Icon({ name }: { name: 'zoom' | 'close' }) {

@@ -2353,6 +2353,133 @@ body {
   font-weight: bold;
 }
 
+/* --- Mermaid Flowchart & Interactive Diagram Cards --- */
+.mermaid-block-card {
+  position: relative;
+  margin: 16px 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  background: #0a0f1d;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  transition: all 0.2s ease;
+}
+
+.mermaid-block-card:hover {
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 8px 30px rgba(56, 189, 248, 0.12);
+}
+
+.mermaid-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: #0f172a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mermaid-title-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #38bdf8;
+}
+
+.mermaid-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mermaid-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mermaid-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
+.mermaid-canvas-area {
+  padding: 18px 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-x: auto;
+  min-height: 120px;
+}
+
+.mermaid-svg-container svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.mermaid-fullscreen {
+  position: fixed;
+  inset: 20px;
+  z-index: 9999;
+  background: #0a0f1d;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+  border: 1px solid #38bdf8;
+}
+
+.mermaid-fullscreen .mermaid-canvas-area {
+  flex: 1;
+  overflow: auto;
+}
+
+.mermaid-zoom-controls {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.mermaid-loading-pulse {
+  color: #94a3b8;
+  font-size: 0.82rem;
+  font-style: italic;
+  padding: 24px;
+}
+
+.mermaid-fallback-box {
+  width: 100%;
+  padding: 12px;
+}
+
+.mermaid-fallback-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #38bdf8;
+  margin-bottom: 6px;
+}
+
+.mermaid-code-fallback {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 10px;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 0.8rem;
+  font-family: monospace;
+  overflow-x: auto;
+}
+
 /* --- Diagram Figure Container & Lightbox --- */
 .figure-container {
   position: relative;

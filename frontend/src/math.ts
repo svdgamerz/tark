@@ -114,41 +114,39 @@ function isAsciiBoxDiagram(body: string): boolean {
   return boxBorderCount >= 2 && boxCellCount >= 1
 }
 
-// Pull out ```mermaid ...``` blocks and strip ASCII box pseudo-diagrams so they render as clean figures
+// Extract diagram code for external figure rendering while keeping clean code blocks
 export function extractDiagramCode(text: string): {
   clean: string
   mermaid: string | null
 } {
   let mermaid: string | null = null
-  let clean = text.replace(
+  const clean = text.replace(
     /```[ \t]*([a-zA-Z]*)[ \t]*\r?\n([\s\S]*?)```/g,
     (whole, lang: string, body: string) => {
       const b = body.trim()
       if (/^mermaid$/i.test(lang) || DIAGRAM_HEAD.test(b)) {
         if (!mermaid) mermaid = b.replace(/^mermaid\s*\r?\n/i, '')
-        return ''
+        return whole // keep inline so MermaidBlock renders it in-situ
       }
       if (isAsciiBoxDiagram(b)) {
         return '' // strip senseless ASCII box diagram from code blocks
       }
-      return whole // keep genuine programming code blocks
+      return whole // keep genuine programming and diagram code blocks
     },
   )
 
   // Strip un-fenced multi-tier ASCII box diagrams (e.g. +---+ | ... | +---+)
-  clean = clean.replace(
+  const strippedClean = clean.replace(
     /(?:^[ \t]*\+[-=]{3,}\+[ \t]*(?:\r?\n|$)(?:^[ \t]*\|[^\n]+\|[ \t]*(?:\r?\n|$))+^[ \t]*\+[-=]{3,}\+[ \t]*(?:\r?\n|$)?)+/gm,
     ''
   )
 
-  return { clean: clean.replace(/\n{3,}/g, '\n\n').trim(), mermaid }
+  return { clean: strippedClean.replace(/\n{3,}/g, '\n\n').trim(), mermaid }
 }
 
 export function stripDiagramForDisplay(text: string): string {
-  const t = extractDiagramCode(text).clean
-  return t
-    .replace(/```[ \t]*mermaid[ \t]*\r?\n[\s\S]*$/i, '')
-    .replace(/```[ \t]*\r?\n(graph|flowchart|sequenceDiagram)\b[\s\S]*$/i, '')
+  // Strip only fake ASCII box pseudo-diagrams, keeping genuine mermaid and code blocks intact
+  return text
     .replace(
       /(?:^[ \t]*\+[-=]{3,}\+[ \t]*(?:\r?\n|$)(?:^[ \t]*\|[^\n]+\|[ \t]*(?:\r?\n|$))+^[ \t]*\+[-=]{3,}\+[ \t]*(?:\r?\n|$)?)+/gm,
       ''

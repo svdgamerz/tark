@@ -82,6 +82,22 @@ _SIM_TRIGGERS: list[tuple[str, str, str, str, str, dict[str, float]]] = [
         "Deterministic Chaos & Phase Space Flow",
         {"sigma": 10, "rho": 28, "beta": 2.67},
     ),
+    (
+        "prism_optics_3d",
+        r"\b(prism|dispersion of light|spectrum|vibgyor|minimum deviation|angle of deviation|cauchy|refraction through prism|chromatic dispersion)\b",
+        "3D Optical Prism & Light Dispersion",
+        "Physics - Wave & Ray Optics",
+        "Cauchy Dispersion, Snell's Law & Minimum Deviation",
+        {"incidentAngle": 48, "prismAngle": 60, "glassIndex": 1.52},
+    ),
+    (
+        "motor_3d",
+        r"\b(dc motor|electric motor|fleming'?s? left[- ]hand|armature|split[- ]ring commutator|commutator|magnetic torque|lorentz force.*(?:wire|coil|motor))\b",
+        "3D Electric DC Motor & Lorentz Force",
+        "Physics - Electromagnetism",
+        "Fleming's Left-Hand Rule, Magnetic Torque & Commutator",
+        {"voltage": 12, "fieldStrength": 1.0, "coilTurns": 50},
+    ),
     # 2D Built-ins Fallbacks
     (
         "projectile",
@@ -292,7 +308,7 @@ _STEM_SIMULATION_SIGNALS = [
     # Physics dynamic mechanics & kinematics
     re.compile(r"\b(projectile|trajectory|launch angle|cannonball|parabolic motion|kinematics|pendulum|oscillat|shm|simple harmonic|spring mass|gravity|gravitation|free fall|collision|momentum conservation|centripetal|circular motion|torque|moment of inertia|friction|work energy)\b", re.I),
     # Physics electromagnetism & circuits
-    re.compile(r"\b(ohm'?s law|electric circuit|resistor|v\s*=\s*i\s*r|current electricity|parallel circuit|series circuit|magnetic field|bar magnet|field lines|faraday'?s law|electromagnetic induction|induced emf|lenz'?s law|solenoid|lorentz force)\b", re.I),
+    re.compile(r"\b(ohm'?s law|electric circuit|resistor|v\s*=\s*i\s*r|current electricity|parallel circuit|series circuit|magnetic field|bar magnet|field lines|faraday'?s law|electromagnetic induction|induced emf|lenz'?s law|solenoid|lorentz force|dc motor|electric motor|fleming|commutator|armature)\b", re.I),
     # Physics optics & waves
     re.compile(r"\b(convex lens|concave lens|ray optics|lens formula|snell'?s law|refraction of light|reflection of light|dispersion|prism|young'?s double|double[- ]slit|interference.*light|wave optics|fringe width|diffraction|sound wave|doppler effect)\b", re.I),
     # Physics / Chemistry thermodynamics & gases

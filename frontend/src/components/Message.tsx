@@ -14,6 +14,7 @@ import {
 import { Logo } from './Logo'
 import { DiagramLightbox } from './DiagramLightbox'
 import { CodeBlock } from './CodeBlock'
+import { MermaidBlock } from './MermaidBlock'
 
 
 /* ---- Minimal line icons (Lucide-style), 16px, inherit color ---- */
@@ -629,11 +630,16 @@ export function MessageView({
                   >
                   {segments.map((seg, i) =>
                     seg.type === 'code' ? (
-                      <CodeBlock
-                        key={i}
-                        code={seg.value}
-                        language={seg.language || 'text'}
-                      />
+                      seg.language?.toLowerCase() === 'mermaid' ||
+                      /^\s*(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|mindmap|journey|gantt|pie)\b/i.test(seg.value) ? (
+                        <MermaidBlock key={i} code={seg.value} />
+                      ) : (
+                        <CodeBlock
+                          key={i}
+                          code={seg.value}
+                          language={seg.language || 'text'}
+                        />
+                      )
                     ) : seg.type === 'math' ? (
                       seg.display ? (
                         <div
