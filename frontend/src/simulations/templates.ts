@@ -5184,5 +5184,161 @@ export const BUILTIN_TEMPLATES: Record<string, BuiltinTemplate> = {
       ctx.fillText('0°C', barX + 18, startY + barH)
     },
   },
+
+  periodic_trends: {
+    type: 'periodic_trends',
+    title: 'Periodic Table Trends Explorer',
+    subject: 'Chemistry',
+    concept: 'Periodic Law & Atomic Property Trends Across Periods and Groups',
+    description: 'Explore fundamental periodic trends across periods and groups: Atomic Radius, Electronegativity (Pauling scale), and First Ionization Energy. Visualize effective nuclear charge (Z_eff) and electron shielding.',
+    params: [
+      { key: 'trendType', label: 'Periodic Trend (0: Electronegativity, 1: Atomic Radius, 2: Ionization Energy)', min: 0, max: 2, step: 1, defaultValue: 0, unit: '' },
+      { key: 'highlightPeriod', label: 'Filter Period (0: All, 1: Period 1, 2: Period 2, 3: Period 3, 4: Period 4)', min: 0, max: 4, step: 1, defaultValue: 0, unit: '' },
+    ],
+    calculateReadouts: (p) => {
+      const trendNames = ['Electronegativity (Pauling)', 'Atomic Radius (pm)', '1st Ionization Energy (kJ/mol)']
+      const trendRules = [
+        'Increases across period (→), Decreases down group (↓)',
+        'Decreases across period (→), Increases down group (↓)',
+        'Increases across period (→), Decreases down group (↓)',
+      ]
+      const peakElements = ['Fluorine (F = 3.98)', 'Potassium / Cesium (K = 227 pm)', 'Helium (He = 2372 kJ/mol)']
+      const idx = Math.min(2, Math.max(0, Math.floor(p.trendType)))
+      return [
+        { label: 'Active Trend', value: trendNames[idx] },
+        { label: 'Trend Direction', value: trendRules[idx] },
+        { label: 'Peak Value in Range', value: peakElements[idx] },
+        { label: 'Governing Principle', value: idx === 1 ? 'Effective Nuclear Charge Z_eff vs Shell Count' : 'Coulombic Attraction of Valence Electrons' },
+      ]
+    },
+    renderCanvas: (ctx, w, h, p) => {
+      // Background
+      ctx.fillStyle = '#070d18'
+      ctx.fillRect(0, 0, w, h)
+
+      // Periodic Table Elements Data (Periods 1-4, key representatives)
+      interface ElementData {
+        z: number
+        sym: string
+        row: number
+        col: number
+        en: number
+        radius: number
+        ie: number
+      }
+
+      const elements: ElementData[] = [
+        // Period 1
+        { z: 1, sym: 'H', row: 1, col: 1, en: 2.2, radius: 53, ie: 1312 },
+        { z: 2, sym: 'He', row: 1, col: 18, en: 0.0, radius: 31, ie: 2372 },
+        // Period 2
+        { z: 3, sym: 'Li', row: 2, col: 1, en: 0.98, radius: 152, ie: 520 },
+        { z: 4, sym: 'Be', row: 2, col: 2, en: 1.57, radius: 112, ie: 899 },
+        { z: 5, sym: 'B', row: 2, col: 13, en: 2.04, radius: 85, ie: 801 },
+        { z: 6, sym: 'C', row: 2, col: 14, en: 2.55, radius: 77, ie: 1086 },
+        { z: 7, sym: 'N', row: 2, col: 15, en: 3.04, radius: 75, ie: 1402 },
+        { z: 8, sym: 'O', row: 2, col: 16, en: 3.44, radius: 73, ie: 1314 },
+        { z: 9, sym: 'F', row: 2, col: 17, en: 3.98, radius: 72, ie: 1681 },
+        { z: 10, sym: 'Ne', row: 2, col: 18, en: 0.0, radius: 71, ie: 2081 },
+        // Period 3
+        { z: 11, sym: 'Na', row: 3, col: 1, en: 0.93, radius: 186, ie: 496 },
+        { z: 12, sym: 'Mg', row: 3, col: 2, en: 1.31, radius: 160, ie: 738 },
+        { z: 13, sym: 'Al', row: 3, col: 13, en: 1.61, radius: 143, ie: 578 },
+        { z: 14, sym: 'Si', row: 3, col: 14, en: 1.90, radius: 118, ie: 786 },
+        { z: 15, sym: 'P', row: 3, col: 15, en: 2.19, radius: 110, ie: 1012 },
+        { z: 16, sym: 'S', row: 3, col: 16, en: 2.58, radius: 103, ie: 1000 },
+        { z: 17, sym: 'Cl', row: 3, col: 17, en: 3.16, radius: 100, ie: 1251 },
+        { z: 18, sym: 'Ar', row: 3, col: 18, en: 0.0, radius: 98, ie: 1521 },
+        // Period 4 Key reps
+        { z: 19, sym: 'K', row: 4, col: 1, en: 0.82, radius: 227, ie: 419 },
+        { z: 20, sym: 'Ca', row: 4, col: 2, en: 1.00, radius: 197, ie: 590 },
+        { z: 26, sym: 'Fe', row: 4, col: 8, en: 1.83, radius: 126, ie: 762 },
+        { z: 29, sym: 'Cu', row: 4, col: 11, en: 1.90, radius: 128, ie: 745 },
+        { z: 30, sym: 'Zn', row: 4, col: 12, en: 1.65, radius: 134, ie: 906 },
+        { z: 35, sym: 'Br', row: 4, col: 17, en: 2.96, radius: 114, ie: 1140 },
+        { z: 36, sym: 'Kr', row: 4, col: 18, en: 3.00, radius: 112, ie: 1351 },
+      ]
+
+      const trendMode = Math.min(2, Math.max(0, Math.floor(p.trendType)))
+      const filterP = Math.floor(p.highlightPeriod)
+
+      // Cell layout
+      const boxW = Math.min(36, (w - 60) / 18)
+      const boxH = Math.min(42, (h - 100) / 5)
+      const startX = (w - boxW * 18) / 2
+      const startY = 55
+
+      // Title & Trend Header
+      ctx.fillStyle = '#f8fafc'
+      ctx.font = 'bold 14px system-ui'
+      const titles = ['Electronegativity Heatmap (Pauling Scale)', 'Atomic Radius Heatmap (pm)', 'First Ionization Energy Heatmap (kJ/mol)']
+      ctx.fillText(titles[trendMode], startX, 28)
+
+      // Draw Arrow Legend on Top Right
+      ctx.fillStyle = '#38bdf8'
+      ctx.font = 'bold 11px system-ui'
+      ctx.fillText('Across Period: Z_eff increases →', w - startX - 220, 24)
+      ctx.fillStyle = '#a855f7'
+      ctx.fillText('Down Group: Shells increase ↓', w - startX - 220, 40)
+
+      elements.forEach((el) => {
+        if (filterP > 0 && el.row !== filterP) return
+
+        const cellX = startX + (el.col - 1) * boxW
+        const cellY = startY + (el.row - 1) * boxH
+
+        let val = el.en
+        let norm = 0
+        if (trendMode === 0) {
+          val = el.en
+          norm = el.en / 4.0
+        } else if (trendMode === 1) {
+          val = el.radius
+          norm = (el.radius - 30) / 200
+        } else {
+          val = el.ie
+          norm = (el.ie - 400) / 2000
+        }
+        norm = Math.max(0, Math.min(1, norm))
+
+        // Heatmap color
+        let colStr = '#1e293b'
+        if (trendMode === 0) {
+          // Electronegativity: Cool cyan to hot pink/red
+          colStr = `rgba(${Math.floor(20 + norm * 225)}, ${Math.floor(180 - norm * 140)}, ${Math.floor(255 - norm * 150)}, 0.85)`
+        } else if (trendMode === 1) {
+          // Atomic Radius: Small violet to large emerald green
+          colStr = `rgba(${Math.floor(140 - norm * 120)}, ${Math.floor(60 + norm * 180)}, ${Math.floor(220 - norm * 140)}, 0.85)`
+        } else {
+          // Ionization Energy: Low blue to high gold
+          colStr = `rgba(${Math.floor(40 + norm * 215)}, ${Math.floor(140 + norm * 90)}, ${Math.floor(240 - norm * 200)}, 0.85)`
+        }
+
+        // Element Box
+        ctx.fillStyle = colStr
+        ctx.beginPath()
+        ctx.roundRect(cellX + 1.5, cellY + 1.5, boxW - 3, boxH - 3, 4)
+        ctx.fill()
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)'
+        ctx.lineWidth = 1
+        ctx.stroke()
+
+        // Text: Symbol & Number
+        ctx.fillStyle = '#0f172a'
+        ctx.font = 'bold 9px monospace'
+        ctx.fillText(String(el.z), cellX + 3.5, cellY + 10)
+
+        ctx.fillStyle = '#ffffff'
+        ctx.font = 'bold 13px system-ui'
+        ctx.fillText(el.sym, cellX + (boxW > 30 ? 8 : 4), cellY + 24)
+
+        // Value text
+        ctx.fillStyle = '#f8fafc'
+        ctx.font = '8px system-ui'
+        const valStr = trendMode === 0 ? val.toFixed(1) : String(Math.round(val))
+        ctx.fillText(valStr, cellX + 3.5, cellY + boxH - 5)
+      })
+    },
+  },
 }
 

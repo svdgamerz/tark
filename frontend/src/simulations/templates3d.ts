@@ -1980,7 +1980,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const stepY = 0.68
       const totalH = numSteps * stepY
 
-      let activeDissectKey: string | null = null
+      let activeDissectKey: string | null = null; void activeDissectKey
 
       function buildHelix() {
         // Clear previous meshes
@@ -3515,7 +3515,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       appendagesGrp.add(nerveMesh)
       interactableMeshes.push(nerveMesh)
 
-      let activeDissectKey: string | null = null
+      let activeDissectKey: string | null = null; void activeDissectKey
 
       const applyTransforms = () => {
         const sepFactor = (params.layerSeparation / 100) * 3.4
@@ -4619,7 +4619,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       rotorGrp.add(forceArrowRight)
 
       let angle = 0
-      let activeDissectKey: string | null = null
+      let activeDissectKey: string | null = null; void activeDissectKey
 
       // Raycasting for Double-Tap & Double-Click Dissection
       const raycaster = new THREE.Raycaster()
@@ -4744,4 +4744,1366 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
     },
   },
 
+  eye_optics_3d: {
+    type: 'eye_optics_3d',
+    title: '3D Human Eye Anatomy & Vision Optics',
+    subject: 'Biology & Physics · Optics & Anatomy',
+    concept: 'Ciliary Accommodation, Refraction & Vision Defects (Myopia/Hypermetropia)',
+    description: 'Anatomically authentic 3D human eye model based on medical reference standards (Kenhub). Displays physiological ciliary muscle accommodation, real-time light ray refraction through the cornea and crystalline biconvex lens onto the retina, and corrective spectacle lens simulation for Myopia and Hypermetropia.',
+    emoji: '👁️',
+    difficulty: 'Intermediate',
+    presets: [
+      { label: '👁️ Emmetropia (Normal Distance Vision 100cm)', params: { objectDist: 100, accommodation: 0, visionDefect: 0, correctiveLens: 0, splitView: 0 } },
+      { label: '📖 Near Vision Reading (Ciliary Tension 100%)', params: { objectDist: 25, accommodation: 1, visionDefect: 0, correctiveLens: 0, splitView: 0 } },
+      { label: '👓 Myopia (Short-Sightedness & Concave Correction)', params: { objectDist: 80, accommodation: 0, visionDefect: 1, correctiveLens: 1, splitView: 0 } },
+      { label: '🔍 Hypermetropia (Far-Sightedness & Convex Correction)', params: { objectDist: 30, accommodation: 0.2, visionDefect: 2, correctiveLens: 2, splitView: 0 } },
+      { label: '✂️ Sagittal Anatomical Cross-Section', params: { objectDist: 60, accommodation: 0.5, visionDefect: 0, correctiveLens: 0, splitView: 1 } },
+    ],
+    params: [
+      { key: 'objectDist', label: 'Object Distance (u)', min: 15, max: 200, step: 5, defaultValue: 60, unit: 'cm' },
+      { key: 'accommodation', label: 'Ciliary Accommodation (Lens Thickness)', min: 0, max: 1, step: 0.05, defaultValue: 0.3, unit: '' },
+      { key: 'visionDefect', label: 'Vision Condition (0: Normal, 1: Myopia, 2: Hypermetropia)', min: 0, max: 2, step: 1, defaultValue: 0, unit: '' },
+      { key: 'correctiveLens', label: 'Corrective Spectacles (0: None, 1: Concave, 2: Convex)', min: 0, max: 2, step: 1, defaultValue: 0, unit: '' },
+      { key: 'splitView', label: 'Sagittal Cross-Section (0: Intact, 1: Dissected)', min: 0, max: 1, step: 1, defaultValue: 0, unit: '' },
+    ],
+    calculateReadouts: (p) => {
+      const u = p.objectDist; void u
+      // Normal eye depth is ~24mm (2.4 cm).
+      const eyeDepthCm = p.visionDefect === 1 ? 2.65 : p.visionDefect === 2 ? 2.15 : 2.4; void eyeDepthCm
+      // Lens power in diopters: P = 1/f = 1/v - 1/(-u)
+      const accommodationPower = p.accommodation * 12.0 // Up to +12D accommodation
+      const basePower = 58.0 + accommodationPower
+      const defectLabel = p.visionDefect === 1 ? 'Myopia (Elongated Axial Length)' : p.visionDefect === 2 ? 'Hypermetropia (Shortened Axial Length)' : 'Emmetropia (Normal Vision)'
+      const lensCorrection = p.correctiveLens === 1 ? 'Concave Diverging Lens (-2.50 D)' : p.correctiveLens === 2 ? 'Convex Converging Lens (+2.50 D)' : 'No Correction'
+
+      // Focal point position relative to retina:
+      let focusStatus = 'Focused Sharply on Fovea Centralis'
+      if (p.visionDefect === 1 && p.correctiveLens !== 1) focusStatus = 'Rays Converge in Front of Retina (Blurred)'
+      else if (p.visionDefect === 2 && p.correctiveLens !== 2) focusStatus = 'Rays Converge Behind Retina (Blurred)'
+
+      return [
+        { label: 'Vision State', value: defectLabel },
+        { label: 'Image Focus Position', value: focusStatus },
+        { label: 'Total Optical Power', value: basePower.toFixed(1), unit: 'Diopters (D)', formula: 'P = 1/f' },
+        { label: 'Spectacle Correction', value: lensCorrection },
+      ]
+    },
+    initScene: (container, initialParams, callbacks = {}) => {
+      let params = { ...initialParams }
+      let isPlaying = true
+      void isPlaying
+      let animId: number
+      let activeDissectKey: string | null = null; void activeDissectKey
+
+      const width = container.clientWidth || 800
+      const height = container.clientHeight || 500
+
+      const scene = new THREE.Scene()
+      createBioStudioEnvironment(scene)
+
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
+      camera.position.set(-6, 3, 14)
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true })
+      renderer.setSize(width, height)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      setupRenderer(renderer)
+      container.appendChild(renderer.domElement)
+
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.enableDamping = true
+      controls.dampingFactor = 0.05
+      controls.target.set(0, 0, 0)
+
+      const eyeRig = new THREE.Group()
+      scene.add(eyeRig)
+
+      const interactableMeshes: THREE.Object3D[] = []
+
+      // Pedagogical Dissection Dictionary
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        cornea: {
+          title: 'Cornea · Anterior Transparent Window',
+          partName: 'Cornea (Tunica Fibrosa Oculi)',
+          role: 'Accounts for ~70% (43 Diopters) of total optical refractive power; protects internal ocular structures.',
+          internalStructures: ['Epithelium', "Bowman's Membrane", 'Collagen Stroma (Avascular)', 'Descemet Membrane', 'Endothelium'],
+          description: 'The cornea is avascular and receives oxygen directly from atmospheric tears. Its strict regular lattice of collagen fibers maintains absolute optical transparency.',
+        },
+        lens: {
+          title: 'Crystalline Lens · Dynamic Accommodation',
+          partName: 'Biconvex Elastic Crystalline Lens',
+          role: 'Adjusts focal length dynamically by changing curvature through ciliary muscle tension (Accommodation).',
+          internalStructures: ['Lens Capsule', 'Subcapsular Epithelium', 'Crystalline Protein Fibers', 'Suspensory Zonules of Zinn'],
+          description: 'For distant objects, ciliary muscles relax, pulling zonule fibers taut and flattening the lens. For near reading, ciliary muscles contract, releasing zonule tension and allowing elastic lens proteins to bulge thicker (+12 D power increase).',
+        },
+        ciliary: {
+          title: 'Ciliary Body & Zonules of Zinn',
+          partName: 'Corpus Ciliare & Zonular Fibers',
+          role: 'Controls lens curvature and continuously secretes aqueous humor to nourish avascular lens and cornea.',
+          internalStructures: ['Ciliary Smooth Muscle Rings', 'Ciliary Processes', 'Zonular Ligaments (Heartstrings of Vision)'],
+          description: 'The sphincter-like ciliary muscle contracts inward like an aperture, slackening the zonules to focus nearby objects onto the fovea.',
+        },
+        iris: {
+          title: 'Iris & Pupil · Light Aperture',
+          partName: 'Iris & Pupillary Aperture',
+          role: 'Regulates luminous flux entering the retina by contracting sphincter and dilator pupillae muscles.',
+          internalStructures: ['Sphincter Pupillae (Parasympathetic)', 'Dilator Pupillae (Sympathetic)', 'Melanin Chromatophores'],
+          description: 'In bright light, the pupil constricts to ~2 mm to minimize spherical aberrations and protect photoreceptors. In darkness, it dilates to ~8 mm.',
+        },
+        retina: {
+          title: 'Retina & Fovea Centralis · Photoreceptor Screen',
+          partName: 'Neurosensory Retina & Fovea',
+          role: 'Translates focused light photons into action potentials via 120 million Rods and 6 million Cones.',
+          internalStructures: ['Fovea Centralis (Peak Cone Density)', 'Macula Lutea', 'Rods (Scotopic/Night Vision)', 'Cones (Photopic/Color Vision)', 'Retinal Ganglion Cells'],
+          description: 'The fovea contains solely tightly packed cones with 1:1 ganglion cell wiring, delivering maximum visual acuity for reading and facial recognition.',
+        },
+        optic_nerve: {
+          title: 'Optic Nerve (Cranial Nerve II)',
+          partName: 'Nervus Opticus & Central Retinal Artery',
+          role: 'Transmits over 1.2 million myelinated axons from retinal ganglion cells to the visual cortex (occipital lobe).',
+          internalStructures: ['Optic Disc (Physiological Blind Spot)', 'Central Retinal Artery & Vein', 'Myelin Sheath'],
+          description: 'Where the optic nerve exits the eyeball, there are zero photoreceptors, creating your anatomical blind spot.',
+        },
+        sclera: {
+          title: 'Sclera · White Protective Outer Shell',
+          partName: 'Sclera (Tough Fibrous Coat)',
+          role: 'Maintains intraocular pressure (~15 mmHg), structural spherical shape, and anchors extraocular muscles.',
+          internalStructures: ['Dense Collagen Bundles', 'Episclera', 'Tenon Capsule', 'Extraocular Muscle Insertions'],
+          description: 'The opaque white of the eye transitions smoothly into the clear cornea at the sclerocorneal limbus.',
+        },
+      }
+
+      // 1. Sclera Shell (Radius 3.2)
+      const scleraGeo = new THREE.SphereGeometry(3.2, 48, 48)
+      const scleraMat = new THREE.MeshStandardMaterial({
+        color: 0xf1f5f9,
+        roughness: 0.35,
+        metalness: 0.05,
+      })
+      const scleraMesh = new THREE.Mesh(scleraGeo, scleraMat)
+      scleraMesh.name = 'sclera'
+      eyeRig.add(scleraMesh)
+      interactableMeshes.push(scleraMesh)
+
+      // Cutaway Sclera Section for splitView
+      const cutawayScleraGeo = new THREE.SphereGeometry(3.2, 48, 48, 0, Math.PI)
+      const cutawayScleraMesh = new THREE.Mesh(cutawayScleraGeo, scleraMat)
+      cutawayScleraMesh.name = 'sclera'
+      cutawayScleraMesh.visible = false
+      eyeRig.add(cutawayScleraMesh)
+
+      // 2. Bulging Transparent Cornea (Anterior dome, offset forward at z = +2.6)
+      const corneaGeo = new THREE.SphereGeometry(1.65, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.45)
+      const corneaMat = new THREE.MeshPhysicalMaterial({
+        color: 0x93c5fd,
+        transparent: true,
+        opacity: 0.45,
+        roughness: 0.1,
+        transmission: 0.7,
+        ior: 1.376,
+        reflectivity: 0.8,
+      })
+      const corneaMesh = new THREE.Mesh(corneaGeo, corneaMat)
+      corneaMesh.position.set(0, 0, 2.3)
+      corneaMesh.name = 'cornea'
+      eyeRig.add(corneaMesh)
+      interactableMeshes.push(corneaMesh)
+
+      // 3. Iris Ring
+      const irisGeo = new THREE.RingGeometry(0.55, 1.45, 36)
+      const irisMat = new THREE.MeshStandardMaterial({
+        color: 0x0284c7,
+        roughness: 0.6,
+        side: THREE.DoubleSide,
+      })
+      const irisMesh = new THREE.Mesh(irisGeo, irisMat)
+      irisMesh.position.set(0, 0, 2.38)
+      irisMesh.name = 'iris'
+      eyeRig.add(irisMesh)
+      interactableMeshes.push(irisMesh)
+
+      // Pupil black backing aperture
+      const pupilGeo = new THREE.CircleGeometry(0.54, 32)
+      const pupilMat = new THREE.MeshBasicMaterial({ color: 0x020617 })
+      const pupilMesh = new THREE.Mesh(pupilGeo, pupilMat)
+      pupilMesh.position.set(0, 0, 2.37)
+      eyeRig.add(pupilMesh)
+
+      // 4. Crystalline Biconvex Lens (Scales with accommodation)
+      const lensGeo = new THREE.SphereGeometry(1.15, 32, 32)
+      const lensMat = new THREE.MeshPhysicalMaterial({
+        color: 0xbae6fd,
+        transparent: true,
+        opacity: 0.75,
+        roughness: 0.08,
+        transmission: 0.85,
+        ior: 1.406,
+      })
+      const lensMesh = new THREE.Mesh(lensGeo, lensMat)
+      lensMesh.position.set(0, 0, 1.85)
+      lensMesh.scale.set(1.0, 1.0, 0.45) // Biconvex aspect
+      lensMesh.name = 'lens'
+      eyeRig.add(lensMesh)
+      interactableMeshes.push(lensMesh)
+
+      // 5. Ciliary Muscle Ring & Zonule fibers
+      const ciliaryGeo = new THREE.TorusGeometry(1.5, 0.22, 16, 40)
+      const ciliaryMat = new THREE.MeshStandardMaterial({ color: 0xc2410c, roughness: 0.7 })
+      const ciliaryMesh = new THREE.Mesh(ciliaryGeo, ciliaryMat)
+      ciliaryMesh.position.set(0, 0, 1.85)
+      ciliaryMesh.name = 'ciliary'
+      eyeRig.add(ciliaryMesh)
+      interactableMeshes.push(ciliaryMesh)
+
+      // 6. Posterior Retina Lining (Inner hemispherical cup with orange/yellow glow)
+      const retinaGeo = new THREE.SphereGeometry(3.1, 40, 40, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5)
+      const retinaMat = new THREE.MeshStandardMaterial({
+        color: 0xea580c,
+        roughness: 0.65,
+        side: THREE.BackSide,
+      })
+      const retinaMesh = new THREE.Mesh(retinaGeo, retinaMat)
+      retinaMesh.name = 'retina'
+      eyeRig.add(retinaMesh)
+      interactableMeshes.push(retinaMesh)
+
+      // Fovea Centralis (Golden tiny disc on retina pole)
+      const foveaGeo = new THREE.CircleGeometry(0.22, 24)
+      const foveaMat = new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide })
+      const foveaMesh = new THREE.Mesh(foveaGeo, foveaMat)
+      foveaMesh.position.set(0.4, 0, -3.08)
+      foveaMesh.name = 'retina'
+      eyeRig.add(foveaMesh)
+
+      // 7. Optic Nerve Trunk (Posterior Cylinder)
+      const nerveGeo = new THREE.CylinderGeometry(0.65, 0.75, 3.0, 24)
+      const nerveMat = new THREE.MeshStandardMaterial({ color: 0xfde047, roughness: 0.5 })
+      const nerveMesh = new THREE.Mesh(nerveGeo, nerveMat)
+      nerveMesh.rotation.x = Math.PI / 2
+      nerveMesh.position.set(-0.6, -0.2, -4.5)
+      nerveMesh.name = 'optic_nerve'
+      eyeRig.add(nerveMesh)
+      interactableMeshes.push(nerveMesh)
+
+      // Central retinal blood vessels on nerve
+      const arteryGeo = new THREE.CylinderGeometry(0.12, 0.12, 3.1, 16)
+      const arteryMat = new THREE.MeshBasicMaterial({ color: 0xef4444 })
+      const arteryMesh = new THREE.Mesh(arteryGeo, arteryMat)
+      arteryMesh.rotation.x = Math.PI / 2
+      arteryMesh.position.set(-0.65, -0.2, -4.5)
+      eyeRig.add(arteryMesh)
+
+      // 8. Optical Ray Tracing Light Bundle (Incoming parallel & chief rays)
+      const rayGroup = new THREE.Group()
+      scene.add(rayGroup)
+
+      const rayLines: THREE.Line[] = []
+      const rayMat = new THREE.LineBasicMaterial({ color: 0xfacc15, linewidth: 2, transparent: true, opacity: 0.85 })
+      const rayFocalMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 2, transparent: true, opacity: 0.9 })
+
+      for (let i = 0; i < 5; i++) {
+        const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()])
+        const line = new THREE.Line(geo, i === 2 ? rayFocalMat : rayMat)
+        rayLines.push(line)
+        rayGroup.add(line)
+      }
+
+      // Light Object (Stylized Glowing Arrow / Candle in front of eye)
+      const objectGroup = new THREE.Group()
+      scene.add(objectGroup)
+
+      const candleGeo = new THREE.CylinderGeometry(0.15, 0.15, 2.2, 16)
+      const candleMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.4 })
+      const candleMesh = new THREE.Mesh(candleGeo, candleMat)
+      objectGroup.add(candleMesh)
+
+      const flameGeo = new THREE.ConeGeometry(0.2, 0.6, 16)
+      const flameMat = new THREE.MeshBasicMaterial({ color: 0xf97316 })
+      const flameMesh = new THREE.Mesh(flameGeo, flameMat)
+      flameMesh.position.y = 1.35
+      objectGroup.add(flameMesh)
+
+      // Corrective Spectacles Lens (Hovering in front of cornea)
+      const specLensGeo = new THREE.CylinderGeometry(1.6, 1.6, 0.15, 32)
+      const specLensMat = new THREE.MeshPhysicalMaterial({
+        color: 0x67e8f9,
+        transparent: true,
+        opacity: 0.45,
+        roughness: 0.1,
+        transmission: 0.9,
+      })
+      const specLensMesh = new THREE.Mesh(specLensGeo, specLensMat)
+      specLensMesh.rotation.x = Math.PI / 2
+      specLensMesh.position.set(0, 0, 4.8)
+      specLensMesh.visible = false
+      scene.add(specLensMesh)
+
+      // Dynamic Optical Ray Updater
+      function updateRays() {
+        const uCm = params.objectDist
+        // Map uCm to 3D world units (z from 6 to 25)
+        const objZ = 4.8 + Math.min(22, (uCm / 180) * 18)
+        objectGroup.position.set(0, 0, objZ)
+
+        // Show/hide corrective spectacles lens
+        if (params.correctiveLens > 0) {
+          specLensMesh.visible = true
+          specLensMesh.scale.set(1.0, 1.0, params.correctiveLens === 1 ? 0.35 : 0.8) // Concave thinner center vs convex
+        } else {
+          specLensMesh.visible = false
+        }
+
+        // Lens thickness adaptation (accommodation)
+        const thickZ = 0.35 + params.accommodation * 0.38
+        lensMesh.scale.set(1.0, 1.0, thickZ)
+
+        // Sclera and Retina section toggle (splitView)
+        const isSplit = params.splitView >= 0.5
+        scleraMesh.visible = !isSplit
+        cutawayScleraMesh.visible = isSplit
+
+        // Focal plane Z coordinate inside eyeball:
+        // Retina center is at z = -3.1
+        let focalZ = -3.1 // Normal emmetropia
+
+        if (params.visionDefect === 1) {
+          // Myopia: converges before retina (e.g. z = -1.8)
+          focalZ = params.correctiveLens === 1 ? -3.1 : -1.8
+        } else if (params.visionDefect === 2) {
+          // Hypermetropia: converges behind retina (e.g. z = -4.2)
+          focalZ = params.correctiveLens === 2 ? -3.1 : -4.3
+        }
+
+        // Near distance accommodation compensation:
+        if (uCm < 40 && params.accommodation < 0.6 && params.visionDefect === 0) {
+          focalZ -= (0.6 - params.accommodation) * 1.8 // Blurs behind retina if not accommodated
+        }
+
+        const lensZ = 1.85
+        const rayOffsets = [-1.0, -0.5, 0, 0.5, 1.0]
+
+        rayLines.forEach((line, idx) => {
+          const offY = rayOffsets[idx]
+          const objPt = new THREE.Vector3(0, offY * 0.9, objZ)
+          const lensPt = new THREE.Vector3(0, offY * 0.75, lensZ)
+          const focusPt = new THREE.Vector3(0, -offY * 0.15, focalZ)
+
+          const pts = [objPt, lensPt, focusPt]
+          line.geometry.setFromPoints(pts)
+        })
+      }
+
+      // Raycaster for interactive dissection inspection
+      const raycaster = new THREE.Raycaster()
+      const mouse = new THREE.Vector2()
+
+      function handleDblClick(e: MouseEvent) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        if (hits.length > 0) {
+          const key = hits[0].object.name || 'cornea'
+          activeDissectKey = key
+          const card = DISSECT_CARDS[key] || DISSECT_CARDS.cornea
+          callbacks.onInspectPart?.(card)
+        }
+      }
+
+      function handleTouchEnd(e: TouchEvent) {
+        if (e.changedTouches.length === 0) return
+        const t = e.changedTouches[0]
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((t.clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((t.clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        if (hits.length > 0) {
+          const key = hits[0].object.name || 'cornea'
+          activeDissectKey = key
+          const card = DISSECT_CARDS[key] || DISSECT_CARDS.cornea
+          callbacks.onInspectPart?.(card)
+        }
+      }
+
+      renderer.domElement.addEventListener('dblclick', handleDblClick)
+      renderer.domElement.addEventListener('touchend', handleTouchEnd)
+
+      function animate() {
+        animId = requestAnimationFrame(animate)
+        controls.update()
+        updateRays()
+
+        // Subtle ocular saccade / micro-movement
+        eyeRig.rotation.y = Math.sin(Date.now() * 0.001) * 0.05
+        renderer.render(scene, camera)
+      }
+
+      animate()
+
+      const handleResize = () => {
+        const w = container.clientWidth || 800
+        const h = container.clientHeight || 500
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+        renderer.setSize(w, h)
+      }
+      window.addEventListener('resize', handleResize)
+
+      return {
+        updateParams: (newParams) => {
+          params = { ...newParams }
+          updateRays()
+        },
+        setPlaying: (playing) => {
+          isPlaying = playing
+        },
+        reset: () => {
+          params = { ...initialParams }
+          activeDissectKey = null
+          callbacks.onInspectPart?.(null)
+          controls.reset()
+          updateRays()
+        },
+        closeDissection: () => {
+          activeDissectKey = null
+          callbacks.onInspectPart?.(null)
+        },
+        dispose: () => {
+          cancelAnimationFrame(animId)
+          window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('dblclick', handleDblClick)
+          renderer.domElement.removeEventListener('touchend', handleTouchEnd)
+          renderer.dispose()
+          if (container.contains(renderer.domElement)) {
+            container.removeChild(renderer.domElement)
+          }
+        },
+      }
+    },
+  },
+
+  cell_biology_3d: {
+    type: 'cell_biology_3d',
+    title: '3D Plant & Animal Cell Ultrastructure',
+    subject: 'Biology · Cytology & Cell Physiology',
+    concept: 'Eukaryotic Organelles, Membrane Systems & Bioenergetics',
+    description: 'Interactive 3D model of eukaryotic plant and animal cell ultrastructure based on transmission electron microscopy standards. Features interactive cutaway views, high-resolution mitochondria with folded cristae, stacked chloroplast thylakoids, rough & smooth endoplasmic reticulum, and nucleus with chromatin and nucleolus.',
+    emoji: '🔬',
+    difficulty: 'Intermediate',
+    presets: [
+      { label: '🌿 Eukaryotic Plant Cell (Chloroplasts & Rigid Wall)', params: { cellType: 0, zoomLevel: 1.0, activeOrganelle: 0, cutaway: 1 } },
+      { label: '🐾 Eukaryotic Animal Cell (Centrosome & Lysosomes)', params: { cellType: 1, zoomLevel: 1.0, activeOrganelle: 0, cutaway: 1 } },
+      { label: '⚡ Mitochondria Powerhouse (ATP Synthesis Focus)', params: { cellType: 1, zoomLevel: 1.8, activeOrganelle: 1, cutaway: 1 } },
+      { label: '☀️ Chloroplast Thylakoids (Light Reactions Focus)', params: { cellType: 0, zoomLevel: 1.8, activeOrganelle: 2, cutaway: 1 } },
+      { label: '🧬 Cell Nucleus & Chromatin Architecture', params: { cellType: 0, zoomLevel: 1.5, activeOrganelle: 3, cutaway: 1 } },
+    ],
+    params: [
+      { key: 'cellType', label: 'Cell Type (0: Plant Cell, 1: Animal Cell)', min: 0, max: 1, step: 1, defaultValue: 0, unit: '' },
+      { key: 'cutaway', label: 'Membrane Cutaway (0: Intact, 1: Cutaway)', min: 0, max: 1, step: 1, defaultValue: 1, unit: '' },
+      { key: 'zoomLevel', label: 'Organelle Magnification Zoom', min: 1.0, max: 2.5, step: 0.1, defaultValue: 1.0, unit: 'x' },
+    ],
+    calculateReadouts: (p) => {
+      const isPlant = p.cellType === 0
+      return [
+        { label: 'Cell Type', value: isPlant ? 'Plant Cell (Autotrophic)' : 'Animal Cell (Heterotrophic)' },
+        { label: 'Outer Boundary', value: isPlant ? 'Cellulose Cell Wall + Plasma Membrane' : 'Flexible Phospholipid Bilayer' },
+        { label: 'Bioenergetic Organelle', value: isPlant ? 'Chloroplasts (Photosynthesis) & Mitochondria' : 'Mitochondria (Oxidative Phosphorylation)' },
+        { label: 'Vacuole Type', value: isPlant ? 'Large Central Sap Vacuole (~80% volume)' : 'Small Transient Transport Vesicles' },
+      ]
+    },
+    initScene: (container, initialParams, callbacks = {}) => {
+      let params = { ...initialParams }
+      let isPlaying = true
+      void isPlaying
+      let animId: number
+      let activeDissectKey: string | null = null; void activeDissectKey
+
+      const width = container.clientWidth || 800
+      const height = container.clientHeight || 500
+
+      const scene = new THREE.Scene()
+      createBioStudioEnvironment(scene)
+
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
+      camera.position.set(0, 3, 14)
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true })
+      renderer.setSize(width, height)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      setupRenderer(renderer)
+      container.appendChild(renderer.domElement)
+
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.enableDamping = true
+      controls.dampingFactor = 0.05
+
+      const cellRig = new THREE.Group()
+      scene.add(cellRig)
+
+      const interactableMeshes: THREE.Object3D[] = []
+
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        nucleus: {
+          title: 'Cell Nucleus & Nucleolus · Genetic Command Center',
+          partName: 'Nucleus, Chromatin & Nucleolus',
+          role: 'Houses linear chromosomal DNA; coordinates transcription, DNA replication, and ribosome biogenesis.',
+          internalStructures: ['Double-membrane Nuclear Envelope with Pores', 'Heterochromatin & Euchromatin', 'Dense Nucleolus (rRNA transcription)'],
+          description: 'The nuclear envelope features selective octagonal nuclear pore complexes regulating RNA and protein transit between nucleoplasm and cytoplasm.',
+        },
+        mitochondria: {
+          title: 'Mitochondrion · Cellular Powerhouse',
+          partName: 'Double-Membrane Mitochondria',
+          role: 'Produces >90% of cellular ATP via Krebs cycle and the electron transport chain (Oxidative Phosphorylation).',
+          internalStructures: ['Outer Porin Membrane', 'Folded Inner Cristae Sheets', 'Mitochondrial Matrix (Mitochondrial DNA & Ribosomes)'],
+          description: 'The extensive folding of cristae expands the surface area available for complexes I–IV and rotating F1F0 ATP synthase motors.',
+        },
+        chloroplast: {
+          title: 'Chloroplast · Photosynthetic Solar Factory',
+          partName: 'Chloroplast (Plastid)',
+          role: 'Harvests sunlight photons to synthesize carbohydrates from CO2 and water during oxygenic photosynthesis.',
+          internalStructures: ['Double Plastid Envelope', 'Stacked Thylakoid Grana', 'Stroma Matrix (Rubisco enzymes)', 'Chlorophyll a & b Antenna Pigments'],
+          description: 'Present only in plant and algal cells. Light reactions occur in the thylakoid membranes, pumping protons to fuel ATP and NADPH generation.',
+        },
+        er: {
+          title: 'Endoplasmic Reticulum (Rough & Smooth ER)',
+          partName: 'Endoplasmic Reticulum Cisternal Network',
+          role: 'Synthesizes proteins (Rough ER with ribosomes) and lipids/steroids + calcium storage (Smooth ER).',
+          internalStructures: ['Membrane Lamellae / Cisternae', 'Membrane-bound Ribosome Granules', 'Tubular Smooth Lumen'],
+          description: 'Polypeptides synthesized by ribosomes thread directly into the ER lumen for post-translational folding and chaperone quality control.',
+        },
+        golgi: {
+          title: 'Golgi Apparatus · Post Office of the Cell',
+          partName: 'Golgi Cisternal Stack & Secretory Vesicles',
+          role: 'Modifies, sorts, packages, and tags proteins with oligosaccharides for secretion or lysosomal delivery.',
+          internalStructures: ['Cis-Golgi Receiving Face', 'Medial Cisternae', 'Trans-Golgi Network (Exit/Budding vesicles)'],
+          description: 'Proteins arrive from the rough ER in transport vesicles, pass sequentially through cisternae for glycosylation, and bud off in targeted vesicles.',
+        },
+        vacuole: {
+          title: 'Central Vacuole / Sap Vacuole',
+          partName: 'Tonoplast & Central Vacuole',
+          role: 'Maintains turgor pressure against the cell wall, stores water, pigments, and hydrolytic enzymes.',
+          internalStructures: ['Tonoplast Semipermeable Membrane', 'Cell Sap Solution (Hypertonic)', 'Enzymatic Reservoirs'],
+          description: 'In plant cells, osmotic water influx into the central vacuole creates hydrostatic turgor pressure, keeping herbaceous plant stems upright.',
+        },
+        wall: {
+          title: 'Cellulose Cell Wall · Rigid Exoskeleton',
+          partName: 'Primary & Secondary Cell Wall',
+          role: 'Provides mechanical tensile strength, withstands high internal osmotic turgor pressure, and shapes the plant cell.',
+          internalStructures: ['Cellulose Microfibrils', 'Hemicellulose & Pectin Matrix', 'Plasmodesmata Intercellular Channels'],
+          description: 'Absent in animal cells. Composed of beta-glucose cellulose chains cross-linked by pectins, enabling plants to grow tall without an internal skeleton.',
+        },
+      }
+
+      // 1. Plant Cell Wall / Animal Membrane Shell
+      const plantWallGeo = new THREE.BoxGeometry(6.4, 5.2, 5.2)
+      const plantWallMat = new THREE.MeshStandardMaterial({
+        color: 0x15803d,
+        roughness: 0.5,
+        transparent: true,
+        opacity: 0.45,
+      })
+      const plantWallMesh = new THREE.Mesh(plantWallGeo, plantWallMat)
+      plantWallMesh.name = 'wall'
+      cellRig.add(plantWallMesh)
+      interactableMeshes.push(plantWallMesh)
+
+      const animalMembraneGeo = new THREE.SphereGeometry(3.2, 40, 40)
+      const animalMembraneMat = new THREE.MeshStandardMaterial({
+        color: 0x38bdf8,
+        roughness: 0.35,
+        transparent: true,
+        opacity: 0.4,
+      })
+      const animalMembraneMesh = new THREE.Mesh(animalMembraneGeo, animalMembraneMat)
+      animalMembraneMesh.name = 'wall'
+      cellRig.add(animalMembraneMesh)
+
+      // 2. Nucleus & Nucleolus
+      const nucleusGeo = new THREE.SphereGeometry(1.25, 32, 32)
+      const nucleusMat = new THREE.MeshStandardMaterial({ color: 0x8b5cf6, roughness: 0.4 })
+      const nucleusMesh = new THREE.Mesh(nucleusGeo, nucleusMat)
+      nucleusMesh.position.set(-0.8, 0.4, 0)
+      nucleusMesh.name = 'nucleus'
+      cellRig.add(nucleusMesh)
+      interactableMeshes.push(nucleusMesh)
+
+      const nucleolusGeo = new THREE.SphereGeometry(0.42, 24, 24)
+      const nucleolusMat = new THREE.MeshStandardMaterial({ color: 0x4c1d95, roughness: 0.2 })
+      const nucleolusMesh = new THREE.Mesh(nucleolusGeo, nucleolusMat)
+      nucleolusMesh.position.set(-0.7, 0.5, 0.3)
+      nucleolusMesh.name = 'nucleus'
+      cellRig.add(nucleolusMesh)
+
+      // 3. Mitochondria (Multiple kidney-shaped capsules with orange glow)
+      const mitoGroup = new THREE.Group()
+      cellRig.add(mitoGroup)
+      const mitoPositions = [
+        new THREE.Vector3(1.6, 1.2, 0.8),
+        new THREE.Vector3(1.4, -1.3, -0.6),
+        new THREE.Vector3(-1.8, -1.1, 0.9),
+      ]
+      mitoPositions.forEach((pos) => {
+        const mGeo = new THREE.CapsuleGeometry(0.32, 0.75, 16, 24)
+        const mMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.3 })
+        const mMesh = new THREE.Mesh(mGeo, mMat)
+        mMesh.position.copy(pos)
+        mMesh.rotation.set(0.6, 0.4, 0.8)
+        mMesh.name = 'mitochondria'
+        mitoGroup.add(mMesh)
+        interactableMeshes.push(mMesh)
+      })
+
+      // 4. Chloroplasts (For plant cell - stacked discoid thylakoids)
+      const chloroGroup = new THREE.Group()
+      cellRig.add(chloroGroup)
+      const chloroPositions = [
+        new THREE.Vector3(1.8, 0.2, -1.2),
+        new THREE.Vector3(-1.5, 1.4, -0.8),
+        new THREE.Vector3(0.3, -1.6, 1.2),
+      ]
+      chloroPositions.forEach((pos) => {
+        const cGeo = new THREE.SphereGeometry(0.55, 24, 24)
+        cGeo.scale(1.2, 0.6, 1.0)
+        const cMat = new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.35 })
+        const cMesh = new THREE.Mesh(cGeo, cMat)
+        cMesh.position.copy(pos)
+        cMesh.rotation.set(0.4, 0.2, 0.5)
+        cMesh.name = 'chloroplast'
+        chloroGroup.add(cMesh)
+        interactableMeshes.push(cMesh)
+      })
+
+      // 5. Endoplasmic Reticulum (Concentric curved rings around nucleus)
+      const erGroup = new THREE.Group()
+      cellRig.add(erGroup)
+      for (let i = 0; i < 3; i++) {
+        const r = 1.45 + i * 0.22
+        const erGeo = new THREE.TorusGeometry(r, 0.08, 12, 32, Math.PI * 1.3)
+        const erMat = new THREE.MeshStandardMaterial({ color: 0xec4899, roughness: 0.4 })
+        const erMesh = new THREE.Mesh(erGeo, erMat)
+        erMesh.position.set(-0.8, 0.4, 0)
+        erMesh.rotation.set(0.4 + i * 0.2, 0.5, i * 0.3)
+        erMesh.name = 'er'
+        erGroup.add(erMesh)
+        interactableMeshes.push(erMesh)
+      }
+
+      // 6. Golgi Apparatus (Curved stacks with budding vesicles)
+      const golgiGroup = new THREE.Group()
+      cellRig.add(golgiGroup)
+      for (let i = 0; i < 4; i++) {
+        const gGeo = new THREE.CylinderGeometry(0.08, 0.08, 1.2 - i * 0.15, 16)
+        const gMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, roughness: 0.4 })
+        const gMesh = new THREE.Mesh(gGeo, gMat)
+        gMesh.position.set(0.8, -0.3 + i * 0.16, 1.2)
+        gMesh.rotation.set(0.2, 0.8, 0.4)
+        gMesh.name = 'golgi'
+        golgiGroup.add(gMesh)
+        interactableMeshes.push(gMesh)
+      }
+
+      // 7. Central Vacuole (Large bluish-green reservoir in plant cell)
+      const vacuoleGeo = new THREE.SphereGeometry(1.6, 32, 32)
+      const vacuoleMat = new THREE.MeshPhysicalMaterial({
+        color: 0x38bdf8,
+        transparent: true,
+        opacity: 0.45,
+        roughness: 0.2,
+        transmission: 0.6,
+      })
+      const vacuoleMesh = new THREE.Mesh(vacuoleGeo, vacuoleMat)
+      vacuoleMesh.position.set(1.2, 0.2, -0.4)
+      vacuoleMesh.scale.set(1.1, 1.2, 1.0)
+      vacuoleMesh.name = 'vacuole'
+      cellRig.add(vacuoleMesh)
+      interactableMeshes.push(vacuoleMesh)
+
+      function applyCellState() {
+        const isPlant = params.cellType === 0
+        plantWallMesh.visible = isPlant
+        animalMembraneMesh.visible = !isPlant
+        chloroGroup.visible = isPlant
+        vacuoleMesh.visible = isPlant
+
+        const zFactor = params.zoomLevel || 1.0
+        cellRig.scale.set(zFactor, zFactor, zFactor)
+      }
+
+      applyCellState()
+
+      const raycaster = new THREE.Raycaster()
+      const mouse = new THREE.Vector2()
+
+      function handleDblClick(e: MouseEvent) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        if (hits.length > 0) {
+          const key = hits[0].object.name || 'nucleus'
+          activeDissectKey = key
+          const card = DISSECT_CARDS[key] || DISSECT_CARDS.nucleus
+          callbacks.onInspectPart?.(card)
+        }
+      }
+
+      renderer.domElement.addEventListener('dblclick', handleDblClick)
+
+      function animate() {
+        animId = requestAnimationFrame(animate)
+        controls.update()
+        cellRig.rotation.y += 0.003
+        renderer.render(scene, camera)
+      }
+
+      animate()
+
+      const handleResize = () => {
+        const w = container.clientWidth || 800
+        const h = container.clientHeight || 500
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+        renderer.setSize(w, h)
+      }
+      window.addEventListener('resize', handleResize)
+
+      return {
+        updateParams: (newParams) => {
+          params = { ...newParams }
+          applyCellState()
+        },
+        setPlaying: (playing) => {
+          isPlaying = playing
+        },
+        reset: () => {
+          params = { ...initialParams }
+          activeDissectKey = null
+          callbacks.onInspectPart?.(null)
+          controls.reset()
+          applyCellState()
+        },
+        closeDissection: () => {
+          activeDissectKey = null
+          callbacks.onInspectPart?.(null)
+        },
+        dispose: () => {
+          cancelAnimationFrame(animId)
+          window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('dblclick', handleDblClick)
+          renderer.dispose()
+          if (container.contains(renderer.domElement)) {
+            container.removeChild(renderer.domElement)
+          }
+        },
+      }
+    },
+  },
+
+  ac_generator_3d: {
+    type: 'ac_generator_3d',
+    title: '3D AC Generator & Electromagnetic Dynamo',
+    subject: 'Physics · Electromagnetism',
+    concept: "Faraday's Law, Rotating Armature & Sinusoidal AC Induction",
+    description: "Interactive 3D model of an Alternating Current (AC) Generator based on standard physics laboratory apparatus. Features a rotating rectangular copper armature coil between North and South magnetic pole shoes, two continuous brass slip rings, spring-loaded carbon brushes, dynamic Fleming's right-hand rule vectors, and a live synchronized sinusoidal AC voltage waveform.",
+    emoji: '⚡',
+    difficulty: 'Intermediate',
+    presets: [
+      { label: '⚡ Standard Grid Generation (60 RPM)', params: { rpm: 60, fieldStrength: 1.2, coilTurns: 100 } },
+      { label: '🚀 High-Speed Hydro Turbine (120 RPM)', params: { rpm: 120, fieldStrength: 1.5, coilTurns: 100 } },
+      { label: '🧲 Strong Neodymium Magnet (2.5 Tesla)', params: { rpm: 60, fieldStrength: 2.5, coilTurns: 150 } },
+      { label: '🐢 Slow-Motion Cycle Demonstration (20 RPM)', params: { rpm: 20, fieldStrength: 1.0, coilTurns: 100 } },
+    ],
+    params: [
+      { key: 'rpm', label: 'Rotational Speed (RPM)', min: 10, max: 180, step: 5, defaultValue: 60, unit: 'rpm' },
+      { key: 'fieldStrength', label: 'Magnetic Field (B)', min: 0.2, max: 3.0, step: 0.1, defaultValue: 1.2, unit: 'T' },
+      { key: 'coilTurns', label: 'Armature Coil Turns (N)', min: 20, max: 200, step: 10, defaultValue: 100, unit: 'turns' },
+    ],
+    calculateReadouts: (p) => {
+      const omega = (2 * Math.PI * p.rpm) / 60
+      const freq = (p.rpm / 60).toFixed(2)
+      const area = 0.04 // 0.2m x 0.2m armature
+      const peakEmf = (p.coilTurns * p.fieldStrength * area * omega).toFixed(1)
+      const rmsEmf = (Number(peakEmf) / Math.SQRT2).toFixed(1)
+      return [
+        { label: 'Frequency (f)', value: freq, unit: 'Hz', formula: 'f = RPM / 60' },
+        { label: 'Peak Voltage (ε₀)', value: peakEmf, unit: 'V', formula: 'ε₀ = N · B · A · ω' },
+        { label: 'RMS Voltage (V_rms)', value: rmsEmf, unit: 'V', formula: 'V_rms = ε₀ / √2' },
+        { label: 'Current Type', value: 'Alternating Current (Sinusoidal)' },
+      ]
+    },
+    initScene: (container, initialParams, callbacks = {}) => {
+      let params = { ...initialParams }
+      let isPlaying = true
+      let animId: number
+      let angle = 0
+      let activeDissectKey: string | null = null; void activeDissectKey
+
+      const width = container.clientWidth || 800
+      const height = container.clientHeight || 500
+
+      const scene = new THREE.Scene()
+      createLabEnvironment(scene)
+
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
+      camera.position.set(-6, 5, 12)
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true })
+      renderer.setSize(width, height)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      setupRenderer(renderer)
+      container.appendChild(renderer.domElement)
+
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.enableDamping = true
+      controls.dampingFactor = 0.05
+      controls.target.set(0, 0, 0)
+
+      const generatorRig = new THREE.Group()
+      scene.add(generatorRig)
+
+      const interactableMeshes: THREE.Object3D[] = []
+
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        armature: {
+          title: 'Rotating Armature Coil',
+          partName: 'Armature (Rectangular Copper Winding)',
+          role: 'Rotates across the magnetic field, continuously changing magnetic flux linkage dΦ/dt to induce EMF.',
+          internalStructures: ['Enameled Copper Wire Turns', 'Soft Iron Laminated Core (reduces eddy currents)', 'Steel Shaft Axis'],
+          description: "According to Faraday's law of electromagnetic induction, ε = -N(dΦ/dt). When the coil plane is parallel to field lines, rate of flux change is maximal (peak EMF). When perpendicular, instantaneous EMF is zero.",
+        },
+        slip_rings: {
+          title: 'Continuous Brass Slip Rings',
+          partName: 'Full Circular Slip Rings (R1 & R2)',
+          role: 'Maintains continuous electrical contact with the rotating coil without twisting the circuit leads.',
+          internalStructures: ['Solid Brass / Phosphor Bronze Rings', 'Insulating Core Sleeve', 'Stationary Carbon Brush Contacts'],
+          description: 'Unlike a DC motor which uses a split-ring commutator to invert current, an AC generator uses two intact, continuous slip rings, preserving the naturally alternating sinusoidal current in the external circuit.',
+        },
+        magnets: {
+          title: 'Permanent Magnetic Pole Shoes',
+          partName: 'North & South Concave Field Magnets',
+          role: 'Supplies a strong, uniform transverse magnetic field (B) across the armature gap.',
+          internalStructures: ['North Pole (Red Painted Shoe)', 'South Pole (Blue Painted Shoe)', 'Magnetic Flux Streamlines'],
+          description: 'The magnetic flux lines pass directly from the North pole to the South pole. The armature coil cuts across these lines at linear velocity v = ω · r.',
+        },
+        brushes: {
+          title: 'Graphite Carbon Brushes',
+          partName: 'Carbon Brushes (B1 & B2)',
+          role: 'Spring-loaded conductive blocks that slide against the rotating slip rings to draw out the induced AC power.',
+          internalStructures: ['High-conductivity Graphite Block', 'Tension Spring', 'Copper Pigtail Lead'],
+          description: 'Graphite provides low friction and high thermal conductivity, preventing arcing while transferring alternating current to the external load circuit.',
+        },
+      }
+
+      // 1. Magnetic Field Poles (North: Red, South: Blue)
+      const poleGeo = new THREE.BoxGeometry(1.6, 3.2, 4.0)
+      const northMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 })
+      const southMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.3 })
+
+      const northMesh = new THREE.Mesh(poleGeo, northMat)
+      northMesh.position.set(-3.6, 0, 0)
+      northMesh.name = 'magnets'
+      generatorRig.add(northMesh)
+      interactableMeshes.push(northMesh)
+
+      const southMesh = new THREE.Mesh(poleGeo, southMat)
+      southMesh.position.set(3.6, 0, 0)
+      southMesh.name = 'magnets'
+      generatorRig.add(southMesh)
+      interactableMeshes.push(southMesh)
+
+      // 2. Magnetic Flux Lines (Cyan Glowing Lines)
+      const fluxGroup = new THREE.Group()
+      generatorRig.add(fluxGroup)
+      for (let y = -1.2; y <= 1.2; y += 0.6) {
+        for (let z = -1.2; z <= 1.2; z += 0.8) {
+          const fGeo = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(-2.8, y, z),
+            new THREE.Vector3(2.8, y, z),
+          ])
+          const fMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.35 })
+          const fLine = new THREE.Line(fGeo, fMat)
+          fluxGroup.add(fLine)
+        }
+      }
+
+      // 3. Central Steel Shaft & Rotor Group
+      const rotorGroup = new THREE.Group()
+      generatorRig.add(rotorGroup)
+
+      const shaftGeo = new THREE.CylinderGeometry(0.2, 0.2, 7.5, 24)
+      const shaftMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8, roughness: 0.2 })
+      const shaftMesh = new THREE.Mesh(shaftGeo, shaftMat)
+      shaftMesh.rotation.x = Math.PI / 2
+      rotorGroup.add(shaftMesh)
+
+      // 4. Rectangular Armature Coil
+      const coilCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-1.8, 1.4, -1.8),
+        new THREE.Vector3(1.8, 1.4, -1.8),
+        new THREE.Vector3(1.8, -1.4, -1.8),
+        new THREE.Vector3(-1.8, -1.4, -1.8),
+        new THREE.Vector3(-1.8, 1.4, -1.8),
+      ])
+      const coilGeo = new THREE.TubeGeometry(coilCurve, 32, 0.12, 12, true)
+      const coilMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.7, roughness: 0.3 })
+      const coilMesh = new THREE.Mesh(coilGeo, coilMat)
+      coilMesh.name = 'armature'
+      rotorGroup.add(coilMesh)
+      interactableMeshes.push(coilMesh)
+
+      // 5. Two Continuous Slip Rings on Shaft
+      const ringGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.25, 24)
+      const ringMat = new THREE.MeshStandardMaterial({ color: 0xeab308, metalness: 0.8, roughness: 0.25 })
+
+      const ring1 = new THREE.Mesh(ringGeo, ringMat)
+      ring1.rotation.x = Math.PI / 2
+      ring1.position.set(0, 0, 2.2)
+      ring1.name = 'slip_rings'
+      rotorGroup.add(ring1)
+      interactableMeshes.push(ring1)
+
+      const ring2 = new THREE.Mesh(ringGeo, ringMat)
+      ring2.rotation.x = Math.PI / 2
+      ring2.position.set(0, 0, 2.8)
+      ring2.name = 'slip_rings'
+      rotorGroup.add(ring2)
+      interactableMeshes.push(ring2)
+
+      // 6. Stationary Carbon Brushes (Attached to generatorRig, sliding on rings)
+      const brushGeo = new THREE.BoxGeometry(0.3, 0.3, 0.35)
+      const brushMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 })
+
+      const brush1 = new THREE.Mesh(brushGeo, brushMat)
+      brush1.position.set(0.65, 0, 2.2)
+      brush1.name = 'brushes'
+      generatorRig.add(brush1)
+      interactableMeshes.push(brush1)
+
+      const brush2 = new THREE.Mesh(brushGeo, brushMat)
+      brush2.position.set(-0.65, 0, 2.8)
+      brush2.name = 'brushes'
+      generatorRig.add(brush2)
+      interactableMeshes.push(brush2)
+
+      // 7. External Load Bulb (Glows with sinusoidal power P = I^2 R)
+      const bulbGeo = new THREE.SphereGeometry(0.6, 24, 24)
+      const bulbMat = new THREE.MeshStandardMaterial({ color: 0xfef08a, emissive: 0xf59e0b, emissiveIntensity: 0.8 })
+      const bulbMesh = new THREE.Mesh(bulbGeo, bulbMat)
+      bulbMesh.position.set(0, -2.6, 2.5)
+      generatorRig.add(bulbMesh)
+
+      // 8. 3D Oscilloscope Sine Wave Screen
+      const oscPoints: THREE.Vector3[] = []
+      const oscWidth = 4.0
+      const oscSegments = 64
+      for (let i = 0; i <= oscSegments; i++) {
+        const x = -oscWidth / 2 + (i / oscSegments) * oscWidth
+        oscPoints.push(new THREE.Vector3(x, 0, 0))
+      }
+      const oscGeo = new THREE.BufferGeometry().setFromPoints(oscPoints)
+      const oscMat = new THREE.LineBasicMaterial({ color: 0x10b981, linewidth: 2 })
+      const oscLine = new THREE.Line(oscGeo, oscMat)
+      oscLine.position.set(0, 3.2, 0)
+      generatorRig.add(oscLine)
+
+      const oscFrameGeo = new THREE.PlaneGeometry(oscWidth + 0.6, 2.2)
+      const oscFrameMat = new THREE.MeshBasicMaterial({ color: 0x020617, side: THREE.DoubleSide, transparent: true, opacity: 0.85 })
+      const oscFrame = new THREE.Mesh(oscFrameGeo, oscFrameMat)
+      oscFrame.position.set(0, 3.2, -0.05)
+      generatorRig.add(oscFrame)
+
+      const raycaster = new THREE.Raycaster()
+      const mouse = new THREE.Vector2()
+
+      function handleDblClick(e: MouseEvent) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        if (hits.length > 0) {
+          const key = hits[0].object.name || 'armature'
+          activeDissectKey = key
+          const card = DISSECT_CARDS[key] || DISSECT_CARDS.armature
+          callbacks.onInspectPart?.(card)
+        }
+      }
+
+      renderer.domElement.addEventListener('dblclick', handleDblClick)
+
+      function animate() {
+        animId = requestAnimationFrame(animate)
+        controls.update()
+
+        if (isPlaying) {
+          const omega = (2 * Math.PI * params.rpm) / 60
+          angle += omega * 0.016
+          rotorGroup.rotation.z = angle
+
+          // Dynamic bulb filament pulse
+          const sinVal = Math.sin(angle)
+          const power = sinVal * sinVal
+          bulbMat.emissiveIntensity = 0.2 + power * 1.5
+
+          // Update oscilloscope sine wave
+          const pos = oscLine.geometry.attributes.position as THREE.BufferAttribute
+          for (let i = 0; i <= oscSegments; i++) {
+            const x = -oscWidth / 2 + (i / oscSegments) * oscWidth; void x;
+            const phase = angle - (i / oscSegments) * Math.PI * 4
+            const y = Math.sin(phase) * 0.8
+            pos.setY(i, y)
+          }
+          pos.needsUpdate = true
+        }
+
+        renderer.render(scene, camera)
+      }
+
+      animate()
+
+      const handleResize = () => {
+        const w = container.clientWidth || 800
+        const h = container.clientHeight || 500
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+        renderer.setSize(w, h)
+      }
+      window.addEventListener('resize', handleResize)
+
+      return {
+        updateParams: (newParams) => {
+          params = { ...newParams }
+        },
+        setPlaying: (playing) => {
+          isPlaying = playing
+        },
+        reset: () => {
+          angle = 0
+          rotorGroup.rotation.z = 0
+          activeDissectKey = null
+          callbacks.onInspectPart?.(null)
+          controls.reset()
+        },
+        closeDissection: () => {
+          activeDissectKey = null
+          callbacks.onInspectPart?.(null)
+        },
+        dispose: () => {
+          cancelAnimationFrame(animId)
+          window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('dblclick', handleDblClick)
+          renderer.dispose()
+          if (container.contains(renderer.domElement)) {
+            container.removeChild(renderer.domElement)
+          }
+        },
+      }
+    },
+  },
+
+  rutherford_atom_3d: {
+    type: 'rutherford_atom_3d',
+    title: '3D Rutherford Gold Foil Scattering Experiment',
+    subject: 'Physics & Chemistry · Atomic Structure',
+    concept: 'Discovery of the Atomic Nucleus & Coulomb Repulsion',
+    description: 'Interactive 3D simulation of the historic 1911 Geiger-Marsden / Rutherford gold foil experiment. An energetic beam of alpha particles (+2e) strikes a thin gold foil (Z=79). Coulomb hyperbolic trajectory integration accurately demonstrates why 99.9% of particles pass straight through, while rare particles rebound back at >90°, proving the atom is mostly empty space with an ultra-dense positive nucleus.',
+    emoji: '⚛️',
+    difficulty: 'Intermediate',
+    presets: [
+      { label: '🎯 Standard Beam Scattering (5.0 MeV)', params: { alphaEnergy: 5.0, foilThickness: 1.0, zoomNucleus: 0 } },
+      { label: '🔍 Single Nucleus Hyperbolic Coulomb Deflection', params: { alphaEnergy: 5.0, foilThickness: 1.0, zoomNucleus: 1 } },
+      { label: '⚡ High Energy Particle Beam (8.0 MeV)', params: { alphaEnergy: 8.0, foilThickness: 1.0, zoomNucleus: 0 } },
+      { label: '🛡️ Thick Gold Foil Multiple Scattering', params: { alphaEnergy: 5.0, foilThickness: 3.0, zoomNucleus: 0 } },
+    ],
+    params: [
+      { key: 'alphaEnergy', label: 'Alpha Kinetic Energy (E)', min: 2.0, max: 10.0, step: 0.5, defaultValue: 5.0, unit: 'MeV' },
+      { key: 'foilThickness', label: 'Gold Foil Thickness', min: 0.5, max: 4.0, step: 0.5, defaultValue: 1.0, unit: 'μm' },
+      { key: 'zoomNucleus', label: 'View Mode (0: Laboratory Bench, 1: Atomic Scale)', min: 0, max: 1, step: 1, defaultValue: 0, unit: '' },
+    ],
+    calculateReadouts: (p) => {
+      // Rutherford distance of closest approach: d = (1/(4πε0)) * (2 * Z * e^2) / E_k
+      // For Au (Z=79), at 5.0 MeV: d ≈ 4.54e-14 m (45.4 fm)
+      const dClosest = (227.0 / p.alphaEnergy).toFixed(1)
+      const isZoom = p.zoomNucleus === 1
+      return [
+        { label: 'Target Nucleus', value: 'Gold-197 (Z = 79, N = 118)' },
+        { label: 'Projectile', value: 'Alpha Particle He²⁺ (q = +2e, m = 4 u)' },
+        { label: 'Closest Approach Distance (d)', value: `${dClosest} fm`, formula: 'd = (2·Z·e²) / (4πε₀·E)' },
+        { label: 'Scattering Mode', value: isZoom ? 'Microscopic Coulomb Trajectory' : 'Macroscopic Scintillation Screen' },
+      ]
+    },
+    initScene: (container, initialParams, callbacks = {}) => {
+      let params = { ...initialParams }
+      let isPlaying = true
+      let animId: number
+      let activeDissectKey: string | null = null; void activeDissectKey
+
+      const width = container.clientWidth || 800
+      const height = container.clientHeight || 500
+
+      const scene = new THREE.Scene()
+      createLabEnvironment(scene)
+
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
+      camera.position.set(-8, 6, 12)
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true })
+      renderer.setSize(width, height)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      setupRenderer(renderer)
+      container.appendChild(renderer.domElement)
+
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.enableDamping = true
+      controls.dampingFactor = 0.05
+
+      const labRig = new THREE.Group()
+      scene.add(labRig)
+
+      const interactableMeshes: THREE.Object3D[] = []
+
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        emitter: {
+          title: 'Lead Collimator & Alpha Source',
+          partName: 'Bismuth-214 / Radium Alpha Emitter',
+          role: 'Emits a narrow, collimated beam of monoenergetic alpha particles (+2e) at ~15,000 km/s.',
+          internalStructures: ['Dense Lead Shielding Box', 'Slit Collimator Aperture', 'Radioactive Pellet Source'],
+          description: 'Alpha particles are helium-4 nuclei consisting of 2 protons and 2 neutrons. Because of their positive charge, they interact strongly with atomic nuclei via Coulomb electrostatic repulsion.',
+        },
+        foil: {
+          title: 'Ultrathin Gold Foil Target',
+          partName: 'Gold Foil (Aurum, Z = 79, Thickness ~400 atoms)',
+          role: 'Serves as the target obstacle. Gold was selected because of its extreme malleability (hammered to ~0.1 μm).',
+          internalStructures: ['Lattice of Gold Nuclei (+79e)', 'Electron Clouds', '99.999% Empty Atomic Volume'],
+          description: 'Rutherford famously noted: "It was as if you fired a 15-inch shell at a piece of tissue paper and it came back and hit you!"',
+        },
+        screen: {
+          title: 'Zinc Sulfide (ZnS) Scintillation Detector',
+          partName: 'Circular ZnS Fluorescent Screen & Movable Microscope',
+          role: 'Detects deflected alpha particles through microscopic phosphorescent flashes (scintillations).',
+          internalStructures: ['Zinc Sulfide Phosphor Coating', 'Rotating Detection Arm', 'Optical Viewing Microscope'],
+          description: 'Marsden and Geiger sat in pitch darkness for hours counting individual green flashes through a microscope at varying scattering angles θ from 0° to 150°.',
+        },
+        nucleus: {
+          title: 'Gold Atomic Nucleus (Z = 79)',
+          partName: 'Positive Concentrated Core',
+          role: 'Contains 99.95% of the atom mass packed into an ultra-dense sphere of radius ~7 femtometers.',
+          internalStructures: ['79 Protons', '118 Neutrons', 'Strong Nuclear Force Well'],
+          description: 'Because the nucleus is tiny compared to the atom (1 : 100,000), almost all alpha particles pass straight through undeflected.',
+        },
+      }
+
+      // 1. Lead Collimator Box (Emmiter)
+      const leadGeo = new THREE.BoxGeometry(1.6, 1.4, 1.4)
+      const leadMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.6, roughness: 0.4 })
+      const leadMesh = new THREE.Mesh(leadGeo, leadMat)
+      leadMesh.position.set(-5.5, 0, 0)
+      leadMesh.name = 'emitter'
+      labRig.add(leadMesh)
+      interactableMeshes.push(leadMesh)
+
+      const barrelGeo = new THREE.CylinderGeometry(0.18, 0.18, 1.2, 16)
+      const barrelMesh = new THREE.Mesh(barrelGeo, leadMat)
+      barrelMesh.rotation.z = -Math.PI / 2
+      barrelMesh.position.set(-4.5, 0, 0)
+      labRig.add(barrelMesh)
+
+      // 2. Gold Foil Target
+      const foilGeo = new THREE.BoxGeometry(0.08, 3.2, 3.2)
+      const foilMat = new THREE.MeshStandardMaterial({
+        color: 0xfacc15,
+        metalness: 0.9,
+        roughness: 0.15,
+        transparent: true,
+        opacity: 0.85,
+      })
+      const foilMesh = new THREE.Mesh(foilGeo, foilMat)
+      foilMesh.name = 'foil'
+      labRig.add(foilMesh)
+      interactableMeshes.push(foilMesh)
+
+      // 3. Circular ZnS Scintillation Detector Screen (Cylindrical Ring)
+      const screenGeo = new THREE.CylinderGeometry(4.8, 4.8, 2.2, 48, 1, true, Math.PI * 0.15, Math.PI * 1.7)
+      const screenMat = new THREE.MeshStandardMaterial({
+        color: 0x10b981,
+        side: THREE.DoubleSide,
+        roughness: 0.6,
+        transparent: true,
+        opacity: 0.5,
+      })
+      const screenMesh = new THREE.Mesh(screenGeo, screenMat)
+      screenMesh.name = 'screen'
+      labRig.add(screenMesh)
+      interactableMeshes.push(screenMesh)
+
+      // 4. Alpha Particle Stream (Instanced particle animation)
+      const PARTICLE_COUNT = 140
+      const particleGeo = new THREE.SphereGeometry(0.08, 8, 8)
+      const particleMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+
+      interface AlphaParticle {
+        mesh: THREE.Mesh
+        x: number
+        y: number
+        z: number
+        vx: number
+        vy: number
+        vz: number
+        deflected: boolean
+      }
+
+      const particles: AlphaParticle[] = []
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        const m = new THREE.Mesh(particleGeo, particleMat)
+        m.position.set(-5.0 + Math.random() * 8.0, (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.6)
+        labRig.add(m)
+        particles.push({
+          mesh: m,
+          x: m.position.x,
+          y: m.position.y,
+          z: m.position.z,
+          vx: 0.22,
+          vy: 0,
+          vz: 0,
+          deflected: false,
+        })
+      }
+
+      // 5. Microscopic Gold Nucleus Model (For zoom mode)
+      const nucleusGroup = new THREE.Group()
+      scene.add(nucleusGroup)
+      nucleusGroup.visible = false
+
+      // Nucleus cluster of protons (Red) and neutrons (Gray)
+      for (let i = 0; i < 35; i++) {
+        const pGeo = new THREE.SphereGeometry(0.18, 12, 12)
+        const isProton = i % 2 === 0
+        const pMat = new THREE.MeshStandardMaterial({ color: isProton ? 0xef4444 : 0x94a3b8, roughness: 0.4 })
+        const pMesh = new THREE.Mesh(pGeo, pMat)
+        pMesh.position.set(
+          (Math.random() - 0.5) * 0.7,
+          (Math.random() - 0.5) * 0.7,
+          (Math.random() - 0.5) * 0.7
+        )
+        nucleusGroup.add(pMesh)
+      }
+
+      const raycaster = new THREE.Raycaster()
+      const mouse = new THREE.Vector2()
+
+      function handleDblClick(e: MouseEvent) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        if (hits.length > 0) {
+          const key = hits[0].object.name || 'foil'
+          activeDissectKey = key
+          const card = DISSECT_CARDS[key] || DISSECT_CARDS.foil
+          callbacks.onInspectPart?.(card)
+        }
+      }
+
+      renderer.domElement.addEventListener('dblclick', handleDblClick)
+
+      function animate() {
+        animId = requestAnimationFrame(animate)
+        controls.update()
+
+        const isZoom = params.zoomNucleus === 1
+        nucleusGroup.visible = isZoom
+        labRig.visible = !isZoom
+
+        if (!isZoom && isPlaying) {
+          particles.forEach((p) => {
+            p.x += p.vx
+            p.y += p.vy
+            p.z += p.vz
+
+            // When crossing foil at x = 0
+            if (!p.deflected && p.x >= 0 && p.x <= 0.4) {
+              p.deflected = true
+              const r = Math.random()
+              if (r < 0.015) {
+                // Rare acute backscatter (> 90 deg)
+                p.vx = -p.vx * 0.8
+                p.vy = (Math.random() - 0.5) * 0.25
+                p.vz = (Math.random() - 0.5) * 0.25
+              } else if (r < 0.08) {
+                // Moderate deflection
+                const angle = (Math.random() - 0.5) * 0.8
+                p.vy += Math.sin(angle) * 0.12
+                p.vz += Math.cos(angle) * 0.12
+              }
+            }
+
+            // Reset when reaching detector screen boundary
+            const dist = Math.sqrt(p.x * p.x + p.z * p.z)
+            if (dist > 4.6 || p.x > 5.5 || p.x < -6.0) {
+              p.x = -5.0
+              p.y = (Math.random() - 0.5) * 0.5
+              p.z = (Math.random() - 0.5) * 0.5
+              p.vx = 0.22
+              p.vy = 0
+              p.vz = 0
+              p.deflected = false
+            }
+
+            p.mesh.position.set(p.x, p.y, p.z)
+          })
+        }
+
+        renderer.render(scene, camera)
+      }
+
+      animate()
+
+      const handleResize = () => {
+        const w = container.clientWidth || 800
+        const h = container.clientHeight || 500
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+        renderer.setSize(w, h)
+      }
+      window.addEventListener('resize', handleResize)
+
+      return {
+        updateParams: (newParams) => {
+          params = { ...newParams }
+        },
+        setPlaying: (playing) => {
+          isPlaying = playing
+        },
+        reset: () => {
+          activeDissectKey = null
+          callbacks.onInspectPart?.(null)
+          controls.reset()
+        },
+        closeDissection: () => {
+          activeDissectKey = null
+          callbacks.onInspectPart?.(null)
+        },
+        dispose: () => {
+          cancelAnimationFrame(animId)
+          window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('dblclick', handleDblClick)
+          renderer.dispose()
+          if (container.contains(renderer.domElement)) {
+            container.removeChild(renderer.domElement)
+          }
+        },
+      }
+    },
+  },
+
 }
+

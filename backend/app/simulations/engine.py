@@ -98,6 +98,46 @@ _SIM_TRIGGERS: list[tuple[str, str, str, str, str, dict[str, float]]] = [
         "Fleming's Left-Hand Rule, Magnetic Torque & Commutator",
         {"voltage": 12, "fieldStrength": 1.0, "coilTurns": 50},
     ),
+    (
+        "eye_optics_3d",
+        r"\b(eye|human eye|cornea|ciliary|pupil|iris|retina|crystalline lens|accommodation|myopia|hypermetropia|presbyopia|vision defect|nearsighted|farsighted|astigmatism|optics of eye)\b",
+        "3D Human Eye Anatomy & Vision Optics",
+        "Biology / Physics - Optics & Anatomy",
+        "Refraction, Ciliary Accommodation & Vision Defects",
+        {"objectDist": 50, "accommodation": 0.5, "visionDefect": 0, "correctiveLens": 0, "splitView": 0},
+    ),
+    (
+        "cell_biology_3d",
+        r"\b(plant cell|animal cell|cell organelle[s]?|mitochondria|chloroplast[s]?|endoplasmic reticulum|golgi|lysosome[s]?|vacuole|nucleus.*cell|cytology|eukaryotic cell)\b",
+        "3D Plant & Animal Cell Ultrastructure",
+        "Biology - Cytology & Cell Physiology",
+        "Eukaryotic Organelles, Membrane Systems & Bioenergetics",
+        {"cellType": 0, "zoomLevel": 1.0, "activeOrganelle": 0, "cutaway": 1},
+    ),
+    (
+        "ac_generator_3d",
+        r"\b(ac generator|alternator|dynamo|ac dynamo|slip ring[s]?|armature.*magnetic|rotating coil|induced current.*generator|fleming'?s? right[- ]hand)\b",
+        "3D AC Generator & Electromagnetic Dynamo",
+        "Physics - Electromagnetism",
+        "Faraday's Law, Rotating Armature & Sinusoidal AC Induction",
+        {"rpm": 60, "fieldStrength": 1.2, "coilTurns": 100},
+    ),
+    (
+        "rutherford_atom_3d",
+        r"\b(rutherford|gold foil|alpha particle.*scatter|alpha scattering|discovery of nucleus|geiger[- ]marsden|coulomb repulsion.*nucleus)\b",
+        "3D Rutherford Gold Foil Scattering Experiment",
+        "Physics / Chemistry - Atomic Structure",
+        "Discovery of the Atomic Nucleus & Coulomb Repulsion",
+        {"alphaEnergy": 5.0, "foilThickness": 1.0, "zoomNucleus": 0},
+    ),
+    (
+        "periodic_trends",
+        r"\b(periodic table|periodic trend[s]?|electronegativity.*trend|ionization energy.*trend|atomic radi(?:us|i)|electron affinity|mendeleev|modern periodic)\b",
+        "Interactive Periodic Table Trends Explorer",
+        "Chemistry - Inorganic & Atomic Structure",
+        "Periodic Law & Atomic Property Trends Across Periods and Groups",
+        {"activeTrend": 0, "activePeriod": 0, "activeGroup": 0},
+    ),
     # 2D Built-ins Fallbacks
     (
         "projectile",
@@ -304,21 +344,26 @@ _INELIGIBLE_PATTERNS = [
     ),
 ]
 
+# Comprehensive STEM Simulation Signal Matchers (Physics, Chemistry, Biology, Mathematics)
 _STEM_SIMULATION_SIGNALS = [
-    # Physics dynamic mechanics & kinematics
-    re.compile(r"\b(projectile|trajectory|launch angle|cannonball|parabolic motion|kinematics|pendulum|oscillat|shm|simple harmonic|spring mass|gravity|gravitation|free fall|collision|momentum conservation|centripetal|circular motion|torque|moment of inertia|friction|work energy)\b", re.I),
-    # Physics electromagnetism & circuits
-    re.compile(r"\b(ohm'?s law|electric circuit|resistor|v\s*=\s*i\s*r|current electricity|parallel circuit|series circuit|magnetic field|bar magnet|field lines|faraday'?s law|electromagnetic induction|induced emf|lenz'?s law|solenoid|lorentz force|dc motor|electric motor|fleming|commutator|armature)\b", re.I),
-    # Physics optics & waves
-    re.compile(r"\b(convex lens|concave lens|ray optics|lens formula|snell'?s law|refraction of light|reflection of light|dispersion|prism|young'?s double|double[- ]slit|interference.*light|wave optics|fringe width|diffraction|sound wave|doppler effect)\b", re.I),
-    # Physics / Chemistry thermodynamics & gases
-    re.compile(r"\b(ideal gas|boyle'?s law|charles'?s law|pv\s*=\s*nrt|gas pressure|piston.*gas|thermodynamics|carnot engine|heat engine|brownian motion)\b", re.I),
-    # Chemistry laboratory reactions & electrochemistry
-    re.compile(r"\b(titrat|acid[- ]base titration|ph curve|neutralization curve|electrolysis|hoffman voltameter|water electrolysis|galvanic cell|voltaic cell|daniell cell|bohr'?s? (?:atom|model)|energy level.*electron|spectral line|balmer series|chemical bond.*distance|lennard[- ]jones|reaction rate|activation energy)\b", re.I),
-    # Biology cellular & physiological dynamic mechanisms
-    re.compile(r"\b(mitosis|meiosis|cell division|prophase|metaphase|anaphase|telophase|spindle fiber|human heart|double circulation|cardiac cycle|atrium.*ventricle|ecg|blood flow|dna replication|replication fork|helicase|dna polymerase|photosynthesis|thylakoid|light reaction|photolysis|action potential|neuron potential|synapse|synaptic transmission|osmosis|semi[- ]permeable|water potential|hypotonic|hypertonic|plasmolysis|u[- ]tube.*membrane)\b", re.I),
-    # Mathematics interactive graphs & curves
-    re.compile(r"\b(quadratic.*curve|parabola|vertex.*parabola|roots.*quadratic|unit circle|trigonometric circle|sine wave.*slider|pythagorean theorem|vector addition)\b", re.I),
+    # Biology & Human Anatomy / Physiology (Kenhub/Medical Grade)
+    re.compile(r"\b(eye|vision|pupil|iris|retina|cornea|lens|accommodation|myopia|hypermetropia|ear|hearing|cochlea|eardrum|tympanic|ossicles|lung[s]?|alveol[i|ar]|respiration|respiratory|breathing|diaphragm|gas exchange|kidney[s]?|nephron[s]?|glomerul[us|i]|excretion|dialysis|digestive|digestion|stomach|peristalsis|enzyme|liver|bile|pancreas|heart|cardiac|atrium|ventricle|valve|circulation|blood|artery|vein|capillary|skin|epidermis|dermis|tissue|muscle|sarcomere|myosin|actin|skeleton|joint|bone|brain|neuron|synapse|reflex arc|action potential|neurotransmitter|endocrine|hormone)\b", re.I),
+    # Biology Cellular, Genetics, Microbiology & Botany
+    re.compile(r"\b(cell[s]?|organelle[s]?|mitochondri[a|on]|chloroplast[s]?|nucleus|nucleolus|membrane|ribosome[s]?|golgi|endoplasmic reticulum|vacuole|mitosis|meiosis|chromosome[s]?|chromatid|spindle|dna|rna|helix|nucleotide|replication|transcription|translation|mutation|photosynthesis|chlorophyll|thylakoid|calvin cycle|krebs cycle|glycolysis|fermentation|microbe[s]?|bacteria|virus|bacteriophage|fungi|yeast|amoeba|paramecium|rhizobium|lactobacillus|osmosis|plasmolysis|turgor|xylem|phloem|stomata|transpiration)\b", re.I),
+    # Physics Mechanics & Kinematics
+    re.compile(r"\b(projectile|trajectory|launch angle|cannon|kinematics|motion|velocity|acceleration|free fall|gravity|gravitation|kepler|orbit|planetary|satellite|collision|momentum|impulse|pendulum|oscillat|shm|simple harmonic|spring mass|hooke'?s law|centripetal|circular motion|torque|moment of inertia|rotational|angular momentum|friction|incline[d]? plane|pulley|lever|simple machine|gear|work energy|kinetic energy|potential energy|conservation of energy|power|fluid mechanics|pressure|pascal'?s law|archimedes|buoyancy|bernoulli|viscosity)\b", re.I),
+    # Physics Electromagnetism & Circuits
+    re.compile(r"\b(ohm'?s law|electric circuit|resistor|capacitor|capacitance|inductor|inductance|kirchhoff|voltage|current|electric field|coulomb|potential difference|parallel circuit|series circuit|wheatstone|potentiometer|galvanometer|ammeter|voltmeter|magnetic field|bar magnet|field lines|biot[- ]savart|ampere'?s law|solenoid|lorentz force|electromagnetic induction|faraday|lenz|induced emf|dc motor|ac generator|alternator|dynamo|transformer|eddy current|alternating current|slip ring|commutator|armature)\b", re.I),
+    # Physics Optics & Wave Phenomena
+    re.compile(r"\b(convex lens|concave lens|ray optics|lens formula|mirror formula|snell'?s law|refraction|reflection|total internal reflection|critical angle|dispersion|prism|spectrum|vibgyor|interference|young'?s double|double[- ]slit|diffraction|polarization|wave optics|fringe width|sound wave|frequency|wavelength|amplitude|resonance|doppler effect|tuning fork|standing wave|node[s]?|antinode[s]?)\b", re.I),
+    # Physics / Chemistry Thermal, Gases & Physical Chemistry
+    re.compile(r"\b(ideal gas|boyle'?s law|charles'?s law|gay[- ]lussac|pv\s*=\s*nrt|gas pressure|piston|kinetic theory|thermodynamics|first law|second law|carnot engine|heat engine|entropy|specific heat|latent heat|calorimetry|brownian motion|diffusion|evaporation|thermal expansion)\b", re.I),
+    # Chemistry Reactions, Bonding & Electrochemistry
+    re.compile(r"\b(reaction rate|rate of reaction|collision theory|activation energy|catalyst|equilibrium|le chatelier|reversible reaction|acid|base|ph scale|titrat|neutralization|indicator|buffer|salt|electrolysis|hoffman|galvanic cell|voltaic cell|daniell cell|battery|anode|cathode|redox|oxidation|reduction|chemical bond|ionic bond|covalent bond|metallic bond|electronegativity|vsepr|molecular geometry|hybridization|periodic table|periodic trend|ionization energy|electron affinity|atomic radius)\b", re.I),
+    # Modern Physics, Quantum & Nuclear
+    re.compile(r"\b(photoelectric effect|photon|work function|bohr'?s? atom|energy level|electron transition|spectral line|balmer|lyman|paschen|quantum|de broglie|wave[- ]particle|rutherford|gold foil|atomic nucleus|alpha particle|beta particle|gamma ray|radioactivity|half[- ]life|nuclear fission|nuclear fusion|cathode ray|x[- ]ray)\b", re.I),
+    # Mathematics Interactive Graphs & Geometry
+    re.compile(r"\b(quadratic|parabola|vertex|polynomial|cubic|function graph|calculus|derivative|tangent|integral|area under curve|unit circle|trigonometric|sine wave|cosine|vector addition|cross product|dot product|matrix|transformation|fourier|lorenz|chaos|fractal|complex roots)\b", re.I),
 ]
 
 
@@ -342,12 +387,16 @@ def is_simulation_eligible_topic(text: str, subject: str = "", context: str = ""
         if pat.search(combined):
             return False
 
-    # 2. Must match positive STEM simulation dynamic phenomena
+    # 2. Automatically eligible if explicitly classified into a STEM discipline
+    if s_clean in {"physics", "chemistry", "biology", "science", "mathematics", "math", "stem", "general science"}:
+        return True
+
+    # 3. Must match positive STEM simulation dynamic phenomena
     has_stem_signal = any(pat.search(combined) for pat in _STEM_SIMULATION_SIGNALS)
     if has_stem_signal:
         return True
 
-    # 3. Check if text matches any built-in simulation trigger pattern
+    # 4. Check if text matches any built-in simulation trigger pattern
     for _, pattern, _, _, _, _ in _SIM_TRIGGERS:
         if re.search(pattern, text, re.IGNORECASE):
             return True
@@ -376,35 +425,49 @@ def detect_simulation_candidate(text: str, subject: str = "") -> dict[str, Any] 
     return None
 
 
-CUSTOM_SIM_SYSTEM_PROMPT = """You are a world-class principal educational simulation architect, computational scientist, and visual learning engineer.
-The student needs a high-fidelity, interactive simulation for a STEM curriculum topic.
+CUSTOM_SIM_SYSTEM_PROMPT = """You are Tark's Principal Educational Simulation Architect & Lead Computational Scientist.
+The student needs a world-class, interactive STEM virtual laboratory simulation that renders immediately inside a full-bleed iframe.
 
-Generate a COMPLETE, self-contained single-page HTML5 application with embedded CSS and JavaScript that runs directly inside an iframe.
-CRITICAL MANDATE: The simulation must look and feel authentic, educational, and engaging—NOT a crude cartoon. It must be dynamically alive at 60 FPS immediately upon load with ZERO lag.
+CRITICAL MANDATE:
+The simulation must look and feel authentic, state-of-the-art, and deeply educational—NOT a crude cartoon.
+Students must immediately understand the scientific mechanism through visual clarity, smooth 60 FPS motion, interactive sliders, and clickable/hoverable inspection callouts.
 
-DOMAIN-SPECIFIC DESIGN & BACKDROP SPECIFICATIONS:
-1. Environment & Studio Backdrop (NO PITCH-BLACK VOIDS FOR BIOLOGY):
-   - For Biology, Anatomy, Cells, Physiology & Life Sciences: Use a clean medical studio backdrop with soft slate/gray gradients (e.g. #0f172a to #1e293b, or clean clinical #f8fafc with dark text) and gentle soft ambient illumination. NEVER use a pitch-black abyss or optical breadboard for anatomical or biological simulations!
-   - For Physics, Astronomy & Space: Sleek dark studio or workbench theme (#080d1a or #0b1120) with subtle coordinate or optical breadboard grid.
-   - For Chemistry & Glassware: Clean lab bench lighting with volumetric fluid refraction, meniscus curvature, and translucent glassware.
+OUTPUT SPECIFICATIONS:
+Return a COMPLETE, standalone, self-contained single-page HTML5 document (starting with <!DOCTYPE html> and ending with </html>) with embedded CSS and JavaScript.
+Do NOT use external CDN dependencies (no unpkg, no external fonts or heavy scripts) so it loads instantly with 100% offline reliability. Use pure Canvas 2D / 3D projection, CSS Glassmorphism, and vanilla JavaScript.
 
-2. Presentation Choice (3D vs Clean Plain 2D):
-   - Some topics demand 3D: Volumetric organs (heart, eye, skin layers, brain), celestial orbits, molecular geometry, projectile arcs, magnetic field toroids. Include Three.js via `<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>` with OrbitControls for 360° rotation.
-   - Some topics should be CLEAN & PLAIN: For histological cross-sections, cellular division steps, or simple harmonic oscillators, a crisp, elegant 2D canvas with layered callouts is often much clearer than an overcomplicated 3D mesh. Choose whichever best teaches the concept without visual clutter.
+DESIGN ARCHITECTURE (MANDATORY STANDARD):
+1. Layout & Glassmorphism Theme:
+   - Full viewport (100vw, 100vh, margin: 0, padding: 0, overflow: hidden, background: #070d18).
+   - Modern system font stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif.
+   - Top Header Bar (#0b1329 with glass blur, border-bottom: 1px solid rgba(56, 189, 248, 0.15)):
+     * Glowing icon & Title: e.g. "🧪 [Simulation Title]"
+     * Badge pill: e.g. "Interactive Virtual Lab • [Subject]"
+     * Live Telemetry Chips: Dynamic calculated readouts with units & official formulas (e.g. "P = 1.02 atm", "λ = 589 nm").
+   - Center Visual Viewport:
+     * Full-width responsive <canvas id="simCanvas"></canvas> scaled with window.devicePixelRatio for razor-sharp Retina/4K rendering.
+     * Realistic visual depth: Smooth radial and linear gradients, volumetric highlights, shadow drops, realistic apparatus textures.
+     * Dynamic particle systems / vector field arrows with distinct arrowhead drawing.
+   - Floating Click/Hover Educational Inspector Card (#inspector):
+     * When student hovers or clicks on any organ, component, or particle, show an anatomical/scientific callout card displaying:
+       - Component Name
+       - Physiological or Physical Role
+       - Textbook Key Concept / Formula
+   - Floating Bottom Control Dock (Glassmorphism #0b1329/85 with backdrop-filter: blur(12px)):
+     * 2 to 4 smooth range sliders with live value pills updating in real-time.
+     * Play/Pause button (`▶ Play` / `⏸ Pause`).
+     * Reset button (`↺ Reset`).
+     * Preset condition buttons to jump between key textbook states.
 
-3. Domain-Appropriate Instrumentation (DO NOT FORCE NUMERIC PHYSICS FORMULAS ON BIOLOGY):
-   - For Biology & Anatomy: Provide interactive anatomical callouts, layer visibility toggles, histological cell descriptions, and physiological function cards (e.g., "Stratum Corneum: Anucleate keratinized squames", "Water-impermeable barrier"). NEVER invent senseless physics formulas (like F=ma) or fake numeric velocity sensors for biological layers!
-   - For Physics & Math: Sleek telemetry cards displaying calculated physical quantities with exact units (N, m/s, J, V, Hz) and textbook formula cards (e.g. F = ma, v = f·λ).
-   - Only include numeric sliders or values when they are genuinely relevant to the experiment.
+2. Physics & Biological Authenticity:
+   - Run a smooth 60 FPS `requestAnimationFrame` loop with delta-time calculation (`dt = Math.min((now - last) / 1000, 0.05)`).
+   - If Physics: Obey exact textbook formulas (kinematics, Snell's law, Ohm's law, Faraday induction, Coulomb's law, wave superposition).
+   - If Biology/Anatomy: Accurately model anatomical structures, tissue layers, fluid circulation, or cellular organelles with clean medical studio styling.
+   - If Chemistry: Show molecular bonds, stoichiometry ratios, titration color transitions, or gas molecule kinetics.
 
-4. Performance & Interactivity:
-   - Auto-play on load with 60 FPS smooth animation loop (`requestAnimationFrame`).
-   - Direct mouse/touch interaction (drag, rotate, toggle layers, inspect elements on click/hover).
-   - High-DPI crispness using `window.devicePixelRatio`.
-
-5. Output Format:
-   - Return ONLY the raw valid HTML document starting with <!DOCTYPE html> and ending with </html>.
-   - Do NOT wrap in markdown fences (no ```html ... ```), no introductory or concluding text."""
+3. Output Format:
+   - Return ONLY the raw HTML code starting with <!DOCTYPE html> and ending with </html>.
+   - Do NOT wrap in markdown fences (no ```html), no introductory conversational padding."""
 
 
 async def generate_custom_simulation_html(question: str, context: str = "", subject: str = "") -> dict[str, Any] | None:
@@ -431,8 +494,9 @@ async def generate_custom_simulation_html(question: str, context: str = "", subj
         f"Scientific Topic to simulate: {question.strip()}\n"
         f"Pedagogical Context: {context.strip()[:600] if context else 'Standard STEM curriculum laboratory experiment'}"
         f"{tb_section}\n\n"
-        f"INSTRUCTION: Create an authentic, photorealistic, 60 FPS interactive HTML5 canvas simulation of this topic. "
-        f"Include realistic 3D-shaded apparatus, fluid/spring physics, active auto-playing animation on load, direct mouse/touch drag manipulation, live digital sensors, and textbook formulas."
+        f"INSTRUCTION: Create a complete, self-contained, photorealistic 60 FPS interactive HTML5 canvas simulation of this topic. "
+        f"Include realistic apparatus/organ anatomy, dynamic motion, live telemetry indicators, smooth sliders with value readouts, "
+        f"and clickable/hoverable inspection callouts explaining key structures."
     )
     raw_html = ""
 
@@ -442,7 +506,7 @@ async def generate_custom_simulation_html(question: str, context: str = "", subj
             logger.info(f"Generating photorealistic simulation with {mid} for topic: {question[:40]}...")
             raw_html = await asyncio.wait_for(
                 _llm_text(CUSTOM_SIM_SYSTEM_PROMPT, prompt, mid),
-                timeout=20.0,
+                timeout=35.0,
             )
             if raw_html and len(raw_html.strip()) > 500:
                 break
@@ -471,7 +535,7 @@ async def generate_custom_simulation_html(question: str, context: str = "", subj
         "id": f"sim_custom_{abs(hash(question)) % 100000}",
         "type": "custom_html",
         "title": f"Lab: {question[:40]}",
-        "subject": "Interactive Virtual Lab",
+        "subject": subject or "Interactive Virtual Lab",
         "concept": question[:60],
         "description": desc,
         "htmlContent": clean_html,

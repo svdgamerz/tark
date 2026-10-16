@@ -8,6 +8,52 @@ from __future__ import annotations
 from typing import Any
 
 SIMULATION_CATALOG: list[dict[str, Any]] = [
+    # --- 3D BIOLOGY & ANATOMY ---
+    {
+        "id": "sim_eye_optics_3d",
+        "title": "3D Human Eye Anatomy & Vision Optics",
+        "subject": "Biology",
+        "category": "Sensory Anatomy & Optics",
+        "emoji": "👁️",
+        "difficulty": "Intermediate",
+        "description": "Explore human eye anatomy, ciliary accommodation, real-time light refraction, and spectacles for Myopia & Hypermetropia.",
+        "builtin_type": "eye_optics_3d",
+        "default_params": {"objectDist": 60, "accommodation": 0.3, "visionDefect": 0, "correctiveLens": 0, "splitView": 0},
+    },
+    {
+        "id": "sim_cell_biology_3d",
+        "title": "3D Plant & Animal Cell Ultrastructure",
+        "subject": "Biology",
+        "category": "Cytology & Organelles",
+        "emoji": "🔬",
+        "difficulty": "Intermediate",
+        "description": "High-resolution 3D eukaryotic cell with interactive mitochondria, chloroplasts, endoplasmic reticulum, golgi, and nucleus.",
+        "builtin_type": "cell_biology_3d",
+        "default_params": {"cellType": 0, "zoomLevel": 1.0, "activeOrganelle": 0, "cutaway": 1},
+    },
+    # --- 3D PHYSICS & ELECTROMAGNETISM ---
+    {
+        "id": "sim_ac_generator_3d",
+        "title": "3D AC Generator & Electromagnetic Dynamo",
+        "subject": "Physics",
+        "category": "Electromagnetism",
+        "emoji": "⚡",
+        "difficulty": "Intermediate",
+        "description": "Rotating rectangular armature coil in magnetic field with continuous brass slip rings, carbon brushes, Fleming right-hand rule, and live sinusoidal oscilloscope.",
+        "builtin_type": "ac_generator_3d",
+        "default_params": {"rpm": 60, "fieldStrength": 1.2, "coilTurns": 100},
+    },
+    {
+        "id": "sim_rutherford_atom_3d",
+        "title": "3D Rutherford Gold Foil Scattering Experiment",
+        "subject": "Physics",
+        "category": "Atomic Structure & Quantum",
+        "emoji": "⚛️",
+        "difficulty": "Intermediate",
+        "description": "Historic alpha particle scattering experiment on ultrathin gold foil with Coulomb hyperbolic trajectories and zinc sulfide scintillation screen flashes.",
+        "builtin_type": "rutherford_atom_3d",
+        "default_params": {"alphaEnergy": 5.0, "foilThickness": 1.0, "zoomNucleus": 0},
+    },
     # --- PHYSICS ---
     {
         "id": "sim_projectile",
@@ -157,7 +203,8 @@ SIMULATION_CATALOG: list[dict[str, Any]] = [
         "emoji": "📊",
         "difficulty": "Beginner",
         "description": "Visualize Atomic Radius, Electronegativity, and Ionization Energy trends across periods and groups.",
-        "builtin_type": None,
+        "builtin_type": "periodic_trends",
+        "default_params": {"metric": 0, "showTrendVectors": 1, "selectedZ": 6},
         "generation_prompt": "Interactive Periodic Table Trends Explorer. Render a sleek periodic table grid (Elements 1-36). Let the user toggle heatmaps for Atomic Radius (pm), Electronegativity (Pauling scale), and 1st Ionization Energy (kJ/mol). Clicking an element shows its electronic configuration, effective nuclear charge (Z_eff), and a 3D-styled animated atomic sphere size comparison.",
     },
 
