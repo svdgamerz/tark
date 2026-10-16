@@ -1227,36 +1227,53 @@ def generate_page_schedule_milestones(
     return milestones
 
 
+ORDINAL_CHAPTER_WORDS = {
+    "first": 1, "1st": 1,
+    "second": 2, "2nd": 2,
+    "third": 3, "3rd": 3,
+    "fourth": 4, "4th": 4,
+    "fifth": 5, "5th": 5,
+    "sixth": 6, "6th": 6,
+    "seventh": 7, "7th": 7,
+    "eighth": 8, "8th": 8,
+    "ninth": 9, "9th": 9,
+    "tenth": 10, "10th": 10,
+    "eleventh": 11, "11th": 11,
+    "twelfth": 12, "12th": 12,
+    "thirteenth": 13, "13th": 13,
+    "fourteenth": 14, "14th": 14,
+    "fifteenth": 15, "15th": 15,
+    "sixteenth": 16, "16th": 16,
+    "seventeenth": 17, "17th": 17,
+    "eighteenth": 18, "18th": 18,
+    "nineteenth": 19, "19th": 19,
+    "twentieth": 20, "20th": 20,
+}
+
+
 def get_chapter_grounding(
     message: str,
     req_board: Optional[str] = None,
     req_grade: Optional[str] = None,
     req_subject: Optional[str] = None,
+    history: Optional[List[Any]] = None,
 ) -> Optional[str]:
     """Detect if a user query is asking for a chapter name/number or syllabus TOC, and return authoritative grounding text."""
     low = (message or "").lower()
 
-    # 1. Detect if this is a chapter/syllabus inquiry
-    is_ch_query = bool(
-        re.search(r"\b(?:ch(?:apter|\.?|p\.?)|lesson|unit)\s*(\d+)\b", low)
-        or re.search(r"\b(name|title|which|what)\s+(?:is|of)?\s*(?:the\s+)?(?:(\d+)(?:st|nd|rd|th)?\s+)?(?:ch(?:apter|\.?|p\.?)|lesson|unit)\b", low)
-        or re.search(r"\b(syllabus|table of contents|index|list (of )?chapters|how many chapters)\b", low)
-    )
-    if not is_ch_query:
-        return None
-
-    # 2. Extract grade (e.g. "class 10", "grade 9", "10th std", "10th class", "std 9", "10th", but NOT "1st chapter")
+    # 1. Extract grade if explicitly mentioned in query
     grade = req_grade
     gm = (
         re.search(r"\b(?:class|grade|std\.?|standard)\s*(\d{1,2})\b", low)
-        or re.search(r"\b(\d{1,2})(?:st|nd|rd|th)\s+(?:std|class|grade)\b", low)
+        or re.search(r"\b(\d{1,2})(?:st|nd|rd|th)\s+(?:std|class|grade|standard)\b", low)
     )
     if not gm:
-        gm = re.search(r"\b(\d{1,2})(?:st|nd|rd|th)\s+(?!ch(?:apter|\.?|p\.?)|lesson|unit)\b", low)
+        # Match standalone ordinal ONLY if NOT followed by chapter/lesson/unit words
+        gm = re.search(r"\b(\d{1,2})(?:st|nd|rd|th)\s+(?!ch(?:apter)?|chp?\.?|lesson|unit)\b", low)
     if gm:
         grade = gm.group(1)
 
-    # 3. Extract subject
+    # 2. Extract subject
     subj = req_subject or "Science"
     for s_cand in [
         "science b", "science a", "science 1", "science 2", "science",
@@ -1269,35 +1286,93 @@ def get_chapter_grounding(
             subj = s_cand
             break
 
-    # 4. Extract board
+    # 3. Extract board
     board = req_board
     if "cbse" in low or "ncert" in low:
         board = "CBSE (NCERT)"
     elif "icse" in low or "cisce" in low:
         board = "ICSE (CISCE)"
-    elif "state board" in low or "maharashtra" in low or "balbharati" in low or "std" in low:
+    elif "state board" in low or "maharashtra" in low or "balbharati" in low or "balbharti" in low or "std" in low:
         board = "Maharashtra State Board (Balbharati)"
     elif not board:
         board = "Maharashtra State Board (Balbharati)" if (grade and int(grade) <= 10 and "std" in low) else "CBSE (NCERT)"
 
-    chs = get_chapters_for_subject(board, grade or "10", subj)
+    # Normalize parameters
+    nb = normalize_board(board) if board else "Maharashtra State Board (Balbharati)"
+    ng = normalize_grade(grade) if grade else "9"
+    ns = normalize_subject(subj) if subj else "Science"
+
+    chs = get_chapters_for_subject(nb, ng, ns)
     if not chs:
         return None
 
-    toc_lines = [f"• {c['chapter']}" for c in chs]
-    target_num = None
-    nm = re.search(r"\b(?:ch(?:apter|\.?|p\.?)|lesson|unit)\s*(\d+)\b", low) or re.search(r"\b(\d+)(?:st|nd|rd|th)\s+(?:ch(?:apter|\.?|p\.?)|lesson|unit)\b", low)
+    # 4. Check for target chapter number
+    target_num: Optional[int] = None
+    target_ch: Optional[str] = None
+
+    # Pattern A: "8th chapter", "8th chp", "8th ch", "8 chapter", "8th lesson", "8th unit", "my 8th chp"
+    nm = re.search(r"\b(\d+)(?:st|nd|rd|th)?\s*(?:ch(?:apter)?|chp?\.?|lesson|unit)\b", low)
     if nm:
         target_num = int(nm.group(1))
 
-    target_ch = None
+    # Pattern B: "chapter 8", "ch 8", "chp 8", "lesson 8", "unit 8", "ch. 8", "chapter no 8", "chapter #8"
+    if not target_num:
+        nm = re.search(r"\b(?:ch(?:apter)?|chp?\.?|lesson|unit)\s*(?:no\.?|number|#)?\s*(\d+)\b", low)
+        if nm:
+            target_num = int(nm.group(1))
+
+    # Pattern C: Ordinal words like "eighth chapter", "first lesson", "second chapter"
+    if not target_num:
+        for word, num in ORDINAL_CHAPTER_WORDS.items():
+            if re.search(rf"\b{word}\s+(?:ch(?:apter)?|chp?\.?|lesson|unit)\b", low) or re.search(rf"\b(?:ch(?:apter)?|chp?\.?|lesson|unit)\s+{word}\b", low):
+                target_num = num
+                break
+
+    # Pattern D: Query mentions a known chapter title or distinct keywords from a chapter (e.g. "Useful and Harmful Microbes")
+    clean_q = re.sub(r"[^a-z0-9\s]", "", low.replace("&", "and"))
+    if not target_num:
+        for idx, c in enumerate(chs, 1):
+            raw_title = c.get("chapter", "")
+            title_only = re.sub(r"^chapter\s*\d+\s*:\s*", "", raw_title, flags=re.IGNORECASE)
+            clean_t = re.sub(r"[^a-z0-9\s]", "", title_only.lower().replace("&", "and"))
+            if clean_t and (clean_t in clean_q or (len(clean_t) > 6 and all(w in clean_q for w in clean_t.split() if len(w) > 3))):
+                target_num = idx
+                target_ch = raw_title
+                break
+
+    # If target_num is identified within bounds, resolve target_ch
     if target_num and target_num <= len(chs):
         target_ch = chs[target_num - 1]["chapter"]
 
-    grounding = f"OFFICIAL TEXTBOOK TABLE OF CONTENTS ({board} Class {grade or '10'} {subj}):\n" + "\n".join(toc_lines)
+    # 5. Check if this is a chapter/syllabus inquiry
+    is_toc_query = bool(
+        target_num
+        or re.search(r"\b(?:ch(?:apter)?|chp?\.?|lesson|unit)s?\b", low)
+        or re.search(r"\b(syllabus|table of contents|index|toc|contents|list (?:of )?chapters|how many chapters)\b", low)
+    )
+
+    # Check conversation history for follow-up confirmations or challenges (e.g. "isn't it ...", "are you sure")
+    if not is_toc_query and history:
+        for m in reversed(history[-3:]):
+            prev_content = (m.get("content") or "" if isinstance(m, dict) else getattr(m, "content", "")).lower()
+            if any(k in prev_content for k in ("chapter", "lesson", "syllabus", "textbook", "balbharati", "board")):
+                is_toc_query = True
+                break
+
+    if not is_toc_query:
+        return None
+
+    toc_lines = [f"• {c['chapter']}" for c in chs]
+    grounding = (
+        f"OFFICIAL TEXTBOOK TABLE OF CONTENTS ({nb} Class {ng} {ns}):\n"
+        + "\n".join(toc_lines)
+    )
     if target_ch:
         grounding += (
-            f"\n\nVERIFIED MATCH: Chapter {target_num} is \"{target_ch}\". "
-            "State this exact chapter number and official title immediately as your first sentence without padding."
+            f"\n\nVERIFIED MATCH & ABSOLUTE TRUTH: Chapter {target_num} is \"{target_ch}\".\n"
+            f"1. You MUST state directly in your opening sentence that Chapter {target_num} is \"{target_ch}\".\n"
+            f"2. ABSOLUTE DIRECTIVE: NEVER claim Chapter {target_num} is 'Heat' or any other chapter.\n"
+            f"3. NEVER claim \"{target_ch}\" is from Class 10 or another grade when it is officially in Class {ng} right here.\n"
+            f"4. If the student previously challenged or corrected you with \"{target_ch}\", warmly validate and confirm they are 100% correct according to the official state textbook!"
         )
     return grounding

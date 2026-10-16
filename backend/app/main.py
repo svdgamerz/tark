@@ -1007,7 +1007,7 @@ async def _chat_impl(
     # Authoritative Table of Contents & Chapter grounding for syllabus/chapter inquiries (only when not a memory query)
     if not is_mem_query:
         from app.textbook_service import get_chapter_grounding
-        ch_grounding = get_chapter_grounding(last_user, req.board or req.exam, req.grade, req.subject)
+        ch_grounding = get_chapter_grounding(last_user, req.board or req.exam, req.grade, req.subject, history=req.messages)
         if ch_grounding:
             system_prompt += f"\n\n{ch_grounding}"
 
