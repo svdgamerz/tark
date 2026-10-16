@@ -28,6 +28,11 @@ import { TaskWizardModal } from './components/TaskWizardModal'
 import { TaskManagerModal } from './components/TaskManagerModal'
 import { TalkLiveModal } from './components/TalkLiveModal'
 import { VirtualLabModal } from './components/VirtualLabModal'
+import { MathSandboxModal } from './components/MathSandboxModal'
+import { ScratchpadModal } from './components/ScratchpadModal'
+import { MolecularViewerModal } from './components/MolecularViewerModal'
+import { VoiceLabPartnerModal } from './components/VoiceLabPartnerModal'
+import { ConceptMasteryGraphModal } from './components/ConceptMasteryGraphModal'
 import { FriendsDrawer } from './components/FriendsDrawer'
 import { ShareDoubtModal } from './components/ShareDoubtModal'
 import { socialApi } from './socialApi'
@@ -157,6 +162,11 @@ export default function App() {
   const [showTaskWizard, setShowTaskWizard] = useState(false)
   const [showTaskManager, setShowTaskManager] = useState(false)
   const [showVirtualLab, setShowVirtualLab] = useState(false)
+  const [showMathSandbox, setShowMathSandbox] = useState(false)
+  const [showScratchpad, setShowScratchpad] = useState(false)
+  const [showMolecularViewer, setShowMolecularViewer] = useState(false)
+  const [showVoiceLabPartner, setShowVoiceLabPartner] = useState(false)
+  const [showMasteryGraph, setShowMasteryGraph] = useState(false)
   const [showFriends, setShowFriends] = useState(false)
   const [friendsUnreadCount, setFriendsUnreadCount] = useState(0)
   const [selectedDoubtChannelId, setSelectedDoubtChannelId] = useState<string | null>(null)
@@ -1095,6 +1105,26 @@ export default function App() {
               ensureProfile(() => setShowVirtualLab(true))
               if (window.innerWidth <= 768) setSidebarOpen(false)
             }}
+            onOpenMathSandbox={() => {
+              setShowMathSandbox(true)
+              if (window.innerWidth <= 768) setSidebarOpen(false)
+            }}
+            onOpenScratchpad={() => {
+              setShowScratchpad(true)
+              if (window.innerWidth <= 768) setSidebarOpen(false)
+            }}
+            onOpenMolecularViewer={() => {
+              setShowMolecularViewer(true)
+              if (window.innerWidth <= 768) setSidebarOpen(false)
+            }}
+            onOpenVoiceLabPartner={() => {
+              setShowVoiceLabPartner(true)
+              if (window.innerWidth <= 768) setSidebarOpen(false)
+            }}
+            onOpenMasteryGraph={() => {
+              setShowMasteryGraph(true)
+              if (window.innerWidth <= 768) setSidebarOpen(false)
+            }}
             onSelect={(id) => {
               handleSelect(id)
               if (window.innerWidth <= 768) setSidebarOpen(false)
@@ -1141,6 +1171,116 @@ export default function App() {
             </span>
           )}
           <div className="topbar-right">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginRight: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setShowMathSandbox(true)}
+                title="Visual 2D/3D Math & Vector Field Sandbox"
+                style={{
+                  background: 'rgba(56, 189, 248, 0.1)',
+                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                  color: '#38bdf8',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  padding: '5px 10px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                📐 Math 3D
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowScratchpad(true)}
+                title="Where Did I Go Wrong? Error Spotter"
+                style={{
+                  background: 'rgba(244, 63, 94, 0.1)',
+                  border: '1px solid rgba(244, 63, 94, 0.25)',
+                  color: '#fb7185',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  padding: '5px 10px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                ✍️ Error Spotter
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowMolecularViewer(true)}
+                title="Interactive 3D Molecular & Crystal Viewer"
+                style={{
+                  background: 'rgba(16, 185, 129, 0.1)',
+                  border: '1px solid rgba(16, 185, 129, 0.25)',
+                  color: '#34d399',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  padding: '5px 10px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                🔬 3D Molecules
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowVoiceLabPartner(true)}
+                title="Voice-First Hands-Free Lab Partner"
+                style={{
+                  background: 'rgba(2, 132, 199, 0.1)',
+                  border: '1px solid rgba(2, 132, 199, 0.25)',
+                  color: '#38bdf8',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  padding: '5px 10px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                🎙️ Lab Partner
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowMasteryGraph(true)}
+                title="Diagnostic Concept Mastery Skill Tree"
+                style={{
+                  background: 'rgba(168, 85, 247, 0.1)',
+                  border: '1px solid rgba(168, 85, 247, 0.25)',
+                  color: '#c084fc',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  padding: '5px 10px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                🌳 Skill Tree
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowVirtualLab(true)}
+                title="Virtual Science & Math Lab"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#f8fafc',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  padding: '5px 10px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                🧪 Virtual Lab
+              </button>
+            </div>
             {!user ? (
               <button className="login-btn" onClick={openLogin}>
                 Log in
@@ -1582,6 +1722,34 @@ export default function App() {
           }}
         />
       )}
+      <MathSandboxModal
+        isOpen={showMathSandbox}
+        onClose={() => setShowMathSandbox(false)}
+      />
+      <ScratchpadModal
+        isOpen={showScratchpad}
+        onClose={() => setShowScratchpad(false)}
+      />
+      <MolecularViewerModal
+        isOpen={showMolecularViewer}
+        onClose={() => setShowMolecularViewer(false)}
+      />
+      <VoiceLabPartnerModal
+        isOpen={showVoiceLabPartner}
+        onClose={() => setShowVoiceLabPartner(false)}
+      />
+      <ConceptMasteryGraphModal
+        isOpen={showMasteryGraph}
+        onClose={() => setShowMasteryGraph(false)}
+        onLaunchSimulation={() => {
+          setShowMasteryGraph(false)
+          setShowVirtualLab(true)
+        }}
+        onStartChatTopic={(topic) => {
+          setShowMasteryGraph(false)
+          void sendText(`Can you guide me step-by-step through "${topic}" using Socratic questioning?`)
+        }}
+      />
     </div>
   )
 }

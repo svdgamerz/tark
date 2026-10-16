@@ -436,3 +436,274 @@ def get_function_graph_data(
         "curve": curve_points,
         "tangent": tangent_points,
     }
+
+
+def calculate_riemann_sum(
+    expr_str: str,
+    var: str = "x",
+    a: float = 0.0,
+    b: float = 4.0,
+    n: int = 10,
+    method: str = "midpoint",
+) -> dict[str, Any]:
+    """Calculate Riemann sum rectangles and compare against the exact analytical definite integral."""
+    import sympy as sp
+
+    parsed, v_sym = parse_math_expression(expr_str, var)
+    
+    # Exact integral
+    exact_val: Optional[float] = None
+    latex_integral = f"\\int_{{{a}}}^{{{b}}} {sp.latex(parsed)}\\, d{var}"
+    try:
+        exact_res = sp.integrate(parsed, (v_sym, a, b))
+        exact_val = float(exact_res.evalf())
+    except Exception:
+        pass
+
+    n = max(2, min(200, n))
+    dx = (b - a) / n
+    rectangles: list[dict[str, float]] = []
+    approx_sum = 0.0
+
+    for i in range(n):
+        x_left = a + i * dx
+        x_right = x_left + dx
+        if method == "left":
+            x_sample = x_left
+        elif method == "right":
+            x_sample = x_right
+        elif method == "trapezoid":
+            x_sample = (x_left + x_right) / 2.0
+        else:  # midpoint
+            x_sample = (x_left + x_right) / 2.0
+
+        try:
+            if method == "trapezoid":
+                y_l = float(parsed.subs(v_sym, x_left).evalf())
+                y_r = float(parsed.subs(v_sym, x_right).evalf())
+                height = (y_l + y_r) / 2.0
+            else:
+                height = float(parsed.subs(v_sym, x_sample).evalf())
+            
+            if math.isnan(height) or math.isinf(height):
+                height = 0.0
+        except Exception:
+            height = 0.0
+
+        area = height * dx
+        approx_sum += area
+        rectangles.append({
+            "x0": round(x_left, 4),
+            "x1": round(x_right, 4),
+            "x_sample": round(x_sample, 4),
+            "height": round(height, 4),
+            "area": round(area, 4),
+        })
+
+    error_abs = abs(approx_sum - exact_val) if exact_val is not None else 0.0
+    error_pct = (error_abs / abs(exact_val) * 100.0) if (exact_val and abs(exact_val) > 1e-9) else 0.0
+
+    return {
+        "success": True,
+        "expression": expr_str,
+        "a": a,
+        "b": b,
+        "n": n,
+        "dx": round(dx, 4),
+        "method": method,
+        "approx_sum": round(approx_sum, 5),
+        "exact_integral": round(exact_val, 5) if exact_val is not None else None,
+        "error_abs": round(error_abs, 5),
+        "error_pct": round(error_pct, 2),
+        "latex_integral": latex_integral,
+        "rectangles": rectangles,
+    }
+
+
+def calculate_taylor_series(
+    expr_str: str,
+    var: str = "x",
+    x0: float = 0.0,
+    order: int = 5,
+    x_min: float = -4.0,
+    x_max: float = 4.0,
+    num_samples: int = 40,
+) -> dict[str, Any]:
+    """Calculate Taylor polynomial approximation P_n(x) about x_0 and sample points for visual comparison."""
+    import sympy as sp
+
+    parsed, v_sym = parse_math_expression(expr_str, var)
+    order = max(1, min(15, order))
+
+    taylor_poly = sp.series(parsed, v_sym, x0, order + 1).removeO()
+    latex_taylor = sp.latex(taylor_poly)
+
+    # Sample original and polynomial curves
+    step = (x_max - x_min) / max(10, num_samples - 1)
+    orig_points: list[dict[str, float]] = []
+    taylor_points: list[dict[str, float]] = []
+
+    for i in range(num_samples):
+        xi = x_min + i * step
+        try:
+            yo = float(parsed.subs(v_sym, xi).evalf())
+            if not math.isnan(yo) and not math.isinf(yo):
+                orig_points.append({"x": round(xi, 3), "y": round(yo, 3)})
+        except Exception:
+            pass
+
+        try:
+            yt = float(taylor_poly.subs(v_sym, xi).evalf())
+            if not math.isnan(yt) and not math.isinf(yt) and abs(yt) < 100:
+                taylor_points.append({"x": round(xi, 3), "y": round(yt, 3)})
+        except Exception:
+            pass
+
+    return {
+        "success": True,
+        "expression": expr_str,
+        "x0": x0,
+        "order": order,
+        "latex_taylor": latex_taylor,
+        "orig_curve": orig_points,
+        "taylor_curve": taylor_points,
+    }
+
+
+def calculate_surface_3d(
+    expr_str: str,
+    x_min: float = -3.0,
+    x_max: float = 3.0,
+    y_min: float = -3.0,
+    y_max: float = 3.0,
+    resolution: int = 25,
+    t_val: float = 0.0,
+) -> dict[str, Any]:
+    """Evaluate 3D parametric or explicit surface z = f(x, y, t) on a uniform mesh grid with gradient normals."""
+    import sympy as sp
+    from sympy.parsing.sympy_parser import (
+        parse_expr,
+        standard_transformations,
+        implicit_multiplication_application,
+        convert_xor,
+    )
+
+    clean = expr_str.strip().replace("^", "**").replace("−", "-")
+    transformations = standard_transformations + (
+        implicit_multiplication_application,
+        convert_xor,
+    )
+    x_sym, y_sym, t_sym = sp.symbols("x y t")
+    parsed = parse_expr(clean, local_dict={"x": x_sym, "y": y_sym, "t": t_sym}, transformations=transformations)
+
+    res = max(10, min(50, resolution))
+    x_step = (x_max - x_min) / (res - 1)
+    y_step = (y_max - y_min) / (res - 1)
+
+    grid: list[list[float]] = []
+    z_min = 1e9
+    z_max = -1e9
+
+    # Substitute time t
+    expr_sub_t = parsed.subs(t_sym, t_val)
+
+    for i in range(res):
+        row: list[float] = []
+        xi = x_min + i * x_step
+        for j in range(res):
+            yj = y_min + j * y_step
+            try:
+                zij = float(expr_sub_t.subs([(x_sym, xi), (y_sym, yj)]).evalf())
+                if math.isnan(zij) or math.isinf(zij):
+                    zij = 0.0
+            except Exception:
+                zij = 0.0
+            row.append(round(zij, 3))
+            if zij < z_min:
+                z_min = zij
+            if zij > z_max:
+                z_max = zij
+        grid.append(row)
+
+    return {
+        "success": True,
+        "expression": expr_str,
+        "x_min": x_min,
+        "x_max": x_max,
+        "y_min": y_min,
+        "y_max": y_max,
+        "resolution": res,
+        "t": t_val,
+        "z_min": round(z_min, 3) if z_min != 1e9 else 0.0,
+        "z_max": round(z_max, 3) if z_max != -1e9 else 0.0,
+        "grid": grid,
+    }
+
+
+def calculate_electric_field(
+    charges: list[dict[str, float]],
+    x_min: float = -4.0,
+    x_max: float = 4.0,
+    y_min: float = -4.0,
+    y_max: float = 4.0,
+    grid_size: int = 15,
+) -> dict[str, Any]:
+    """Calculate 2D Coulomb potential V and electric field vector field (Ex, Ey) for multiple point charges."""
+    k_const = 8.98755e1  # scaled for display units
+
+    res = max(8, min(30, grid_size))
+    x_step = (x_max - x_min) / (res - 1)
+    y_step = (y_max - y_min) / (res - 1)
+
+    vectors: list[dict[str, float]] = []
+
+    for i in range(res):
+        xi = x_min + i * x_step
+        for j in range(res):
+            yj = y_min + j * y_step
+            ex_tot = 0.0
+            ey_tot = 0.0
+            v_tot = 0.0
+            skip = False
+
+            for chg in charges:
+                cx = chg.get("x", 0.0)
+                cy = chg.get("y", 0.0)
+                q = chg.get("q", 1.0)
+
+                rx = xi - cx
+                ry = yj - cy
+                dist_sq = rx * rx + ry * ry
+                dist = math.sqrt(dist_sq)
+
+                if dist < 0.2:
+                    skip = True
+                    break
+
+                field_mag = (k_const * q) / dist_sq
+                ex_tot += field_mag * (rx / dist)
+                ey_tot += field_mag * (ry / dist)
+                v_tot += (k_const * q) / dist
+
+            if not skip:
+                mag = math.sqrt(ex_tot * ex_tot + ey_tot * ey_tot)
+                angle = math.atan2(ey_tot, ex_tot)
+                vectors.append({
+                    "x": round(xi, 2),
+                    "y": round(yj, 2),
+                    "ex": round(ex_tot, 3),
+                    "ey": round(ey_tot, 3),
+                    "mag": round(mag, 3),
+                    "angle": round(angle, 3),
+                    "v": round(v_tot, 3),
+                })
+
+    return {
+        "success": True,
+        "charges": charges,
+        "x_range": [x_min, x_max],
+        "y_range": [y_min, y_max],
+        "grid_size": res,
+        "vectors": vectors,
+    }
+

@@ -35,6 +35,8 @@ from app.social.store import SocialStore
 from app.social.connection_manager import SocialConnectionManager
 from app.auth.security import decode_token
 from app.cas.router import router as cas_router
+from app.scratchpad.router import router as scratchpad_router
+from app.mastery.router import router as mastery_router
 from app.grader.router import router as grader_router
 from app.lens.router import router as lens_router
 from app.auth.store import UserStore
@@ -172,6 +174,8 @@ app.router.routes.extend(create_social_router(settings, social_store, user_store
 app.router.routes.extend(cas_router.routes)
 app.router.routes.extend(grader_router.routes)
 app.router.routes.extend(lens_router.routes)
+app.router.routes.extend(scratchpad_router.routes)
+app.router.routes.extend(mastery_router.routes)
 
 improve_store = ImprovementStore()
 learner_store = LearnerStore()
