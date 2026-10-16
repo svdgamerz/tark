@@ -23,6 +23,7 @@ import { useChats } from './useChats'
 import { useAuth } from './auth'
 import { ProfileBanner } from './components/ProfileBanner'
 import { ProfileSetupModal } from './components/ProfileSetupModal'
+import { CustomSelect } from './components/CustomSelect'
 import { TaskWizardModal } from './components/TaskWizardModal'
 import { TaskManagerModal } from './components/TaskManagerModal'
 import { TalkLiveModal } from './components/TalkLiveModal'
@@ -1448,19 +1449,20 @@ export default function App() {
               placeholder={typeof window !== 'undefined' && window.innerWidth <= 768 ? "Ask a question..." : "Ask a question or drop files/folders here..."}
               rows={1}
             />
-            <select
-              className="model-pick"
+            <CustomSelect
+              className="model-pick-custom"
               value={modelId}
-              onChange={(e) => setModelId(e.target.value)}
-              title={selectedModel?.description ?? 'Select model'}
-            >
-              {models.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.label}
-                  {m.tier === 'admin' ? ' (Admin)' : ''}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setModelId(val)}
+              compact
+              align="right"
+              options={models.map((m) => ({
+                value: m.id,
+                label: m.label,
+                badge: m.tier === 'admin' ? 'Admin' : m.tier === 'pro' ? 'Pro' : undefined,
+                description: m.description,
+              }))}
+              ariaLabel={selectedModel?.description || 'Select AI Model'}
+            />
             <button
               className="send"
               onClick={() => void sendText(input)}

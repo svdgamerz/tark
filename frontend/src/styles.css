@@ -3514,11 +3514,83 @@ body {
 /* ==========================================================================
    Custom Select Dropdown Component
    ========================================================================== */
+/* ==========================================================================
+   Universal Premium Styling for All Dropdown Lists in Tark
+   ========================================================================== */
+
+/* Universal styles for native HTML selects */
+select,
+.tw-input select,
+select.tw-input,
+.vl-select-difficulty,
+.auth-card select,
+.modal select,
+.set-row-control select,
+.lvm-lang-selector select,
+.share-field select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-color: var(--surface) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 14px 14px !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 11px !important;
+  padding: 9px 36px 9px 13px !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  font-family: inherit !important;
+  cursor: pointer !important;
+  outline: none !important;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+select:hover:not(:disabled),
+select.tw-input:hover:not(:disabled),
+.vl-select-difficulty:hover:not(:disabled),
+.auth-card select:hover:not(:disabled),
+.modal select:hover:not(:disabled) {
+  border-color: var(--accent) !important;
+  background-color: var(--bg) !important;
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.12) !important;
+}
+
+select:focus,
+select.tw-input:focus,
+.vl-select-difficulty:focus,
+.auth-card select:focus,
+.modal select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22), 0 4px 14px rgba(0, 0, 0, 0.08) !important;
+}
+
+select option,
+select optgroup {
+  background-color: var(--surface) !important;
+  color: var(--text) !important;
+  padding: 10px 14px !important;
+  font-size: 13.5px !important;
+}
+
+select optgroup {
+  font-weight: 700 !important;
+  color: var(--accent) !important;
+  background: var(--bg) !important;
+}
+
+/* ==========================================================================
+   Custom Select Dropdown Component (Executive Glassmorphism Edition)
+   ========================================================================== */
 .custom-select-container {
   position: relative;
   display: inline-block;
   width: 100%;
   font-family: inherit;
+  user-select: none;
 }
 
 .custom-select-trigger {
@@ -3531,29 +3603,33 @@ body {
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: 11px;
   font-size: 13.5px;
   font-family: inherit;
   font-weight: 500;
   text-align: left;
   cursor: pointer;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .custom-select-trigger:hover:not(:disabled) {
   border-color: var(--accent);
   background: var(--bg);
+  box-shadow: 0 3px 12px rgba(99, 102, 241, 0.12);
 }
 
 .custom-select-container.open .custom-select-trigger {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+  background: var(--surface);
+  box-shadow: 0 0 0 3.5px rgba(99, 102, 241, 0.2), 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .custom-select-container.disabled .custom-select-trigger {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
+  filter: grayscale(0.5);
 }
 
 .custom-select-value {
@@ -3561,12 +3637,61 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.selected-item-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.selected-icon {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+}
+
+.selected-text {
+  font-weight: 550;
+  color: var(--text);
+}
+
+.selected-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  padding: 2px 7px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.placeholder-text {
+  color: var(--muted);
+}
+
+.custom-select-chevron-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: transparent;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+}
+
+.custom-select-trigger:hover .custom-select-chevron-wrapper {
+  background: var(--accent-soft);
 }
 
 .custom-select-chevron {
   color: var(--muted);
-  flex-shrink: 0;
-  transition: transform 0.18s ease;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.15s ease;
 }
 
 .custom-select-chevron.rotated {
@@ -3574,37 +3699,137 @@ body {
   color: var(--accent);
 }
 
-.custom-select-dropdown {
+/* Popover Floating Window */
+.custom-select-popover {
   position: absolute;
-  top: calc(100% + 5px);
   left: 0;
   right: 0;
-  z-index: 1200;
+  z-index: 1500;
   background: var(--surface);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.04);
-  max-height: 260px;
-  overflow-y: auto;
-  padding: 5px;
-  margin: 0;
-  list-style: none;
-  animation: fadeIn 0.12s ease;
+  border-radius: 14px;
+  box-shadow: 0 20px 48px -8px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  animation: popoverDrop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
 }
 
+.custom-select-popover.popover-down {
+  top: calc(100% + 6px);
+  transform-origin: top center;
+}
+
+.custom-select-popover.popover-up {
+  bottom: calc(100% + 6px);
+  transform-origin: bottom center;
+}
+
+@keyframes popoverDrop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Integrated Search Bar */
+.custom-select-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.search-bar-icon {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.custom-select-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 12.5px;
+  font-family: inherit;
+  outline: none;
+}
+
+.custom-select-search-input::placeholder {
+  color: var(--muted);
+}
+
+.search-bar-clear {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.search-bar-clear:hover {
+  color: var(--text);
+  background: var(--border);
+}
+
+/* Dropdown list container */
+.custom-select-dropdown {
+  max-height: 280px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px;
+  margin: 0;
+  list-style: none;
+}
+
+/* Sleek Slim Modern Scrollbar */
+.custom-select-dropdown::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-select-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-select-dropdown::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+
+.custom-select-dropdown::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* Option Items */
 .custom-select-option {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 6px;
+  gap: 10px;
+  padding: 9px 12px;
+  margin: 2px 0;
+  border-radius: 9px;
   cursor: pointer;
-  transition: background-color 0.12s ease;
+  transition: all 0.16s ease;
+  position: relative;
 }
 
-.custom-select-option:hover {
+.custom-select-option:hover,
+.custom-select-option.active {
   background: var(--accent-soft);
+  transform: translateX(2px);
 }
 
 .custom-select-option.selected {
@@ -3616,43 +3841,113 @@ body {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  flex: 1;
 }
 
 .option-label-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
+}
+
+.option-icon {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
 }
 
 .option-label {
   font-size: 13px;
   font-weight: 550;
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .option-badge {
   font-size: 10px;
   font-weight: 700;
-  color: var(--accent);
-  background: rgba(79, 70, 229, 0.1);
+  color: #fff;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .option-description {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--muted);
-  line-height: 1.3;
+  line-height: 1.35;
+}
+
+.option-check-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.4);
 }
 
 .option-check-icon {
-  color: var(--accent);
-  flex-shrink: 0;
+  color: #fff;
 }
 
+.custom-select-empty {
+  padding: 16px 12px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* Compact mode for Chat Composer & Toolbars */
+.custom-select-container.compact {
+  width: auto;
+  min-width: 110px;
+}
+
+.custom-select-container.compact .custom-select-trigger {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.custom-select-container.compact .custom-select-trigger:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.custom-select-container.compact .custom-select-popover {
+  min-width: 260px;
+  width: max-content;
+  max-width: 340px;
+}
+
+.custom-select-container.align-right .custom-select-popover {
+  left: auto;
+  right: 0;
+}
+
+/* Settings modal special width */
 .settings-custom-select {
-  min-width: 240px;
-  max-width: 320px;
+  min-width: 260px;
+  max-width: 360px;
+}
+
+/* Model Pick Custom in Chat Input Pill */
+.model-pick-custom {
+  align-self: center;
+  margin-right: 4px;
 }
 
 /* ==========================================================================
