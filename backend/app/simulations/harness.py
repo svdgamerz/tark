@@ -105,6 +105,70 @@ def build_harness_html(spec: dict[str, Any]) -> str:
 
     presets_js = json.dumps(presets)
 
+    # Build missions list (from spec or synthesized progressive discovery quests)
+    missions = spec.get("missions", [])
+    if not missions and params:
+        p0 = params[0]
+        p0_min = p0["min"]
+        p0_max = p0["max"]
+        p0_mid = round((p0_min + p0_max) / 2, 2)
+        p0_key = p0["key"]
+        p0_unit = p0.get("unit", "")
+        p0_label = p0.get("label", p0_key)
+        tol = max(1.0, round((p0_max - p0_min) * 0.08, 2))
+
+        m1 = {
+            "id": 1,
+            "title": f"Calibration: {p0_label}",
+            "task": f"Adjust {p0_label} to {p0_mid} {p0_unit} (±{tol}) to reach baseline equilibrium.",
+            "hint": f"Move the {p0_label} slider to near {p0_mid}.",
+            "condition_js": f"Math.abs(p['{p0_key}'] - {p0_mid}) <= {tol}",
+            "xp": 50,
+        }
+
+        if len(params) > 1:
+            p1 = params[1]
+            p1_key = p1["key"]
+            p1_target = round(p1["min"] + (p1["max"] - p1["min"]) * 0.75, 2)
+            p1_unit = p1.get("unit", "")
+            p1_label = p1.get("label", p1_key)
+            m2 = {
+                "id": 2,
+                "title": f"Dynamics: {p1_label} Target",
+                "task": f"Elevate {p1_label} to at least {p1_target} {p1_unit} to inspect dynamic trajectory.",
+                "hint": f"Drag {p1_label} to {p1_target} or above.",
+                "condition_js": f"p['{p1_key}'] >= {p1_target} - 0.2",
+                "xp": 75,
+            }
+        else:
+            p0_high = round(p0_min + (p0_max - p0_min) * 0.85, 2)
+            m2 = {
+                "id": 2,
+                "title": "Threshold Exploration",
+                "task": f"Push {p0_label} to {p0_high} {p0_unit} or higher.",
+                "hint": f"Increase {p0_label} above {p0_high}.",
+                "condition_js": f"p['{p0_key}'] >= {p0_high} - 0.2",
+                "xp": 75,
+            }
+
+        m3 = {
+            "id": 3,
+            "title": "Steady-State Convergence",
+            "task": "Keep the apparatus playing for at least 4 seconds to observe convergence on the analytical graph.",
+            "hint": "Ensure ▶ Play is active and let the simulation run.",
+            "condition_js": "state.time >= 4.0 && state.isPlaying",
+            "xp": 100,
+        }
+        missions = [m1, m2, m3]
+
+    missions_js_parts = []
+    for idx, m in enumerate(missions):
+        c_code = m.get("condition_js", "false")
+        missions_js_parts.append(
+            f"{{ id: {json.dumps(m.get('id', idx+1))}, title: {json.dumps(m.get('title', f'Mission {idx+1}'))}, task: {json.dumps(m.get('task', ''))}, hint: {json.dumps(m.get('hint', ''))}, xp: {m.get('xp', 50)}, check: (p, state) => {{ try {{ return Boolean({c_code}); }} catch(e) {{ return false; }} }} }}"
+        )
+    missions_js = "[\n    " + ",\n    ".join(missions_js_parts) + "\n  ]"
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -226,6 +290,54 @@ html, body {{
   background: #38bdf8; cursor: pointer; box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
 }}
 @keyframes fadeIn {{ from {{ opacity: 0; transform: translateY(4px); }} to {{ opacity: 1; transform: translateY(0); }} }}
+
+/* Guided Quest Card (Floating HUD) */
+#questCard {{
+  position: absolute; top: 12px; right: 14px; z-index: 35;
+  background: rgba(11, 19, 41, 0.92); backdrop-filter: blur(14px);
+  border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 10px;
+  padding: 8px 12px; width: 275px; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  transition: all 0.25s ease;
+}}
+#questCard.minimized .quest-body {{ display: none; }}
+.quest-header {{
+  display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;
+}}
+.quest-title-wrap {{ display: flex; align-items: center; gap: 5px; }}
+.quest-badge {{
+  font-size: 0.70rem; font-weight: 800; letter-spacing: 0.05em; color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.35);
+  padding: 2px 6px; border-radius: 5px; text-transform: uppercase;
+}}
+.quest-step {{ font-size: 0.74rem; color: #94a3b8; font-weight: 700; margin-left: 4px; }}
+.quest-xp {{
+  font-size: 0.70rem; font-weight: 700; color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12); padding: 1px 5px; border-radius: 4px;
+}}
+.quest-body {{ margin-top: 6px; display: flex; flex-direction: column; gap: 4px; }}
+.quest-title {{ font-size: 0.82rem; font-weight: 700; color: #f8fafc; }}
+.quest-task {{ font-size: 0.75rem; color: #cbd5e1; line-height: 1.35; }}
+.quest-hint {{ font-size: 0.70rem; color: #94a3b8; font-style: italic; }}
+.quest-progress-wrap {{
+  width: 100%; height: 5px; background: rgba(255, 255, 255, 0.12); border-radius: 3px;
+  overflow: hidden; margin-top: 3px; position: relative;
+}}
+.quest-progress-bar {{
+  height: 100%; width: 0%; background: linear-gradient(90deg, #0284c7, #38bdf8);
+  border-radius: 3px; transition: width 0.25s ease;
+}}
+.quest-complete-toast {{
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.96), rgba(5, 150, 105, 0.96));
+  backdrop-filter: blur(12px); color: #fff; font-weight: 700; font-size: 0.85rem;
+  padding: 8px 18px; border-radius: 20px; box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+  z-index: 50; display: none; animation: popToast 0.3s ease-out; white-space: nowrap;
+}}
+@keyframes popToast {{
+  0% {{ opacity: 0; transform: translate(-50%, -10px) scale(0.9); }}
+  100% {{ opacity: 1; transform: translate(-50%, 0) scale(1); }}
+}}
 </style>
 </head>
 <body>
@@ -253,6 +365,25 @@ html, body {{
       <p id="inspRole"></p>
       <div id="inspFormula" class="formula-tag"></div>
     </div>
+    <!-- Guided Discovery Quest Card (Collapsible) -->
+    <div id="questCard" class="quest-card">
+      <div class="quest-header" id="questHeader" title="Click to collapse / expand mission">
+        <div class="quest-title-wrap">
+          <span class="quest-badge">🎯 LAB MISSION</span>
+          <span class="quest-step" id="questStep">1/3</span>
+        </div>
+        <span class="quest-xp" id="questXp">+50 XP</span>
+      </div>
+      <div class="quest-body" id="questBody">
+        <div class="quest-title" id="questTitle">Mission 1</div>
+        <div class="quest-task" id="questTask">...</div>
+        <div class="quest-hint" id="questHint">💡 Hint: ...</div>
+        <div class="quest-progress-wrap">
+          <div class="quest-progress-bar" id="questBar"></div>
+        </div>
+      </div>
+    </div>
+    <div id="questToast" class="quest-complete-toast"></div>
   </div>
 
   <!-- Bottom Dock -->
@@ -283,7 +414,9 @@ html, body {{
     lastNow: performance.now(),
     hoveredComponent: null,
     params: {{}},
-    custom: {{}}
+    custom: {{}},
+    activeMissionIndex: 0,
+    completedMissions: []
   }};
 
   // --- Specifications ---
@@ -291,6 +424,7 @@ html, body {{
   const SPEC_READOUTS = {readouts_js};
   const SPEC_COMPONENTS = {components_js};
   const SPEC_GRAPH = {graph_js};
+  const SPEC_MISSIONS = {missions_js};
 
   // --- Initialize Parameters ---
   {chr(10).join(f"  state.params['{p['key']}'] = {p.get('default', (p['min']+p['max'])/2)};" for p in params)}
@@ -817,6 +951,207 @@ html, body {{
         }} catch(e) {{}}
       }}
     }});
+    broadcastTelemetry('telemetry');
+  }}
+
+  // --- Lab Copilot Telemetry Broadcaster (Parent Window Bridge) ---
+  let lastBroadcastTime = 0;
+  function broadcastTelemetry(reason = 'update', extra = {{}}) {{
+    const now = performance.now();
+    if (now - lastBroadcastTime < 75 && reason === 'telemetry') return;
+    lastBroadcastTime = now;
+
+    const readoutsMap = {{}};
+    SPEC_READOUTS.forEach((r, idx) => {{
+      const el = document.getElementById('chip_val_' + idx);
+      if (el) readoutsMap[r.label] = el.textContent;
+    }});
+
+    const currentM = SPEC_MISSIONS[state.activeMissionIndex] || null;
+
+    const payload = {{
+      type: 'tark_sim_telemetry',
+      title: {json.dumps(title)},
+      subject: {json.dumps(subject)},
+      params: Object.assign({{}}, state.params),
+      readouts: readoutsMap,
+      isPlaying: state.isPlaying,
+      time: Number(state.time.toFixed(2)),
+      activeMission: currentM ? {{ id: currentM.id, title: currentM.title, task: currentM.task, xp: currentM.xp }} : null,
+      activeMissionIndex: state.activeMissionIndex,
+      totalMissions: SPEC_MISSIONS.length,
+      completedMissions: state.completedMissions.slice(),
+      reason,
+      extra
+    }};
+    try {{
+      window.parent.postMessage(payload, '*');
+    }} catch(e) {{}}
+  }}
+
+  // --- Lab Copilot Inbound Control Event Listener ---
+  window.addEventListener('message', (evt) => {{
+    if (!evt.data || typeof evt.data !== 'object') return;
+    const data = evt.data;
+    if (data.type === 'tark_set_param' && data.key !== undefined) {{
+      const k = String(data.key);
+      const val = parseFloat(data.value);
+      if (!isNaN(val)) {{
+        state.params[k] = val;
+        const s = document.getElementById('slider_' + k);
+        const v = document.getElementById('val_' + k);
+        if (s) s.value = val;
+        if (v) v.textContent = val + ' ' + (s ? s.dataset.unit || '' : '');
+        playClick(660);
+        updateTelemetry();
+        broadcastTelemetry('param_set', {{ key: k, value: val }});
+      }}
+    }} else if (data.type === 'tark_set_preset' && typeof data.index === 'number') {{
+      if (presetPills[data.index]) {{
+        presetPills[data.index].click();
+        broadcastTelemetry('preset_set', {{ index: data.index }});
+      }}
+    }} else if (data.type === 'tark_reset') {{
+      if (resetBtn) resetBtn.click();
+      broadcastTelemetry('sim_reset');
+    }} else if (data.type === 'tark_play_pause') {{
+      if (typeof data.isPlaying === 'boolean') {{
+        state.isPlaying = data.isPlaying;
+        if (playBtn) playBtn.textContent = state.isPlaying ? '⏸ Pause' : '▶ Play';
+      }} else if (playBtn) {{
+        playBtn.click();
+      }}
+      broadcastTelemetry('playback_set', {{ isPlaying: state.isPlaying }});
+    }} else if (data.type === 'tark_query_state') {{
+      broadcastTelemetry('state_report');
+    }}
+  }});
+
+  // --- Triumph Audio & Confetti FX ---
+  function playSuccessChime() {{
+    if (!state.audioEnabled) return;
+    try {{
+      const ctx = getAudioCtx();
+      if (!ctx) return;
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((freq, i) => {{
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.09);
+        gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.09);
+        gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + i * 0.09 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i * 0.09 + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + i * 0.09);
+        osc.stop(ctx.currentTime + i * 0.09 + 0.36);
+      }});
+    }} catch(e) {{}}
+  }}
+
+  const confettiParticles = [];
+  function triggerConfetti() {{
+    for (let i = 0; i < 40; i++) {{
+      confettiParticles.push({{
+        x: logicalW * 0.35 + (Math.random() - 0.5) * 140,
+        y: logicalH * 0.4 + (Math.random() - 0.5) * 80,
+        vx: (Math.random() - 0.5) * 260,
+        vy: -120 - Math.random() * 200,
+        size: 4 + Math.random() * 5,
+        color: ['#38bdf8', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'][Math.floor(Math.random() * 5)],
+        rot: Math.random() * Math.PI * 2,
+        vrot: (Math.random() - 0.5) * 8,
+        life: 1.0,
+      }});
+    }}
+  }}
+
+  // --- Guided Discovery Missions Engine ---
+  let missionStabilityTimer = 0;
+  function renderActiveMission() {{
+    const stepEl = document.getElementById('questStep');
+    const titleEl = document.getElementById('questTitle');
+    const taskEl = document.getElementById('questTask');
+    const hintEl = document.getElementById('questHint');
+    const xpEl = document.getElementById('questXp');
+    const barEl = document.getElementById('questBar');
+
+    if (!SPEC_MISSIONS || SPEC_MISSIONS.length === 0) {{
+      const qc = document.getElementById('questCard');
+      if (qc) qc.style.display = 'none';
+      return;
+    }}
+
+    if (state.activeMissionIndex >= SPEC_MISSIONS.length) {{
+      if (stepEl) stepEl.textContent = 'DONE ✓';
+      if (titleEl) titleEl.textContent = 'All Quests Mastered!';
+      if (taskEl) taskEl.textContent = 'Laboratory investigation fully accomplished.';
+      if (hintEl) hintEl.textContent = '⭐ Exceptional empirical discovery!';
+      if (barEl) barEl.style.width = '100%';
+      return;
+    }}
+
+    const m = SPEC_MISSIONS[state.activeMissionIndex];
+    if (stepEl) stepEl.textContent = (state.activeMissionIndex + 1) + '/' + SPEC_MISSIONS.length;
+    if (titleEl) titleEl.textContent = m.title;
+    if (taskEl) taskEl.textContent = m.task;
+    if (hintEl) hintEl.textContent = m.hint ? ('💡 Hint: ' + m.hint) : '';
+    if (xpEl) xpEl.textContent = '+' + m.xp + ' XP';
+    if (barEl) barEl.style.width = '0%';
+  }}
+
+  function updateMissions(dt) {{
+    if (!SPEC_MISSIONS || SPEC_MISSIONS.length === 0) return;
+    if (state.activeMissionIndex >= SPEC_MISSIONS.length) return;
+
+    const currentM = SPEC_MISSIONS[state.activeMissionIndex];
+    const isPassing = currentM.check(state.params, state);
+    const barEl = document.getElementById('questBar');
+
+    if (isPassing) {{
+      missionStabilityTimer += dt;
+      const progress = Math.min(100, Math.floor((missionStabilityTimer / 1.1) * 100));
+      if (barEl) barEl.style.width = progress + '%';
+
+      if (missionStabilityTimer >= 1.1) {{
+        missionStabilityTimer = 0;
+        state.completedMissions.push(currentM.id);
+        playSuccessChime();
+        triggerConfetti();
+
+        const toast = document.getElementById('questToast');
+        if (toast) {{
+          toast.textContent = '🎉 ' + currentM.title + ' Complete! +' + currentM.xp + ' XP';
+          toast.style.display = 'block';
+          setTimeout(() => {{ if (toast) toast.style.display = 'none'; }}, 2800);
+        }}
+
+        try {{
+          window.parent.postMessage({{
+            type: 'tark_mission_completed',
+            completedMission: currentM,
+            nextMissionIndex: state.activeMissionIndex + 1,
+            totalMissions: SPEC_MISSIONS.length,
+            params: Object.assign({{}}, state.params),
+          }}, '*');
+        }} catch(e) {{}}
+
+        state.activeMissionIndex++;
+        renderActiveMission();
+      }}
+    }} else {{
+      missionStabilityTimer = Math.max(0, missionStabilityTimer - dt * 2.5);
+      if (barEl) barEl.style.width = Math.max(0, Math.floor((missionStabilityTimer / 1.1) * 100)) + '%';
+    }}
+  }}
+
+  const questHeader = document.getElementById('questHeader');
+  if (questHeader) {{
+    questHeader.addEventListener('click', () => {{
+      const qc = document.getElementById('questCard');
+      if (qc) qc.classList.toggle('minimized');
+    }});
   }}
 
   // --- Play/Pause & Reset ---
@@ -826,6 +1161,7 @@ html, body {{
       state.isPlaying = !state.isPlaying;
       playBtn.textContent = state.isPlaying ? '⏸ Pause' : '▶ Play';
       playClick(720);
+      broadcastTelemetry('playback_click', {{ isPlaying: state.isPlaying }});
     }});
   }}
   const resetBtn = document.getElementById('resetBtn');
@@ -834,7 +1170,9 @@ html, body {{
       const defaultP = SPEC_PRESETS[0];
       if (defaultP) presetPills[0].click();
       state.time = 0;
+      missionStabilityTimer = 0;
       playClick(440);
+      broadcastTelemetry('reset_click');
     }});
   }}
   const audioToggle = document.getElementById('audioToggle');
@@ -887,10 +1225,36 @@ html, body {{
     }}
     ctx.restore();
 
+    updateMissions(dt);
+
+    if (confettiParticles.length > 0) {{
+      for (let i = confettiParticles.length - 1; i >= 0; i--) {{
+        const pt = confettiParticles[i];
+        pt.x += pt.vx * dt;
+        pt.y += pt.vy * dt;
+        pt.vy += 320 * dt;
+        pt.rot += pt.vrot * dt;
+        pt.life -= dt * 0.9;
+        if (pt.life <= 0) {{
+          confettiParticles.splice(i, 1);
+          continue;
+        }}
+        ctx.save();
+        ctx.translate(pt.x, pt.y);
+        ctx.rotate(pt.rot);
+        ctx.fillStyle = pt.color;
+        ctx.globalAlpha = Math.max(0, pt.life);
+        ctx.fillRect(-pt.size / 2, -pt.size / 2, pt.size, pt.size * 0.6);
+        ctx.restore();
+      }}
+    }}
+
     requestAnimationFrame(loop);
   }}
 
   updateTelemetry();
+  renderActiveMission();
+  broadcastTelemetry('sim_init');
   requestAnimationFrame(loop);
 }})();
 </script>

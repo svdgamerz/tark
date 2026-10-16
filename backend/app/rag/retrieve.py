@@ -20,7 +20,7 @@ def normalize_board(board_str: str | None) -> str | None:
         return "CBSE (NCERT)"
     if "icse" in b_low or "isc" in b_low or "cisce" in b_low:
         return "ICSE (CISCE)"
-    if "maharashtra" in b_low or "state board" in b_low or "balbharati" in b_low:
+    if any(k in b_low for k in ["maharashtra", "state", "balbharati", "balbharti", "msbshse", "ssc", "hsc"]):
         return "Maharashtra State Board (Balbharati)"
     if "cambridge" in b_low or "igcse" in b_low or "ig board" in b_low or re.search(r"\big\b", b_low):
         return "IGCSE (Cambridge)"

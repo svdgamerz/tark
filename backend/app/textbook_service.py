@@ -32,6 +32,13 @@ BOARD_NORMALIZE = {
     "icse": "ICSE (CISCE)",
     "cisce": "ICSE (CISCE)",
     "icse (cisce)": "ICSE (CISCE)",
+    "state": "Maharashtra State Board (Balbharati)",
+    "state board": "Maharashtra State Board (Balbharati)",
+    "stateboard": "Maharashtra State Board (Balbharati)",
+    "state board (balbharati)": "Maharashtra State Board (Balbharati)",
+    "state boards": "Maharashtra State Board (Balbharati)",
+    "ssc": "Maharashtra State Board (Balbharati)",
+    "hsc": "Maharashtra State Board (Balbharati)",
     "maharashtra": "Maharashtra State Board (Balbharati)",
     "balbharati": "Maharashtra State Board (Balbharati)",
     "balbharti": "Maharashtra State Board (Balbharati)",
@@ -39,6 +46,15 @@ BOARD_NORMALIZE = {
     "maharashtra state board": "Maharashtra State Board (Balbharati)",
     "maharashtra state board (balbharati)": "Maharashtra State Board (Balbharati)",
     "maharashtra state board (balbharti)": "Maharashtra State Board (Balbharati)",
+    "tamil nadu": "Tamil Nadu State Board",
+    "tamil nadu state board": "Tamil Nadu State Board",
+    "tnsb": "Tamil Nadu State Board",
+    "karnataka": "Karnataka State Board",
+    "karnataka state board": "Karnataka State Board",
+    "kseeb": "Karnataka State Board",
+    "up board": "Uttar Pradesh State Board",
+    "up state board": "Uttar Pradesh State Board",
+    "upmsp": "Uttar Pradesh State Board",
     "igcse": "IGCSE (Cambridge)",
     "cambridge": "IGCSE (Cambridge)",
     "igcse (cambridge)": "IGCSE (Cambridge)",
@@ -585,8 +601,11 @@ def render_pdf_page_png(
     page_number: int,
     chapter: str = "",
     dpi: int = 150,
+    highlight_terms: str = "",
 ) -> Optional[bytes]:
-    """Render a textbook page to PNG bytes using PyMuPDF, properly handling book-relative vs PDF-absolute offsets."""
+    """Render a textbook page to PNG bytes using PyMuPDF, properly handling book-relative vs PDF-absolute offsets,
+    with glowing concept highlight bounding boxes.
+    """
     resolved_path = find_pdf_path(pdf_path) or pdf_path
     if not os.path.exists(resolved_path):
         return None
@@ -628,6 +647,25 @@ def render_pdf_page_png(
 
             target_page = max(1, min(target_page, total_doc_pages))
             page = doc[target_page - 1]
+
+            # Glowing concept highlight rectangles
+            if highlight_terms:
+                raw_terms = [t.strip() for t in highlight_terms.split(",") if t.strip()]
+                for t in raw_terms:
+                    if len(t) >= 3:
+                        try:
+                            rects = page.search_for(t)
+                            for r in rects[:12]:
+                                page.draw_rect(
+                                    r,
+                                    color=(0.14, 0.74, 0.98),
+                                    fill=(0.14, 0.74, 0.98),
+                                    fill_opacity=0.35,
+                                    width=1.5,
+                                )
+                        except Exception:
+                            pass
+
             pix = page.get_pixmap(dpi=dpi)
             return pix.tobytes("png")
     except Exception as e:
@@ -644,6 +682,7 @@ def render_generated_textbook_page_png(
     page_number: int = 1,
     topic: str = "",
     dpi: int = 150,
+    highlight_terms: str = "",
 ) -> Optional[bytes]:
     """Generate an authentic textbook chapter study page image using PIL with dynamic page content."""
     try:
@@ -743,9 +782,15 @@ def render_generated_textbook_page_png(
         draw.text((60, 227), sec1_title, fill="#334155")
         for idx, b in enumerate(sec1_bullets):
             draw.text((60, 275 + (idx * 35)), b, fill="#1E293B" if idx == 0 else "#475569")
-        draw.text((60, 425), "✦ Official Textbook Syllabus Grounded Learning Card ✦", fill="#64748B")
+        draw.text((60, 420), "✦ Official Textbook Syllabus Grounded Learning Card ✦", fill="#64748B")
 
-        # Section 2
+        # Concept Focus Highlight Callout if highlight_terms or topic provided
+        hl = highlight_terms.strip() if highlight_terms else (topic.strip() if topic else "")
+        if hl:
+            draw.rectangle([(50, 442), (w - 50, 476)], fill="#E0F2FE", outline="#38BDF8", width=1)
+            draw.rectangle([(50, 442), (56, 476)], fill="#0284C7")
+            draw.text((66, 448), "📌 KEY CONCEPT FOCUS:", fill="#0369A1")
+            draw.text((225, 448), hl[:60], fill="#0C4A6E")
         draw.rectangle([(40, 505), (w - 40, 780)], fill="#FFFFFF", outline="#E2E8F0", width=1)
         draw.rectangle([(40, 505), (w - 40, 545)], fill="#F8FAFC")
         draw.text((60, 517), sec2_title, fill="#334155")

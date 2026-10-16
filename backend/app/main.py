@@ -1404,8 +1404,11 @@ def get_textbook_page_image(
     subject: str = "",
     chapter: str = "",
     topic: str = "",
+    highlight: str = "",
 ) -> Response:
-    """Render and stream a crisp high-res PNG image of a textbook page (from PDF or synthesized curriculum study card)."""
+    """Render and stream a crisp high-res PNG image of a textbook page (from PDF or synthesized curriculum study card),
+    with optional glowing concept highlights.
+    """
     from app.textbook_service import (
         render_pdf_page_png,
         render_generated_textbook_page_png,
@@ -1416,14 +1419,14 @@ def get_textbook_page_image(
     )
     img_bytes = None
     if source:
-        img_bytes = render_pdf_page_png(source, page, chapter=chapter, dpi=dpi)
+        img_bytes = render_pdf_page_png(source, page, chapter=chapter, dpi=dpi, highlight_terms=highlight)
     if not img_bytes and (board or subject):
         nb = normalize_board(board)
         ng = normalize_grade(grade)
         ns = normalize_subject(subject)
         resolved_src = KNOWN_TEXTBOOK_MAP.get((nb, ng, ns)) or KNOWN_TEXTBOOK_MAP.get((nb, ng, subject.strip()))
         if resolved_src:
-            img_bytes = render_pdf_page_png(resolved_src, page, chapter=chapter, dpi=dpi)
+            img_bytes = render_pdf_page_png(resolved_src, page, chapter=chapter, dpi=dpi, highlight_terms=highlight)
     if not img_bytes:
         img_bytes = render_generated_textbook_page_png(
             board=board,
@@ -1433,6 +1436,7 @@ def get_textbook_page_image(
             page_number=page,
             topic=topic,
             dpi=dpi,
+            highlight_terms=highlight,
         )
     if not img_bytes:
         raise HTTPException(status_code=404, detail=f"Could not render page {page} image")

@@ -27,6 +27,7 @@ export const DualPaneTextbookView: React.FC<DualPaneTextbookViewProps> = ({
   const [currentPage, setCurrentPage] = useState(initialPage)
   const [zoom, setZoom] = useState(1.0)
   const [snipMode, setSnipMode] = useState(false)
+  const [highlightTerm, setHighlightTerm] = useState('')
   const [isDrawing, setIsDrawing] = useState(false)
   const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(null)
   const [currentBox, setCurrentBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
@@ -44,9 +45,10 @@ export const DualPaneTextbookView: React.FC<DualPaneTextbookViewProps> = ({
 
   if (!isOpen) return null
 
+  const hlParam = highlightTerm.trim() ? `&highlight=${encodeURIComponent(highlightTerm.trim())}` : ''
   const pageImageUrl = source
-    ? `${API_BASE}/api/textbook/page-image?source=${encodeURIComponent(source)}&page=${currentPage}&chapter=${encodeURIComponent(chapter)}`
-    : `${API_BASE}/api/textbook/page-image?board=${encodeURIComponent(board)}&grade=${encodeURIComponent(grade)}&subject=${encodeURIComponent(subject)}&chapter=${encodeURIComponent(chapter)}&page=${currentPage}`
+    ? `${API_BASE}/api/textbook/page-image?source=${encodeURIComponent(source)}&page=${currentPage}&chapter=${encodeURIComponent(chapter)}${hlParam}`
+    : `${API_BASE}/api/textbook/page-image?board=${encodeURIComponent(board)}&grade=${encodeURIComponent(grade)}&subject=${encodeURIComponent(subject)}&chapter=${encodeURIComponent(chapter)}&page=${currentPage}${hlParam}`
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!snipMode || !imgRef.current) return
@@ -182,6 +184,29 @@ export const DualPaneTextbookView: React.FC<DualPaneTextbookViewProps> = ({
           >
             ↺
           </button>
+
+          <div className="dptv-divider" />
+
+          {/* Highlight Concept Search Bar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 6, padding: '3px 8px', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
+            <span style={{ fontSize: '0.8rem' }}>🖍️</span>
+            <input
+              type="text"
+              placeholder="Highlight concept..."
+              value={highlightTerm}
+              onChange={(e) => setHighlightTerm(e.target.value)}
+              style={{ background: 'transparent', border: 'none', color: '#e0eaff', fontSize: '0.78rem', outline: 'none', width: 130 }}
+            />
+            {highlightTerm && (
+              <button
+                onClick={() => setHighlightTerm('')}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.75rem', padding: 0 }}
+                title="Clear highlight"
+              >
+                ✕
+              </button>
+            )}
+          </div>
 
           <div className="dptv-divider" />
 

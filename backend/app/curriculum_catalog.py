@@ -81,11 +81,19 @@ KNOWN_TEXTBOOK_MAP: Dict[Tuple[str, str, str], str] = {
     ("Maharashtra State Board (Balbharati)", "11", "Economics"): "1103020029.pdf",
     ("Maharashtra State Board (Balbharati)", "11", "Accountancy"): "1103020425.pdf",
     ("Maharashtra State Board (Balbharati)", "11", "Commerce"): "1103040026.pdf",
+    ("Maharashtra State Board (Balbharati)", "11", "Physics"): "1103020001.pdf",
+    ("Maharashtra State Board (Balbharati)", "11", "Chemistry"): "1103020002.pdf",
+    ("Maharashtra State Board (Balbharati)", "11", "Maths"): "1103020003.pdf",
+    ("Maharashtra State Board (Balbharati)", "11", "Biology"): "1103020004.pdf",
 
     ("Maharashtra State Board (Balbharati)", "12", "Defence Studies"): "1203010510.pdf",
     ("Maharashtra State Board (Balbharati)", "12", "Economics"): "1203020029.pdf",
     ("Maharashtra State Board (Balbharati)", "12", "Accountancy"): "1203020425.pdf",
     ("Maharashtra State Board (Balbharati)", "12", "Commerce"): "1203040026.pdf",
+    ("Maharashtra State Board (Balbharati)", "12", "Physics"): "1203020001.pdf",
+    ("Maharashtra State Board (Balbharati)", "12", "Chemistry"): "1203020002.pdf",
+    ("Maharashtra State Board (Balbharati)", "12", "Maths"): "1203020003.pdf",
+    ("Maharashtra State Board (Balbharati)", "12", "Biology"): "1203020004.pdf",
 }
 
 # Authoritative structured curriculum chapters
@@ -781,6 +789,83 @@ KNOWN_CHAPTERS_MAP: Dict[Tuple[str, str, str], List[Dict[str, Any]]] = {
         {"source": "Cambridge_IGCSE_Maths.pdf", "chapter": "Chapter 7: Vectors and Transformations", "start_page": 261, "end_page": 300, "total_doc_pages": 360, "chunks_count": 40},
         {"source": "Cambridge_IGCSE_Maths.pdf", "chapter": "Chapter 8: Probability", "start_page": 301, "end_page": 330, "total_doc_pages": 360, "chunks_count": 30},
         {"source": "Cambridge_IGCSE_Maths.pdf", "chapter": "Chapter 9: Statistics", "start_page": 331, "end_page": 360, "total_doc_pages": 360, "chunks_count": 30},
+    ],
+
+    # --- STD 11 PHYSICS (STATE BOARD) ---
+    ("Maharashtra State Board (Balbharati)", "11", "Physics"): [
+        {"source": "1103020001.pdf", "chapter": "Chapter 1: Units and Measurements", "start_page": 1, "end_page": 17, "total_doc_pages": 260, "chunks_count": 17},
+        {"source": "1103020001.pdf", "chapter": "Chapter 2: Mathematical Methods", "start_page": 18, "end_page": 35, "total_doc_pages": 260, "chunks_count": 18},
+        {"source": "1103020001.pdf", "chapter": "Chapter 3: Motion in a Plane", "start_page": 36, "end_page": 53, "total_doc_pages": 260, "chunks_count": 18},
+        {"source": "1103020001.pdf", "chapter": "Chapter 4: Laws of Motion", "start_page": 54, "end_page": 78, "total_doc_pages": 260, "chunks_count": 25},
+        {"source": "1103020001.pdf", "chapter": "Chapter 5: Gravitation", "start_page": 79, "end_page": 98, "total_doc_pages": 260, "chunks_count": 20},
+        {"source": "1103020001.pdf", "chapter": "Chapter 6: Mechanical Properties of Solids", "start_page": 99, "end_page": 118, "total_doc_pages": 260, "chunks_count": 20},
+        {"source": "1103020001.pdf", "chapter": "Chapter 7: Thermal Properties of Matter", "start_page": 119, "end_page": 141, "total_doc_pages": 260, "chunks_count": 23},
+        {"source": "1103020001.pdf", "chapter": "Chapter 8: Sound", "start_page": 142, "end_page": 158, "total_doc_pages": 260, "chunks_count": 17},
+        {"source": "1103020001.pdf", "chapter": "Chapter 9: Optics", "start_page": 159, "end_page": 188, "total_doc_pages": 260, "chunks_count": 30},
+        {"source": "1103020001.pdf", "chapter": "Chapter 10: Electrostatics", "start_page": 189, "end_page": 208, "total_doc_pages": 260, "chunks_count": 20},
+        {"source": "1103020001.pdf", "chapter": "Chapter 11: Electric Current Through Conductors", "start_page": 209, "end_page": 221, "total_doc_pages": 260, "chunks_count": 13},
+        {"source": "1103020001.pdf", "chapter": "Chapter 12: Magnetism", "start_page": 222, "end_page": 234, "total_doc_pages": 260, "chunks_count": 13},
+        {"source": "1103020001.pdf", "chapter": "Chapter 13: Electromagnetic Waves and Communication System", "start_page": 235, "end_page": 246, "total_doc_pages": 260, "chunks_count": 12},
+        {"source": "1103020001.pdf", "chapter": "Chapter 14: Semiconductors", "start_page": 247, "end_page": 260, "total_doc_pages": 260, "chunks_count": 14},
+    ],
+
+    # --- STD 12 PHYSICS (STATE BOARD) ---
+    ("Maharashtra State Board (Balbharati)", "12", "Physics"): [
+        {"source": "1203020001.pdf", "chapter": "Chapter 1: Rotational Dynamics", "start_page": 1, "end_page": 25, "total_doc_pages": 340, "chunks_count": 25},
+        {"source": "1203020001.pdf", "chapter": "Chapter 2: Mechanical Properties of Fluids", "start_page": 26, "end_page": 55, "total_doc_pages": 340, "chunks_count": 30},
+        {"source": "1203020001.pdf", "chapter": "Chapter 3: Kinetic Theory of Gases and Radiation", "start_page": 56, "end_page": 76, "total_doc_pages": 340, "chunks_count": 21},
+        {"source": "1203020001.pdf", "chapter": "Chapter 4: Thermodynamics", "start_page": 77, "end_page": 109, "total_doc_pages": 340, "chunks_count": 33},
+        {"source": "1203020001.pdf", "chapter": "Chapter 5: Oscillations", "start_page": 110, "end_page": 130, "total_doc_pages": 340, "chunks_count": 21},
+        {"source": "1203020001.pdf", "chapter": "Chapter 6: Superposition of Waves", "start_page": 131, "end_page": 157, "total_doc_pages": 340, "chunks_count": 27},
+        {"source": "1203020001.pdf", "chapter": "Chapter 7: Wave Optics", "start_page": 158, "end_page": 187, "total_doc_pages": 340, "chunks_count": 30},
+        {"source": "1203020001.pdf", "chapter": "Chapter 8: Electrostatics", "start_page": 188, "end_page": 213, "total_doc_pages": 340, "chunks_count": 26},
+        {"source": "1203020001.pdf", "chapter": "Chapter 9: Current Electricity", "start_page": 214, "end_page": 234, "total_doc_pages": 340, "chunks_count": 21},
+        {"source": "1203020001.pdf", "chapter": "Chapter 10: Magnetic Fields due to Electric Current", "start_page": 235, "end_page": 259, "total_doc_pages": 340, "chunks_count": 25},
+        {"source": "1203020001.pdf", "chapter": "Chapter 11: Magnetic Materials", "start_page": 260, "end_page": 274, "total_doc_pages": 340, "chunks_count": 15},
+        {"source": "1203020001.pdf", "chapter": "Chapter 12: Electromagnetic Induction", "start_page": 275, "end_page": 298, "total_doc_pages": 340, "chunks_count": 24},
+        {"source": "1203020001.pdf", "chapter": "Chapter 13: AC Circuits", "start_page": 299, "end_page": 313, "total_doc_pages": 340, "chunks_count": 15},
+        {"source": "1203020001.pdf", "chapter": "Chapter 14: Dual Nature of Radiation and Matter", "start_page": 314, "end_page": 323, "total_doc_pages": 340, "chunks_count": 10},
+        {"source": "1203020001.pdf", "chapter": "Chapter 15: Structure of Atoms and Nuclei", "start_page": 324, "end_page": 343, "total_doc_pages": 340, "chunks_count": 20},
+        {"source": "1203020001.pdf", "chapter": "Chapter 16: Semiconductor Devices", "start_page": 344, "end_page": 365, "total_doc_pages": 340, "chunks_count": 22},
+    ],
+
+    # --- STD 12 CHEMISTRY (STATE BOARD) ---
+    ("Maharashtra State Board (Balbharati)", "12", "Chemistry"): [
+        {"source": "1203020002.pdf", "chapter": "Chapter 1: Solid State", "start_page": 1, "end_page": 25, "total_doc_pages": 330, "chunks_count": 25},
+        {"source": "1203020002.pdf", "chapter": "Chapter 2: Solutions", "start_page": 26, "end_page": 46, "total_doc_pages": 330, "chunks_count": 21},
+        {"source": "1203020002.pdf", "chapter": "Chapter 3: Ionic Equilibria", "start_page": 47, "end_page": 63, "total_doc_pages": 330, "chunks_count": 17},
+        {"source": "1203020002.pdf", "chapter": "Chapter 4: Chemical Thermodynamics", "start_page": 64, "end_page": 89, "total_doc_pages": 330, "chunks_count": 26},
+        {"source": "1203020002.pdf", "chapter": "Chapter 5: Electrochemistry", "start_page": 90, "end_page": 119, "total_doc_pages": 330, "chunks_count": 30},
+        {"source": "1203020002.pdf", "chapter": "Chapter 6: Chemical Kinetics", "start_page": 120, "end_page": 139, "total_doc_pages": 330, "chunks_count": 20},
+        {"source": "1203020002.pdf", "chapter": "Chapter 7: Elements of Groups 16, 17 and 18", "start_page": 140, "end_page": 164, "total_doc_pages": 330, "chunks_count": 25},
+        {"source": "1203020002.pdf", "chapter": "Chapter 8: Transition and Inner Transition Elements", "start_page": 165, "end_page": 191, "total_doc_pages": 330, "chunks_count": 27},
+        {"source": "1203020002.pdf", "chapter": "Chapter 9: Coordination Compounds", "start_page": 192, "end_page": 210, "total_doc_pages": 330, "chunks_count": 19},
+        {"source": "1203020002.pdf", "chapter": "Chapter 10: Halogen Derivatives", "start_page": 211, "end_page": 233, "total_doc_pages": 330, "chunks_count": 23},
+        {"source": "1203020002.pdf", "chapter": "Chapter 11: Alcohols, Phenols and Ethers", "start_page": 234, "end_page": 257, "total_doc_pages": 330, "chunks_count": 24},
+        {"source": "1203020002.pdf", "chapter": "Chapter 12: Aldehydes, Ketones and Carboxylic Acids", "start_page": 258, "end_page": 283, "total_doc_pages": 330, "chunks_count": 26},
+        {"source": "1203020002.pdf", "chapter": "Chapter 13: Amines", "start_page": 284, "end_page": 298, "total_doc_pages": 330, "chunks_count": 15},
+        {"source": "1203020002.pdf", "chapter": "Chapter 14: Biomolecules", "start_page": 299, "end_page": 319, "total_doc_pages": 330, "chunks_count": 21},
+        {"source": "1203020002.pdf", "chapter": "Chapter 15: Introduction to Polymer Chemistry", "start_page": 320, "end_page": 337, "total_doc_pages": 330, "chunks_count": 18},
+        {"source": "1203020002.pdf", "chapter": "Chapter 16: Green Chemistry and Nanochemistry", "start_page": 338, "end_page": 352, "total_doc_pages": 330, "chunks_count": 15},
+    ],
+
+    # --- STD 12 MATHEMATICS (STATE BOARD) ---
+    ("Maharashtra State Board (Balbharati)", "12", "Maths"): [
+        {"source": "1203020003.pdf", "chapter": "Chapter 1: Mathematical Logic", "start_page": 1, "end_page": 35, "total_doc_pages": 350, "chunks_count": 35},
+        {"source": "1203020003.pdf", "chapter": "Chapter 2: Matrices", "start_page": 36, "end_page": 64, "total_doc_pages": 350, "chunks_count": 29},
+        {"source": "1203020003.pdf", "chapter": "Chapter 3: Trigonometric Functions", "start_page": 65, "end_page": 113, "total_doc_pages": 350, "chunks_count": 49},
+        {"source": "1203020003.pdf", "chapter": "Chapter 4: Pair of Straight Lines", "start_page": 114, "end_page": 132, "total_doc_pages": 350, "chunks_count": 19},
+        {"source": "1203020003.pdf", "chapter": "Chapter 5: Vectors", "start_page": 133, "end_page": 180, "total_doc_pages": 350, "chunks_count": 48},
+        {"source": "1203020003.pdf", "chapter": "Chapter 6: Line and Plane", "start_page": 181, "end_page": 217, "total_doc_pages": 350, "chunks_count": 37},
+        {"source": "1203020003.pdf", "chapter": "Chapter 7: Linear Programming", "start_page": 218, "end_page": 244, "total_doc_pages": 350, "chunks_count": 27},
+        {"source": "1203020003.pdf", "chapter": "Chapter 8: Differentiation", "start_page": 245, "end_page": 279, "total_doc_pages": 350, "chunks_count": 35},
+        {"source": "1203020003.pdf", "chapter": "Chapter 9: Applications of Derivatives", "start_page": 280, "end_page": 305, "total_doc_pages": 350, "chunks_count": 26},
+        {"source": "1203020003.pdf", "chapter": "Chapter 10: Indefinite Integration", "start_page": 306, "end_page": 344, "total_doc_pages": 350, "chunks_count": 39},
+        {"source": "1203020003.pdf", "chapter": "Chapter 11: Definite Integration", "start_page": 345, "end_page": 366, "total_doc_pages": 350, "chunks_count": 22},
+        {"source": "1203020003.pdf", "chapter": "Chapter 12: Application of Definite Integration", "start_page": 367, "end_page": 376, "total_doc_pages": 350, "chunks_count": 10},
+        {"source": "1203020003.pdf", "chapter": "Chapter 13: Differential Equations", "start_page": 377, "end_page": 409, "total_doc_pages": 350, "chunks_count": 33},
+        {"source": "1203020003.pdf", "chapter": "Chapter 14: Probability Distribution", "start_page": 410, "end_page": 425, "total_doc_pages": 350, "chunks_count": 16},
+        {"source": "1203020003.pdf", "chapter": "Chapter 15: Binomial Distribution", "start_page": 426, "end_page": 438, "total_doc_pages": 350, "chunks_count": 13},
     ],
 }
 

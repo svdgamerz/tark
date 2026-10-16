@@ -101,11 +101,41 @@ export function InteractiveSimulation({ simulation }: Props) {
 
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isPlaying, setIsPlaying] = useState(true)
+  const [telemetry, setTelemetry] = useState<any>(null)
+  const inlineIframeRef = useRef<HTMLIFrameElement | null>(null)
+  const fullIframeRef = useRef<HTMLIFrameElement | null>(null)
   const inlineCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const fullscreenCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const animFrameRef = useRef<number | null>(null)
   const startTimeRef = useRef<number>(performance.now())
   const animStateRef = useRef<any>({})
+
+  // Lab Copilot Bi-directional Event Listener
+  useEffect(() => {
+    const handleSimMsg = (e: MessageEvent) => {
+      if (!e.data || typeof e.data !== 'object') return
+      if (e.data.type === 'tark_sim_telemetry') {
+        setTelemetry(e.data)
+      } else if (e.data.type === 'tark_mission_completed') {
+        setTelemetry((prev: any) => ({
+          ...prev,
+          activeMission: e.data.completedMission,
+          activeMissionIndex: e.data.nextMissionIndex,
+        }))
+      }
+    }
+    window.addEventListener('message', handleSimMsg)
+    return () => window.removeEventListener('message', handleSimMsg)
+  }, [])
+
+  // Send message to active simulation iframe
+  const sendToSim = (msg: any) => {
+    if (fullIframeRef.current?.contentWindow) {
+      fullIframeRef.current.contentWindow.postMessage(msg, '*')
+    } else if (inlineIframeRef.current?.contentWindow) {
+      inlineIframeRef.current.contentWindow.postMessage(msg, '*')
+    }
+  }
 
   // Reset parameters to defaults
   const handleReset = () => {
@@ -116,6 +146,7 @@ export function InteractiveSimulation({ simulation }: Props) {
       }
       setParams(resetParams)
     }
+    sendToSim({ type: 'tark_reset' })
     animStateRef.current = {}
     startTimeRef.current = performance.now()
   }
@@ -129,7 +160,6 @@ export function InteractiveSimulation({ simulation }: Props) {
     window.addEventListener('keydown', handleKeyDown)
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       document.body.style.overflow = prevOverflow
@@ -229,8 +259,27 @@ export function InteractiveSimulation({ simulation }: Props) {
             <div className="sim-title-group">
               <span className="sim-badge">🧪 Interactive Virtual Lab</span>
               <span className="sim-title">{simulation.title || 'Interactive Model'}</span>
+              {telemetry && (
+                <span className="sim-copilot-indicator" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px', borderRadius: 12, background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.35)', color: '#38bdf8', fontSize: '0.74rem', fontWeight: 600 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#38bdf8', boxShadow: '0 0 6px #38bdf8' }} />
+                  Copilot Live
+                </span>
+              )}
+              {telemetry?.activeMission && (
+                <span className="sim-mission-indicator" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 12, background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.35)', color: '#fbbf24', fontSize: '0.74rem', fontWeight: 600 }} title={telemetry.activeMission.task}>
+                  🎯 Quest {telemetry.activeMissionIndex + 1}/{telemetry.totalMissions}: {telemetry.activeMission.title}
+                </span>
+              )}
             </div>
             <div className="sim-actions">
+              <button
+                className="sim-btn sim-btn-secondary"
+                onClick={() => sendToSim({ type: 'tark_reset' })}
+                title="Reset Simulation State"
+                style={{ padding: '4px 8px', fontSize: '0.78rem' }}
+              >
+                ↺ Reset
+              </button>
               <button
                 className="sim-btn sim-btn-expand"
                 onClick={() => setIsFullscreen(true)}
@@ -243,6 +292,7 @@ export function InteractiveSimulation({ simulation }: Props) {
           </div>
           <div className="sim-iframe-wrap">
             <iframe
+              ref={inlineIframeRef}
               srcDoc={customHtml}
               title={simulation.title}
               sandbox="allow-scripts allow-same-origin allow-forms"
@@ -261,8 +311,20 @@ export function InteractiveSimulation({ simulation }: Props) {
                     <span className="sim-lab-logo">🎮 Tark Virtual Lab</span>
                     <span className="sim-lab-divider">/</span>
                     <h2 className="sim-lab-title">{simulation.title || 'Interactive Simulation'}</h2>
+                    {telemetry?.activeMission && (
+                      <span style={{ marginLeft: 12, display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 14, background: 'rgba(245, 158, 11, 0.18)', border: '1px solid rgba(245, 158, 11, 0.4)', color: '#fbbf24', fontSize: '0.8rem', fontWeight: 700 }}>
+                        🎯 Quest {telemetry.activeMissionIndex + 1}/{telemetry.totalMissions}: {telemetry.activeMission.title}
+                      </span>
+                    )}
                   </div>
                   <div className="sim-lab-header-right">
+                    <button
+                      className="sim-lab-btn"
+                      onClick={() => sendToSim({ type: 'tark_reset' })}
+                      title="Reset simulation parameters"
+                    >
+                      <span>↺ Reset</span>
+                    </button>
                     <button
                       className="sim-lab-btn sim-lab-btn-close"
                       onClick={() => setIsFullscreen(false)}
@@ -274,6 +336,7 @@ export function InteractiveSimulation({ simulation }: Props) {
                 </div>
                 <div className="sim-lab-iframe-viewport">
                   <iframe
+                    ref={fullIframeRef}
                     srcDoc={customHtml}
                     title={simulation.title}
                     sandbox="allow-scripts allow-same-origin allow-forms"
