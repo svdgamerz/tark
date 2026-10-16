@@ -14,6 +14,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pymupdf  # PyMuPDF
 
+from app.curriculum_catalog import (
+    KNOWN_CHAPTERS_MAP as CATALOG_KNOWN_CHAPTERS,
+    KNOWN_TEXTBOOK_MAP as CATALOG_KNOWN_TEXTBOOKS,
+)
+
 # Paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
@@ -77,7 +82,9 @@ SUBJECT_NORMALIZE = {
     "biology": "Biology",
     "social science": "Social Science",
     "social studies": "Social Studies",
-    "history": "History & Civics",
+    "history": "History",
+    "civics": "Civics",
+    "political science": "Political Science",
     "history & civics": "History & Civics",
     "history & political science": "History & Political Science",
     "geography": "Geography",
@@ -113,7 +120,6 @@ SUBJECT_NORMALIZE = {
     "secretarial practice (sp)": "Commerce",
     "psychology": "Psychology",
     "sociology": "Sociology",
-    "political science": "Political Science",
     "evs": "EVS",
     "environmental studies": "EVS",
     "computer applications": "Computer Applications",
@@ -123,6 +129,7 @@ SUBJECT_NORMALIZE = {
 
 # Known direct textbook source mappings
 KNOWN_TEXTBOOK_MAP = {
+    **CATALOG_KNOWN_TEXTBOOKS,
     # Maharashtra State Board (Balbharati)
     ("Maharashtra State Board (Balbharati)", "10", "Science 1"): "1003000265.pdf",
     ("Maharashtra State Board (Balbharati)", "10", "Science 2"): "1003000270.pdf",
@@ -181,6 +188,7 @@ KNOWN_TEXTBOOK_MAP = {
 
 # Fallback structured chapters for curriculum textbooks where PDF TOC lacks a text stream
 KNOWN_CHAPTERS_MAP = {
+    **CATALOG_KNOWN_CHAPTERS,
     ("Maharashtra State Board (Balbharati)", "8", "Science"): [
         {"source": "803020012.pdf", "chapter": "Chapter 1: Living World and Classification of Microbes", "start_page": 11, "end_page": 16, "total_doc_pages": 140, "chunks_count": 6},
         {"source": "803020012.pdf", "chapter": "Chapter 2: Health and Diseases", "start_page": 17, "end_page": 23, "total_doc_pages": 140, "chunks_count": 7},
@@ -1009,43 +1017,59 @@ def get_chapters_for_subject(board: str, grade: str, subject: str) -> List[Dict[
     ng = normalize_grade(grade)
     ns = normalize_subject(subject)
 
-    # 0. Check known chapters map
-    known_chs = (
-        KNOWN_CHAPTERS_MAP.get((nb, ng, ns))
-        or KNOWN_CHAPTERS_MAP.get((nb, ng, subject.strip()))
-        or KNOWN_CHAPTERS_MAP.get((board.strip(), ng, ns))
-    )
-    if not known_chs and ns in ("Science 1", "Science 2", "Science"):
-        known_chs = (
-            KNOWN_CHAPTERS_MAP.get((nb, ng, "Science"))
-            or KNOWN_CHAPTERS_MAP.get((nb, ng, "Science 1"))
-            or KNOWN_CHAPTERS_MAP.get((board.strip(), ng, "Science"))
-        )
-    if not known_chs and ns in ("Maths 1", "Maths 2", "Maths"):
-        known_chs = (
-            KNOWN_CHAPTERS_MAP.get((nb, ng, "Maths"))
-            or KNOWN_CHAPTERS_MAP.get((nb, ng, "Maths 1"))
-            or KNOWN_CHAPTERS_MAP.get((board.strip(), ng, "Maths"))
-        )
-    if known_chs:
-        return known_chs
+    # Build prioritized subject candidate aliases
+    candidates = [ns]
+    raw_s = subject.strip()
+    if raw_s and raw_s not in candidates:
+        candidates.append(raw_s)
 
-    # 1. Check known textbook map for direct file match
-    direct_file = (
-        KNOWN_TEXTBOOK_MAP.get((nb, ng, ns))
-        or KNOWN_TEXTBOOK_MAP.get((nb, ng, subject.strip()))
-        or KNOWN_TEXTBOOK_MAP.get((board.strip(), ng, ns))
-    )
-    if not direct_file and ns in ("Science 1", "Science 2", "Science"):
-        direct_file = KNOWN_TEXTBOOK_MAP.get((nb, ng, "Science")) or KNOWN_TEXTBOOK_MAP.get((nb, ng, "Science 1"))
-    if not direct_file and ns in ("Maths 1", "Maths 2", "Maths"):
-        direct_file = KNOWN_TEXTBOOK_MAP.get((nb, ng, "Maths")) or KNOWN_TEXTBOOK_MAP.get((nb, ng, "Maths 1"))
-    if direct_file:
-        pdf_path = find_pdf_path(direct_file)
-        if pdf_path:
-            chs = parse_textbook_toc(pdf_path, direct_file)
-            if chs:
-                return chs
+    # Dynamic cross-subject aliases
+    if ns in ("History", "History & Civics", "History & Political Science"):
+        for a in ("History", "History & Political Science", "History & Civics", "Social Science"):
+            if a not in candidates:
+                candidates.append(a)
+    elif ns in ("Political Science", "Civics"):
+        for a in ("Political Science", "Civics", "History & Political Science", "History & Civics", "Social Science"):
+            if a not in candidates:
+                candidates.append(a)
+    elif ns == "Geography":
+        for a in ("Geography", "Social Science"):
+            if a not in candidates:
+                candidates.append(a)
+    elif ns in ("Science", "Science 1", "Science 2", "Physics", "Chemistry", "Biology"):
+        for a in ("Science", "Science 1", "Science 2", "Science & Technology", "Physics", "Chemistry", "Biology"):
+            if a not in candidates:
+                candidates.append(a)
+    elif ns in ("Maths", "Maths 1", "Maths 2", "Mathematics"):
+        for a in ("Maths", "Maths 1", "Maths 2", "Algebra", "Geometry", "Mathematics"):
+            if a not in candidates:
+                candidates.append(a)
+    elif ns in ("English", "English Balbharati", "English Kumarbharati", "English Yuvakbharati"):
+        for a in ("English", "English Balbharati", "English Kumarbharati", "English Yuvakbharati"):
+            if a not in candidates:
+                candidates.append(a)
+
+    # 0. Check known chapters map across all candidates
+    for c_subj in candidates:
+        known_chs = (
+            KNOWN_CHAPTERS_MAP.get((nb, ng, c_subj))
+            or KNOWN_CHAPTERS_MAP.get((board.strip(), ng, c_subj))
+        )
+        if known_chs:
+            return known_chs
+
+    # 1. Check known textbook map for direct file match across all candidates
+    for c_subj in candidates:
+        direct_file = (
+            KNOWN_TEXTBOOK_MAP.get((nb, ng, c_subj))
+            or KNOWN_TEXTBOOK_MAP.get((board.strip(), ng, c_subj))
+        )
+        if direct_file:
+            pdf_path = find_pdf_path(direct_file)
+            if pdf_path:
+                chs = parse_textbook_toc(pdf_path, direct_file)
+                if chs:
+                    return chs
 
     # 2. Check ICSE generated textbooks pattern: ICSE_Class{grade}_{subject}_Textbook.pdf
     if "icse" in nb.lower():
@@ -1251,6 +1275,18 @@ ORDINAL_CHAPTER_WORDS = {
 }
 
 
+SUBJECT_CANDIDATES = [
+    "history & political science", "history & civics", "political science", "civics",
+    "social science", "social studies",
+    "history", "geography", "economics",
+    "science 1", "science 2", "science & technology", "science b", "science a", "science",
+    "maths 1", "maths 2", "algebra", "geometry", "maths", "mathematics",
+    "physics", "chemistry", "biology",
+    "english", "hindi", "marathi", "sanskrit",
+    "accountancy", "commerce", "defence studies",
+]
+
+
 def get_chapter_grounding(
     message: str,
     req_board: Optional[str] = None,
@@ -1261,7 +1297,7 @@ def get_chapter_grounding(
     """Detect if a user query is asking for a chapter name/number or syllabus TOC, and return authoritative grounding text."""
     low = (message or "").lower()
 
-    # 1. Extract grade if explicitly mentioned in query
+    # 1. Extract grade if explicitly mentioned in query or history
     grade = req_grade
     gm = (
         re.search(r"\b(?:class|grade|std\.?|standard)\s*(\d{1,2})\b", low)
@@ -1272,19 +1308,44 @@ def get_chapter_grounding(
         gm = re.search(r"\b(\d{1,2})(?:st|nd|rd|th)\s+(?!ch(?:apter)?|chp?\.?|lesson|unit)\b", low)
     if gm:
         grade = gm.group(1)
+    elif not grade and history:
+        for m in reversed(history[-4:]):
+            prev_txt = (m.get("content") or "" if isinstance(m, dict) else getattr(m, "content", "")).lower()
+            prev_gm = (
+                re.search(r"\b(?:class|grade|std\.?|standard)\s*(\d{1,2})\b", prev_txt)
+                or re.search(r"\b(\d{1,2})(?:st|nd|rd|th)\s+(?:std|class|grade|standard)\b", prev_txt)
+            )
+            if prev_gm:
+                grade = prev_gm.group(1)
+                break
 
-    # 2. Extract subject
-    subj = req_subject or "Science"
-    for s_cand in [
-        "science b", "science a", "science 1", "science 2", "science",
-        "maths 1", "maths 2", "maths", "algebra", "geometry",
-        "physics", "chemistry", "biology",
-        "history & political science", "history & civics", "history", "geography",
-        "english", "hindi", "marathi", "sanskrit",
-    ]:
-        if re.search(r"\b" + re.escape(s_cand) + r"\b", low):
-            subj = s_cand
-            break
+    # 2. Extract subject with negation handling (e.g. "not science. history")
+    subj = None
+    mentioned_subjs = []
+    for s_cand in SUBJECT_CANDIDATES:
+        m = re.search(r"\b" + re.escape(s_cand) + r"\b", low)
+        if m:
+            start_pos = m.start()
+            prefix = low[max(0, start_pos - 15):start_pos].strip()
+            is_negated = bool(re.search(r"\b(?:not|no|don't|dont|isn't|isnt|except|instead of)\s*$", prefix))
+            mentioned_subjs.append((s_cand, is_negated, start_pos))
+
+    non_neg_subjs = [s for s, neg, _ in mentioned_subjs if not neg]
+    if non_neg_subjs:
+        subj = non_neg_subjs[0]
+    elif history:
+        for m in reversed(history[-4:]):
+            prev_txt = (m.get("content") or "" if isinstance(m, dict) else getattr(m, "content", "")).lower()
+            for s_cand in SUBJECT_CANDIDATES:
+                if re.search(r"\b" + re.escape(s_cand) + r"\b", prev_txt):
+                    if not any(s_cand == ms and is_neg for ms, is_neg, _ in mentioned_subjs):
+                        subj = s_cand
+                        break
+            if subj:
+                break
+
+    if not subj:
+        subj = req_subject or "Science"
 
     # 3. Extract board
     board = req_board
@@ -1292,9 +1353,23 @@ def get_chapter_grounding(
         board = "CBSE (NCERT)"
     elif "icse" in low or "cisce" in low:
         board = "ICSE (CISCE)"
+    elif "igcse" in low or "cambridge" in low:
+        board = "IGCSE (Cambridge)"
     elif "state board" in low or "maharashtra" in low or "balbharati" in low or "balbharti" in low or "std" in low:
         board = "Maharashtra State Board (Balbharati)"
-    elif not board:
+    elif not board and history:
+        for m in reversed(history[-4:]):
+            prev_txt = (m.get("content") or "" if isinstance(m, dict) else getattr(m, "content", "")).lower()
+            if "cbse" in prev_txt or "ncert" in prev_txt:
+                board = "CBSE (NCERT)"
+                break
+            elif "icse" in prev_txt or "cisce" in prev_txt:
+                board = "ICSE (CISCE)"
+                break
+            elif "state board" in prev_txt or "maharashtra" in prev_txt or "balbharati" in prev_txt:
+                board = "Maharashtra State Board (Balbharati)"
+                break
+    if not board:
         board = "Maharashtra State Board (Balbharati)" if (grade and int(grade) <= 10 and "std" in low) else "CBSE (NCERT)"
 
     # Normalize parameters
@@ -1310,7 +1385,7 @@ def get_chapter_grounding(
     target_num: Optional[int] = None
     target_ch: Optional[str] = None
 
-    # Pattern A: "8th chapter", "8th chp", "8th ch", "8 chapter", "8th lesson", "8th unit", "my 8th chp"
+    # Pattern A: "8th chapter", "8th chp", "8th ch", "3 chp", "my 8th chp"
     nm = re.search(r"\b(\d+)(?:st|nd|rd|th)?\s*(?:ch(?:apter)?|chp?\.?|lesson|unit)\b", low)
     if nm:
         target_num = int(nm.group(1))
@@ -1328,7 +1403,7 @@ def get_chapter_grounding(
                 target_num = num
                 break
 
-    # Pattern D: Query mentions a known chapter title or distinct keywords from a chapter (e.g. "Useful and Harmful Microbes")
+    # Pattern D: Query mentions a known chapter title or distinct keywords from a chapter
     clean_q = re.sub(r"[^a-z0-9\s]", "", low.replace("&", "and"))
     if not target_num:
         for idx, c in enumerate(chs, 1):
@@ -1338,6 +1413,23 @@ def get_chapter_grounding(
             if clean_t and (clean_t in clean_q or (len(clean_t) > 6 and all(w in clean_q for w in clean_t.split() if len(w) > 3))):
                 target_num = idx
                 target_ch = raw_title
+                break
+
+    # Pattern E: Multi-turn fallback: Inherit target chapter number from recent history if user corrected or clarified
+    if not target_num and history:
+        for m in reversed(history[-4:]):
+            prev_txt = (m.get("content") or "" if isinstance(m, dict) else getattr(m, "content", "")).lower()
+            p_nm = re.search(r"\b(\d+)(?:st|nd|rd|th)?\s*(?:ch(?:apter)?|chp?\.?|lesson|unit)\b", prev_txt)
+            if not p_nm:
+                p_nm = re.search(r"\b(?:ch(?:apter)?|chp?\.?|lesson|unit)\s*(?:no\.?|number|#)?\s*(\d+)\b", prev_txt)
+            if p_nm:
+                target_num = int(p_nm.group(1))
+                break
+            for word, num in ORDINAL_CHAPTER_WORDS.items():
+                if re.search(rf"\b{word}\s+(?:ch(?:apter)?|chp?\.?|lesson|unit)\b", prev_txt) or re.search(rf"\b(?:ch(?:apter)?|chp?\.?|lesson|unit)\s+{word}\b", prev_txt):
+                    target_num = num
+                    break
+            if target_num:
                 break
 
     # If target_num is identified within bounds, resolve target_ch
@@ -1351,9 +1443,9 @@ def get_chapter_grounding(
         or re.search(r"\b(syllabus|table of contents|index|toc|contents|list (?:of )?chapters|how many chapters)\b", low)
     )
 
-    # Check conversation history for follow-up confirmations or challenges (e.g. "isn't it ...", "are you sure")
+    # Check conversation history for follow-up confirmations or challenges
     if not is_toc_query and history:
-        for m in reversed(history[-3:]):
+        for m in reversed(history[-4:]):
             prev_content = (m.get("content") or "" if isinstance(m, dict) else getattr(m, "content", "")).lower()
             if any(k in prev_content for k in ("chapter", "lesson", "syllabus", "textbook", "balbharati", "board")):
                 is_toc_query = True
@@ -1364,15 +1456,17 @@ def get_chapter_grounding(
 
     toc_lines = [f"• {c['chapter']}" for c in chs]
     grounding = (
-        f"OFFICIAL TEXTBOOK TABLE OF CONTENTS ({nb} Class {ng} {ns}):\n"
+        f"AUTHORITATIVE CURRICULUM GROUNDING ({nb} Class {ng} {ns}):\n"
         + "\n".join(toc_lines)
     )
     if target_ch:
+        clean_target_name = re.sub(r"^chapter\s*\d+\s*:\s*", "", target_ch, flags=re.IGNORECASE)
         grounding += (
-            f"\n\nVERIFIED MATCH & ABSOLUTE TRUTH: Chapter {target_num} is \"{target_ch}\".\n"
-            f"1. You MUST state directly in your opening sentence that Chapter {target_num} is \"{target_ch}\".\n"
-            f"2. ABSOLUTE DIRECTIVE: NEVER claim Chapter {target_num} is 'Heat' or any other chapter.\n"
-            f"3. NEVER claim \"{target_ch}\" is from Class 10 or another grade when it is officially in Class {ng} right here.\n"
-            f"4. If the student previously challenged or corrected you with \"{target_ch}\", warmly validate and confirm they are 100% correct according to the official state textbook!"
+            f"\n\nVERIFIED MATCH & SUPREME TRUTH: Chapter {target_num} of {ns} (Class {ng}, {nb}) is \"{clean_target_name}\" (Full: \"{target_ch}\").\n"
+            f"1. You MUST state directly in your opening sentence that Chapter {target_num} is \"{clean_target_name}\".\n"
+            f"2. ABSOLUTE DIRECTIVE: NEVER claim Chapter {target_num} is any other chapter or unit name (e.g. never say 'The Challenge of Nation-building', 'The Age of Revolution', 'Heat', etc.).\n"
+            f"3. NEVER confuse teacher competency unit titles or lesson headings with the official chapter name.\n"
+            f"4. If the student previously corrected or challenged you, warmly validate and confirm they are 100% correct according to the official state textbook!"
         )
     return grounding
+

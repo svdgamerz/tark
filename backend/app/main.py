@@ -1004,12 +1004,20 @@ async def _chat_impl(
 
     source_items: list[str] = []  # citations, sent as a structured event
     source_excerpts = ""  # the textbook text, for the Checker to verify against
+    ch_grounding = None
     # Authoritative Table of Contents & Chapter grounding for syllabus/chapter inquiries (only when not a memory query)
     if not is_mem_query:
         from app.textbook_service import get_chapter_grounding
         ch_grounding = get_chapter_grounding(last_user, req.board or req.exam, req.grade, req.subject, history=req.messages)
         if ch_grounding:
-            system_prompt += f"\n\n{ch_grounding}"
+            system_prompt += (
+                f"\n\n{ch_grounding}\n\n"
+                "CRITICAL DIRECTIVE ON SYLLABUS & CHAPTER TITLES:\n"
+                "- The AUTHORITATIVE CURRICULUM GROUNDING table above is the absolute ground truth.\n"
+                "- When the student asks for a chapter number, name, or index, you MUST state the exact chapter title from this table.\n"
+                "- NEVER invent or hallucinate alternate chapter titles. NEVER confuse competency unit titles or lesson headings with chapter titles.\n"
+                "- If the student previously corrected or reminded you of the textbook index, warmly acknowledge and agree with them."
+            )
 
     hits = None  # top retrieval hits (also used for the learner model's topic)
     grounded_generated = False
@@ -1218,10 +1226,11 @@ async def _chat_impl(
                     pass  # never block the answer on the checker
             # Checker (§7): for real-textbook answers, verify the answer doesn't
             # contradict the source passage (silent unless it finds a real drift).
-            elif source_excerpts and len(answer) > 200:
+            elif (source_excerpts or ch_grounding) and len(answer) > 200:
                 try:
+                    verify_context = f"{ch_grounding}\n\n{source_excerpts}" if ch_grounding else source_excerpts
                     note = await _verify_against_source(
-                        last_user, answer, source_excerpts
+                        last_user, answer, verify_context
                     )
                     if note:
                         yield _sse({"type": "token", "text": note})
