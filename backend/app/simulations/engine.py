@@ -425,49 +425,100 @@ def detect_simulation_candidate(text: str, subject: str = "") -> dict[str, Any] 
     return None
 
 
-CUSTOM_SIM_SYSTEM_PROMPT = """You are Tark's Principal Educational Simulation Architect & Lead Computational Scientist.
-The student needs a world-class, interactive STEM virtual laboratory simulation that renders immediately inside a full-bleed iframe.
+CUSTOM_SIM_SYSTEM_PROMPT = """You are Tark's Chief Simulation Architect & Distinguished Computational Scientist.
+The student needs a world-class, university/medical-grade interactive STEM virtual laboratory simulation that renders immediately inside a full-bleed iframe.
 
 CRITICAL MANDATE:
-The simulation must look and feel authentic, state-of-the-art, and deeply educational—NOT a crude cartoon.
-Students must immediately understand the scientific mechanism through visual clarity, smooth 60 FPS motion, interactive sliders, and clickable/hoverable inspection callouts.
+The simulation must look, feel, and behave like an authentic state-of-the-art virtual laboratory (PhET / Labster / BioRender caliber)—NOT a crude cartoon or flat wireframe.
+Students must immediately grasp the scientific mechanism through visual elegance, smooth 60 FPS continuous animation, interactive parameter sliders, and clickable/hoverable inspection callouts.
 
 OUTPUT SPECIFICATIONS:
-Return a COMPLETE, standalone, self-contained single-page HTML5 document (starting with <!DOCTYPE html> and ending with </html>) with embedded CSS and JavaScript.
-Do NOT use external CDN dependencies (no unpkg, no external fonts or heavy scripts) so it loads instantly with 100% offline reliability. Use pure Canvas 2D / 3D projection, CSS Glassmorphism, and vanilla JavaScript.
+Return a COMPLETE, standalone, self-contained single-page HTML5 document (starting with <!DOCTYPE html> and ending with </html>) with all CSS and JavaScript embedded inline.
+Do NOT use external CDN dependencies (no unpkg, no CDN fonts or scripts) for 100% offline instant loading. Use pure HTML5 Canvas 2D / procedural rendering, CSS Glassmorphism, and vanilla JavaScript.
 
 DESIGN ARCHITECTURE (MANDATORY STANDARD):
-1. Layout & Glassmorphism Theme:
-   - Full viewport (100vw, 100vh, margin: 0, padding: 0, overflow: hidden, background: #070d18).
-   - Modern system font stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif.
-   - Top Header Bar (#0b1329 with glass blur, border-bottom: 1px solid rgba(56, 189, 248, 0.15)):
+1. Layout & Styling:
+   - Viewport: 100vw, 100vh, margin: 0, padding: 0, overflow: hidden, background: #070d18.
+   - Font stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif.
+   - Top Scientific Telemetry Bar (#0b1329 with glass blur, border-bottom: 1px solid rgba(56, 189, 248, 0.2)):
      * Glowing icon & Title: e.g. "🧪 [Simulation Title]"
      * Badge pill: e.g. "Interactive Virtual Lab • [Subject]"
-     * Live Telemetry Chips: Dynamic calculated readouts with units & official formulas (e.g. "P = 1.02 atm", "λ = 589 nm").
-   - Center Visual Viewport:
-     * Full-width responsive <canvas id="simCanvas"></canvas> scaled with window.devicePixelRatio for razor-sharp Retina/4K rendering.
-     * Realistic visual depth: Smooth radial and linear gradients, volumetric highlights, shadow drops, realistic apparatus textures.
-     * Dynamic particle systems / vector field arrows with distinct arrowhead drawing.
+     * 3 to 4 Live Telemetry Chips with real-time calculated values, SI units, and official formulas (e.g. "P = 120 kPa", "F₂ = 600 N", "λ = 589 nm", "v = 14.2 m/s").
+     * Audio toggle button (🔊 / 🔇) controlling synthesized Web Audio clicks.
+   - Dual-Panel Canvas Viewport (<canvas id="simCanvas"></canvas>):
+     * Automatically scaled with window.devicePixelRatio for razor-sharp Retina/4K display.
+     * LEFT PANEL (60% to 65% width): Main Physical Apparatus / Biological System / Molecular Field.
+       - Realistic visual depth: volumetric linear and radial gradients, specular glass reflection highlights, meniscus curve on fluids, metallic shading on pistons/electrodes, soft shadow drops, and animated particle flows.
+       - Distinct vector arrows with glowing arrowheads for forces, velocities, or field directions.
+     * RIGHT PANEL (35% to 40% width): Live Real-Time Analytical Graph & Oscilloscope.
+       - Plots the governing scientific function curve (e.g., P vs V, Force vs Area Ratio, Reaction Rate vs [S], I vs V, or wave displacement vs time).
+       - Grid lines, coordinate axes with units, and a glowing pulsing marker tracking the EXACT operating point (x, y) that moves dynamically as sliders or time changes!
+       - Formula banner above the graph (e.g. "F₂ = F₁ · (A₂/A₁)" or "v = (Vmax · [S]) / (Km + [S])").
    - Floating Click/Hover Educational Inspector Card (#inspector):
      * When student hovers or clicks on any organ, component, or particle, show an anatomical/scientific callout card displaying:
        - Component Name
        - Physiological or Physical Role
        - Textbook Key Concept / Formula
-   - Floating Bottom Control Dock (Glassmorphism #0b1329/85 with backdrop-filter: blur(12px)):
-     * 2 to 4 smooth range sliders with live value pills updating in real-time.
+   - Floating Bottom Control Dock (Glassmorphism #0b1329/90 with backdrop-filter: blur(14px), border-top: 1px solid rgba(56, 189, 248, 0.2)):
+     * Presets Bar: 3 to 4 distinct scenario pills (e.g. "Default State", "High Intensity", "Equilibrium / Resonance", "Exam Problem"). Clicking a preset smoothly updates all sliders and recalculates.
+     * 2 to 4 smooth range sliders with live value badges and physical units.
      * Play/Pause button (`▶ Play` / `⏸ Pause`).
-     * Reset button (`↺ Reset`).
-     * Preset condition buttons to jump between key textbook states.
+     * Reset button (`↺ Reset Defaults`).
 
 2. Physics & Biological Authenticity:
    - Run a smooth 60 FPS `requestAnimationFrame` loop with delta-time calculation (`dt = Math.min((now - last) / 1000, 0.05)`).
-   - If Physics: Obey exact textbook formulas (kinematics, Snell's law, Ohm's law, Faraday induction, Coulomb's law, wave superposition).
+   - If Physics: Obey exact textbook formulas (kinematics, Pascal's law, Snell's law, Ohm's law, Faraday induction, Coulomb's law, wave superposition, Doppler effect).
    - If Biology/Anatomy: Accurately model anatomical structures, tissue layers, fluid circulation, or cellular organelles with clean medical studio styling.
    - If Chemistry: Show molecular bonds, stoichiometry ratios, titration color transitions, or gas molecule kinetics.
+   - Web Audio API: Synthesize subtle audio feedback clicks on slider input using an oscillator (sine wave ramped down quickly).
 
 3. Output Format:
-   - Return ONLY the raw HTML code starting with <!DOCTYPE html> and ending with </html>.
-   - Do NOT wrap in markdown fences (no ```html), no introductory conversational padding."""
+   - Return ONLY raw HTML starting with <!DOCTYPE html> and ending with </html>.
+   - Do NOT wrap in markdown fences (no ```html), no conversational commentary."""
+
+
+SPEC_SIM_SYSTEM_PROMPT = """You are Tark's Chief Simulation Architect. Given a STEM topic and textbook grounding, design an interactive virtual laboratory specification.
+Return ONLY a valid, parseable JSON object with NO markdown fences, matching this schema:
+{
+  "title": "Short Descriptive Title with Emoji (e.g. 🧪 Hydraulic Lift & Pascal's Law)",
+  "subject": "Physics" | "Chemistry" | "Biology" | "Mathematics",
+  "formula": "Primary Governing Textbook Equation (e.g. F1/A1 = F2/A2)",
+  "readouts": [
+    {"label": "Pressure (P)", "calc_js": "((p.F1 / p.A1) / 1000).toFixed(1)", "unit": "kPa"},
+    {"label": "Output Force (F2)", "calc_js": "((p.F1 / p.A1) * p.A2).toFixed(1)", "unit": "N"},
+    {"label": "Mechanical Advantage", "calc_js": "(p.A2 / p.A1).toFixed(1)", "unit": "×"}
+  ],
+  "params": [
+    {"key": "F1", "label": "Input Force (F1)", "min": 10, "max": 500, "step": 5, "default": 50, "unit": "N"},
+    {"key": "A1", "label": "Small Piston Area (A1)", "min": 10, "max": 100, "step": 5, "default": 25, "unit": "cm²"},
+    {"key": "A2", "label": "Large Piston Area (A2)", "min": 100, "max": 1000, "step": 20, "default": 250, "unit": "cm²"}
+  ],
+  "presets": [
+    {"label": "Standard (10× Lift)", "params": {"F1": 50, "A1": 25, "A2": 250}},
+    {"label": "Heavy Truck (25× Lift)", "params": {"F1": 100, "A1": 20, "A2": 500}},
+    {"label": "Equal Area (1:1)", "params": {"F1": 80, "A1": 100, "A2": 100}},
+    {"label": "Maximum Pressure", "params": {"F1": 400, "A1": 20, "A2": 600}}
+  ],
+  "components": [
+    {"name": "Narrow Cylinder (Input)", "role": "Applies downward effort F1 to incompressible fluid", "formula": "P = F1 / A1", "bounds_js": "{x: appW*0.18, y: appH*0.25, w: appW*0.22, h: appH*0.65}"},
+    {"name": "Hydraulic Fluid Base", "role": "Transmits fluid pressure undiminished throughout", "formula": "Pascal's Law: ΔP is equal everywhere", "bounds_js": "{x: appW*0.18, y: appH*0.75, w: appW*0.64, h: appH*0.15}"},
+    {"name": "Wide Cylinder (Load)", "role": "Produces amplified upward lifting force F2", "formula": "F2 = P · A2", "bounds_js": "{x: appW*0.52, y: appH*0.2, w: appW*0.34, h: appH*0.7}"}
+  ],
+  "graph": {
+    "title": "Output Force F2 vs Area Ratio (A2/A1)",
+    "formula": "F2 = F1 · (A2/A1)",
+    "xLabel": "Area Ratio (A2/A1)",
+    "yLabel": "Output Force F2 (N)",
+    "xMin": 1,
+    "xMax": 30,
+    "yMin": 0,
+    "yMax": 5000,
+    "fn_js": "x * p.F1",
+    "getCurrentX_js": "p.A2 / p.A1"
+  },
+  "draw_apparatus_code": "JavaScript canvas code drawing inside the left viewport (appW x appH). Variables `ctx`, `appW`, `appH`, `p` (current params), and `state` are in scope. You can draw directly using ctx or call helpers: helpers.drawCylinder({x, y, w, h, label}), helpers.drawFluid({x, y, w, h, color, label, pressure}), helpers.drawPiston({x, y, w, h, rodLength, color}), helpers.drawGlassware({x, y, w, h, liquidRatio, color, label}), helpers.drawGauge({x, y, r, minVal, maxVal, curVal, label, unit}), helpers.drawSphere({x, y, r, color, label}), helpers.drawBox({x, y, w, h, color, stroke, label}), helpers.drawVector({x1, y1, x2, y2, color, label}), helpers.drawSpring({x1, y1, x2, y2, coils, color}), helpers.drawWave({x, y, w, amp, freq, phase, color, label}), helpers.drawRay({x1, y1, x2, y2, color}). You can either write procedural canvas commands or declare `function drawApparatus(ctx, appW, appH, p, state) { ... }`. Always produce realistic volumetric STEM laboratory apparatus."
+}
+CRITICAL: Return ONLY raw JSON without markdown code fences."""
 
 
 async def generate_custom_simulation_html(question: str, context: str = "", subject: str = "") -> dict[str, Any] | None:
@@ -477,6 +528,7 @@ async def generate_custom_simulation_html(question: str, context: str = "", subj
         return None
 
     from app.main import _llm_text
+    from app.simulations.harness import build_harness_html
 
     # Search indexed textbooks (NCERT, ICSE, State Boards) for official curriculum grounding
     grounding = find_textbook_grounding_for_topic(question)
@@ -490,42 +542,83 @@ async def generate_custom_simulation_html(question: str, context: str = "", subj
             f"IMPORTANT: Faithfully model the official textbook apparatus, physical laws, and variables described above in your simulation."
         )
 
-    prompt = (
+    spec_user_prompt = (
         f"Scientific Topic to simulate: {question.strip()}\n"
         f"Pedagogical Context: {context.strip()[:600] if context else 'Standard STEM curriculum laboratory experiment'}"
         f"{tb_section}\n\n"
-        f"INSTRUCTION: Create a complete, self-contained, photorealistic 60 FPS interactive HTML5 canvas simulation of this topic. "
-        f"Include realistic apparatus/organ anatomy, dynamic motion, live telemetry indicators, smooth sliders with value readouts, "
-        f"and clickable/hoverable inspection callouts explaining key structures."
+        f"INSTRUCTION: Create the full JSON virtual lab specification for this topic. "
+        f"Provide realistic parameter sliders, 4 textbook scenario presets, 3 inspectable components, "
+        f"and the exact analytical curve function for the dynamic graph. Return ONLY raw JSON."
     )
-    raw_html = ""
 
-    # Prioritize fast, high-capacity models with low latency (Groq / OpenRouter)
+    clean_html = ""
+    parsed_spec = None
+
+    # Step 1: Rapid High-Fidelity Structured Spec Generation via Master Harness
     for mid in ("gpt-oss-120b", "llama-70b", "deepseek-chat"):
         try:
-            logger.info(f"Generating photorealistic simulation with {mid} for topic: {question[:40]}...")
-            raw_html = await asyncio.wait_for(
-                _llm_text(CUSTOM_SIM_SYSTEM_PROMPT, prompt, mid),
-                timeout=35.0,
+            logger.info(f"Generating simulation specification with {mid} for topic: {question[:40]}...")
+            raw_spec = await asyncio.wait_for(
+                _llm_text(SPEC_SIM_SYSTEM_PROMPT, spec_user_prompt, mid),
+                timeout=25.0,
             )
-            if raw_html and len(raw_html.strip()) > 500:
-                break
+            if raw_spec and "{" in raw_spec:
+                # Strip accidental markdown fences
+                raw_clean = raw_spec.strip()
+                if raw_clean.startswith("```json"):
+                    raw_clean = raw_clean[7:]
+                if raw_clean.startswith("```"):
+                    raw_clean = raw_clean[3:]
+                if raw_clean.endswith("```"):
+                    raw_clean = raw_clean[:-3]
+                raw_clean = raw_clean.strip()
+
+                m = re.search(r"\{.*\}", raw_clean, re.DOTALL)
+                if m:
+                    parsed_spec = json.loads(m.group(0))
+                    clean_html = build_harness_html(parsed_spec)
+                    logger.info(f"Successfully compiled simulation HTML via Master Harness ({len(clean_html)} bytes) on {mid}")
+                    break
         except Exception as e:
-            logger.warning(f"Simulation generation failed on {mid}: {e}")
+            logger.warning(f"Structured simulation generation attempt failed on {mid}: {e}")
             continue
 
-    if not raw_html:
-        return None
+    # Step 2: Fallback to standalone HTML generator if JSON parsing failed
+    if not clean_html:
+        prompt_html = (
+            f"Scientific Topic to simulate: {question.strip()}\n"
+            f"Pedagogical Context: {context.strip()[:600] if context else 'Standard STEM curriculum laboratory experiment'}"
+            f"{tb_section}\n\n"
+            f"MANDATORY: Return a complete, self-contained, 60 FPS HTML5 Canvas virtual lab with top telemetry bar, "
+            f"dual-panel split canvas, presets dock, and interactive sliders. Return ONLY raw HTML starting with <!DOCTYPE html>."
+        )
+        for mid in ("gpt-oss-120b", "llama-70b"):
+            try:
+                logger.info(f"Attempting fallback HTML simulation generation on {mid}...")
+                raw_html = await asyncio.wait_for(
+                    _llm_text(CUSTOM_SIM_SYSTEM_PROMPT, prompt_html, mid),
+                    timeout=35.0,
+                )
+                if raw_html and "<html" in raw_html.lower():
+                    clean_html = re.sub(r"^```(?:html)?\s*", "", raw_html.strip(), flags=re.IGNORECASE)
+                    clean_html = re.sub(r"```\s*$", "", clean_html.strip())
+                    break
+            except Exception as e:
+                logger.warning(f"Fallback simulation generation failed on {mid}: {e}")
+                continue
 
-    # Clean any accidental markdown code blocks
-    clean_html = re.sub(r"^```(?:html)?\s*", "", raw_html.strip(), flags=re.IGNORECASE)
-    clean_html = re.sub(r"```\s*$", "", clean_html.strip())
+    if not clean_html:
+        return None
 
     # Verify basic HTML integrity
     lower_html = clean_html.lower()
     if "<html" not in lower_html or ("<canvas" not in lower_html and "<svg" not in lower_html and "<script" not in lower_html):
         logger.warning("Generated HTML did not meet minimum canvas/svg requirements")
         return None
+
+    sim_title = (parsed_spec.get("title") if parsed_spec else None) or f"Lab: {question[:40]}"
+    sim_subject = (parsed_spec.get("subject") if parsed_spec else None) or subject or "Interactive Virtual Lab"
+    sim_concept = (parsed_spec.get("formula") if parsed_spec else None) or question[:60]
 
     desc = f"Interactive model for {question}. Adjust sliders to observe real-time behavior."
     if citations:
@@ -534,9 +627,9 @@ async def generate_custom_simulation_html(question: str, context: str = "", subj
     return {
         "id": f"sim_custom_{abs(hash(question)) % 100000}",
         "type": "custom_html",
-        "title": f"Lab: {question[:40]}",
-        "subject": subject or "Interactive Virtual Lab",
-        "concept": question[:60],
+        "title": sim_title,
+        "subject": sim_subject,
+        "concept": sim_concept,
         "description": desc,
         "htmlContent": clean_html,
         "html_content": clean_html,

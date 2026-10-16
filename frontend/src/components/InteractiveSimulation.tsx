@@ -220,13 +220,14 @@ export function InteractiveSimulation({ simulation }: Props) {
   }
 
   // If custom AI-generated HTML simulation
-  if (simulation.type === 'custom_html' && simulation.htmlContent) {
+  const customHtml = simulation.type === 'custom_html' ? (simulation.htmlContent || (simulation as any).html_content) : null
+  if (simulation.type === 'custom_html' && customHtml) {
     return (
       <>
         <div className="sim-card">
           <div className="sim-header">
             <div className="sim-title-group">
-              <span className="sim-badge">🎮 Interactive Virtual Lab</span>
+              <span className="sim-badge">🧪 Interactive Virtual Lab</span>
               <span className="sim-title">{simulation.title || 'Interactive Model'}</span>
             </div>
             <div className="sim-actions">
@@ -242,9 +243,10 @@ export function InteractiveSimulation({ simulation }: Props) {
           </div>
           <div className="sim-iframe-wrap">
             <iframe
-              srcDoc={simulation.htmlContent}
+              srcDoc={customHtml}
               title={simulation.title}
-              sandbox="allow-scripts allow-same-origin"
+              sandbox="allow-scripts allow-same-origin allow-forms"
+              allow="autoplay"
               className="sim-iframe"
             />
           </div>
@@ -272,9 +274,10 @@ export function InteractiveSimulation({ simulation }: Props) {
                 </div>
                 <div className="sim-lab-iframe-viewport">
                   <iframe
-                    srcDoc={simulation.htmlContent}
+                    srcDoc={customHtml}
                     title={simulation.title}
-                    sandbox="allow-scripts allow-same-origin"
+                    sandbox="allow-scripts allow-same-origin allow-forms"
+                    allow="autoplay"
                     className="sim-iframe-full"
                   />
                 </div>
