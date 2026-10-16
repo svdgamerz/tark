@@ -35,13 +35,27 @@ def build_harness_html(spec: dict[str, Any]) -> str:
         unit = p.get("unit", "")
         step = p.get("step", 1)
         sliders_html += f"""
-        <div class="slider-cell">
+        <div class="slider-cell" id="cell_{key}">
           <div class="slider-header">
-            <span class="slider-label">{p['label']}</span>
-            <span class="slider-value-pill" id="val_{key}">{val} {unit}</span>
+            <div class="slider-label-group">
+              <span class="slider-dot"></span>
+              <span class="slider-label">{p['label']}</span>
+            </div>
+            <div class="slider-value-pill" id="val_{key}">
+              <span class="val-num">{val}</span><span class="val-unit"> {unit}</span>
+            </div>
           </div>
-          <input type="range" class="range-slider" id="slider_{key}" data-unit="{unit}"
-                 min="{p['min']}" max="{p['max']}" step="{step}" value="{val}">
+          <div class="slider-control-row">
+            <button type="button" class="nudge-btn nudge-btn-minus" data-key="{key}" data-step="-{step}" title="Nudge lower">−</button>
+            <input type="range" class="range-slider" id="slider_{key}" data-unit="{unit}"
+                   min="{p['min']}" max="{p['max']}" step="{step}" value="{val}">
+            <button type="button" class="nudge-btn nudge-btn-plus" data-key="{key}" data-step="{step}" title="Nudge higher">+</button>
+          </div>
+          <div class="slider-bounds-row">
+            <span class="bound-tag bound-min">MIN: {p['min']} {unit}</span>
+            <span class="bound-tag bound-step">Δ {step}</span>
+            <span class="bound-tag bound-max">MAX: {p['max']} {unit}</span>
+          </div>
         </div>"""
 
     # Build presets HTML
@@ -195,34 +209,35 @@ html, body {{
 
 /* Top Scientific Telemetry Bar */
 #topBar {{
-  height: 48px; background: var(--panel); backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--panel-border);
+  height: 54px; background: rgba(11, 19, 41, 0.98); backdrop-filter: blur(16px);
+  border-bottom: 1.5px solid rgba(56, 189, 248, 0.35);
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 16px; z-index: 20; flex-shrink: 0;
+  padding: 0 20px; z-index: 20; flex-shrink: 0;
 }}
-.header-left {{ display: flex; align-items: center; gap: 10px; }}
-.lab-icon {{ font-size: 1.25rem; }}
-.lab-title {{ font-size: 1rem; font-weight: 700; color: #f8fafc; }}
+.header-left {{ display: flex; align-items: center; gap: 12px; }}
+.lab-icon {{ font-size: 1.35rem; }}
+.lab-title {{ font-size: 1.05rem; font-weight: 800; color: #f8fafc; letter-spacing: -0.01em; }}
 .lab-badge {{
-  background: rgba(56, 189, 248, 0.14); border: 1px solid rgba(56, 189, 248, 0.35);
-  color: #38bdf8; font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  background: rgba(56, 189, 248, 0.16); border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #38bdf8; font-size: 0.76rem; font-weight: 700; padding: 3px 10px; border-radius: 999px;
   letter-spacing: 0.4px;
 }}
-.header-center {{ display: flex; align-items: center; gap: 8px; overflow-x: auto; scrollbar-width: none; }}
+.header-center {{ display: flex; align-items: center; gap: 10px; overflow-x: auto; scrollbar-width: none; }}
 .telemetry-chip {{
-  background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(56, 189, 248, 0.25);
-  border-radius: 8px; padding: 4px 10px; font-size: 0.8rem; font-family: ui-monospace, SFMono-Regular, monospace;
-  color: #a5f3fc; display: flex; align-items: center; gap: 5px; white-space: nowrap;
+  background: rgba(15, 23, 42, 0.95); border: 1.5px solid rgba(56, 189, 248, 0.45);
+  border-radius: 8px; padding: 6px 14px; font-size: 0.92rem; font-family: ui-monospace, SFMono-Regular, monospace;
+  color: #a5f3fc; display: flex; align-items: center; gap: 8px; white-space: nowrap;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.15);
 }}
-.telemetry-label {{ color: #94a3b8; font-size: 0.72rem; font-family: -apple-system, sans-serif; }}
-.telemetry-val {{ font-weight: 700; color: #38bdf8; }}
+.telemetry-label {{ color: #94a3b8; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-family: -apple-system, sans-serif; }}
+.telemetry-val {{ font-weight: 800; color: #38bdf8; font-size: 1.15rem; text-shadow: 0 0 8px rgba(56, 189, 248, 0.5); }}
 .header-right {{ display: flex; align-items: center; gap: 8px; }}
 .icon-btn {{
-  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #cbd5e1; border-radius: 8px; width: 32px; height: 32px; display: flex;
-  align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; font-size: 0.95rem;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #cbd5e1; border-radius: 8px; width: 34px; height: 34px; display: flex;
+  align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; font-size: 1rem;
 }}
-.icon-btn:hover {{ background: rgba(56, 189, 248, 0.2); border-color: rgba(56, 189, 248, 0.4); color: #fff; }}
+.icon-btn:hover {{ background: rgba(56, 189, 248, 0.25); border-color: rgba(56, 189, 248, 0.55); color: #fff; }}
 
 /* Canvas Viewport */
 #canvasWrap {{ flex: 1; position: relative; width: 100%; overflow: hidden; background: #070d18; }}
@@ -231,64 +246,123 @@ html, body {{
 /* Floating Inspector Card */
 #inspectorCard {{
   position: absolute; pointer-events: none; z-index: 30; display: none;
-  background: rgba(11, 19, 41, 0.95); backdrop-filter: blur(16px);
-  border: 1px solid rgba(56, 189, 248, 0.45); border-radius: 10px;
-  padding: 10px 14px; max-width: 280px; box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7);
+  background: rgba(11, 19, 41, 0.96); backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(56, 189, 248, 0.55); border-radius: 10px;
+  padding: 10px 14px; max-width: 290px; box-shadow: 0 16px 36px rgba(0, 0, 0, 0.8);
   animation: fadeIn 0.12s ease-out;
 }}
-#inspectorCard h4 {{ margin: 0 0 4px 0; font-size: 0.92rem; color: #38bdf8; display: flex; align-items: center; gap: 6px; }}
-#inspectorCard p {{ margin: 0 0 6px 0; font-size: 0.78rem; color: #cbd5e1; line-height: 1.35; }}
+#inspectorCard h4 {{ margin: 0 0 4px 0; font-size: 0.95rem; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 6px; }}
+#inspectorCard p {{ margin: 0 0 6px 0; font-size: 0.8rem; color: #e2e8f0; line-height: 1.4; }}
 #inspectorCard .formula-tag {{
-  display: inline-block; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.35);
-  color: #a5f3fc; font-family: ui-monospace, monospace; font-size: 0.74rem; padding: 2px 6px; border-radius: 4px;
+  display: inline-block; background: rgba(56, 189, 248, 0.18); border: 1px solid rgba(56, 189, 248, 0.45);
+  color: #a5f3fc; font-family: ui-monospace, monospace; font-size: 0.78rem; font-weight: 700; padding: 2px 8px; border-radius: 5px;
 }}
 
 /* Bottom Control Dock */
 #dock {{
-  background: var(--panel); backdrop-filter: blur(16px);
-  border-top: 1px solid var(--panel-border);
-  padding: 8px 16px 10px 16px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; z-index: 20;
+  background: rgba(11, 19, 41, 0.98); backdrop-filter: blur(18px);
+  border-top: 1.5px solid rgba(56, 189, 248, 0.35);
+  padding: 10px 20px 14px 20px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; z-index: 20;
 }}
 .dock-top-row {{ display: flex; align-items: center; justify-content: space-between; gap: 12px; }}
-.presets-group {{ display: flex; align-items: center; gap: 6px; overflow-x: auto; scrollbar-width: none; }}
-.presets-title {{ font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; margin-right: 4px; white-space: nowrap; }}
+.presets-group {{ display: flex; align-items: center; gap: 8px; overflow-x: auto; scrollbar-width: none; }}
+.presets-title {{ font-size: 0.8rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-right: 4px; white-space: nowrap; letter-spacing: 0.05em; }}
 .preset-pill {{
-  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #cbd5e1; padding: 4px 10px; border-radius: 16px; font-size: 0.76rem; font-weight: 500;
+  background: rgba(255, 255, 255, 0.08); border: 1.5px solid rgba(255, 255, 255, 0.18);
+  color: #e2e8f0; padding: 5px 12px; border-radius: 16px; font-size: 0.82rem; font-weight: 600;
   cursor: pointer; white-space: nowrap; transition: all 0.15s;
 }}
 .preset-pill:hover, .preset-pill.active {{
-  background: rgba(56, 189, 248, 0.22); border-color: rgba(56, 189, 248, 0.55); color: #38bdf8;
+  background: rgba(56, 189, 248, 0.25); border-color: rgba(56, 189, 248, 0.65); color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
 }}
-.playback-controls {{ display: flex; align-items: center; gap: 6px; }}
+.playback-controls {{ display: flex; align-items: center; gap: 8px; }}
 .play-btn {{
   background: linear-gradient(135deg, #0284c7, #2563eb); border: none; color: #fff;
-  padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
-  display: flex; align-items: center; gap: 5px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+  padding: 6px 16px; border-radius: 8px; font-size: 0.86rem; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+  transition: all 0.15s;
 }}
+.play-btn:hover {{ transform: translateY(-1px); box-shadow: 0 6px 18px rgba(2, 132, 199, 0.5); }}
 .reset-btn {{
-  background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #cbd5e1; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer;
+  background: rgba(255, 255, 255, 0.08); border: 1.5px solid rgba(255, 255, 255, 0.18);
+  color: #cbd5e1; padding: 6px 14px; border-radius: 8px; font-size: 0.86rem; font-weight: 600; cursor: pointer;
+  transition: all 0.15s;
 }}
-.dock-sliders-row {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }}
+.reset-btn:hover {{ background: rgba(255, 255, 255, 0.15); color: #fff; }}
+
+.dock-sliders-row {{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}}
 .slider-cell {{
-  background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px; padding: 5px 10px; display: flex; flex-direction: column; gap: 4px;
+  background: rgba(15, 23, 42, 0.92); border: 1.5px solid rgba(56, 189, 248, 0.35);
+  border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5); transition: border-color 0.2s, box-shadow 0.2s;
 }}
-.slider-header {{ display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; }}
-.slider-label {{ color: #cbd5e1; font-weight: 500; }}
+.slider-cell:hover, .slider-cell:focus-within {{
+  border-color: rgba(56, 189, 248, 0.7);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
+}}
+.slider-header {{
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}}
+.slider-label-group {{
+  display: flex; align-items: center; gap: 8px;
+}}
+.slider-dot {{
+  width: 7px; height: 7px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 8px #38bdf8; flex-shrink: 0;
+}}
+.slider-label {{
+  color: #f8fafc; font-weight: 700; font-size: 0.92rem; letter-spacing: 0.02em;
+}}
 .slider-value-pill {{
-  color: #38bdf8; font-family: ui-monospace, monospace; font-weight: 700;
-  background: rgba(56, 189, 248, 0.12); padding: 1px 6px; border-radius: 4px;
+  color: #38bdf8; background: rgba(56, 189, 248, 0.18); border: 1.5px solid rgba(56, 189, 248, 0.6);
+  padding: 3px 10px; border-radius: 7px; box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
+  display: inline-flex; align-items: baseline; gap: 4px;
+}}
+.val-num {{
+  font-size: 1.25rem; font-weight: 800; font-family: ui-monospace, Menlo, Consolas, monospace;
+  text-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+}}
+.val-unit {{
+  font-size: 0.85rem; font-weight: 700; color: #94a3b8; font-family: -apple-system, sans-serif;
+}}
+.slider-control-row {{
+  display: flex; align-items: center; gap: 8px; width: 100%;
+}}
+.nudge-btn {{
+  background: rgba(56, 189, 248, 0.14); border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #38bdf8; border-radius: 6px; width: 28px; height: 28px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 1.15rem; font-weight: 800; cursor: pointer; user-select: none;
+  transition: all 0.12s; flex-shrink: 0;
+}}
+.nudge-btn:hover {{
+  background: rgba(56, 189, 248, 0.35); border-color: #38bdf8; color: #ffffff;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+}}
+.nudge-btn:active {{
+  transform: scale(0.92);
 }}
 .range-slider {{
-  -webkit-appearance: none; appearance: none; width: 100%; height: 5px;
-  background: rgba(255, 255, 255, 0.12); border-radius: 3px; outline: none;
+  flex: 1; -webkit-appearance: none; appearance: none; width: 100%; height: 8px;
+  background: rgba(255, 255, 255, 0.18); border-radius: 4px; outline: none; cursor: pointer;
 }}
 .range-slider::-webkit-slider-thumb {{
-  -webkit-appearance: none; appearance: none; width: 14px; height: 14px; border-radius: 50%;
-  background: #38bdf8; cursor: pointer; box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
+  -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%;
+  background: #38bdf8; border: 2.5px solid #ffffff; cursor: grab; box-shadow: 0 0 12px rgba(56, 189, 248, 0.9);
 }}
+.range-slider::-moz-range-thumb {{
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #38bdf8; border: 2.5px solid #ffffff; cursor: grab; box-shadow: 0 0 12px rgba(56, 189, 248, 0.9);
+}}
+.slider-bounds-row {{
+  display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem;
+  color: #94a3b8; font-family: ui-monospace, monospace; font-weight: 700; letter-spacing: 0.02em;
+}}
+.bound-tag {{ opacity: 0.9; }}
 @keyframes fadeIn {{ from {{ opacity: 0; transform: translateY(4px); }} to {{ opacity: 1; transform: translateY(0); }} }}
 
 /* Guided Quest Card (Floating HUD) */
@@ -858,6 +932,21 @@ html, body {{
       ctx.arc(mX, mY, 5 + Math.sin(state.time * 6) * 1.5, 0, Math.PI * 2);
       ctx.fill();
 
+      // High-contrast live operating coordinate readout badge
+      const coordStr = `${{Number(curX).toFixed(1)}}, ${{Number(curY).toFixed(1)}}`;
+      ctx.font = 'bold 11px monospace';
+      const cW = ctx.measureText(coordStr).width;
+      const bX = Math.min(plotX + plotW - cW - 10, Math.max(plotX + 4, mX - cW / 2));
+      const bY = mY > plotY + 30 ? mY - 14 : mY + 22;
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(bX - 4, bY - 11, cW + 8, 16, 4);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText(coordStr, bX, bY + 1);
+
       ctx.restore();
     }}
   }};
@@ -905,18 +994,46 @@ html, body {{
   }}
   canvas.addEventListener('mousemove', handlePointer);
 
+  // Helper to format value pill
+  function setValPill(key, val, unit) {{
+    const el = document.getElementById('val_' + key);
+    if (el) {{
+      el.innerHTML = '<span class="val-num">' + val + '</span><span class="val-unit"> ' + unit + '</span>';
+    }}
+  }}
+
   // --- Sliders & UI Wiring ---
   {chr(10).join(f"""
   const s_{p['key']} = document.getElementById('slider_{p['key']}');
-  const v_{p['key']} = document.getElementById('val_{p['key']}');
   if (s_{p['key']}) {{
     s_{p['key']}.addEventListener('input', (e) => {{
-      state.params['{p['key']}'] = parseFloat(e.target.value);
-      if (v_{p['key']}) v_{p['key']}.textContent = e.target.value + ' {p.get('unit', '')}';
+      const num = parseFloat(e.target.value);
+      state.params['{p['key']}'] = num;
+      setValPill('{p['key']}', num, '{p.get('unit', '')}');
       playClick(550 + state.params['{p['key']}'] * 2);
       updateTelemetry();
     }});
   }}""" for p in params)}
+
+  // --- Nudge Buttons Wiring ---
+  document.querySelectorAll('.nudge-btn').forEach((btn) => {{
+    btn.addEventListener('click', (e) => {{
+      e.preventDefault();
+      const k = btn.dataset.key;
+      const stepVal = parseFloat(btn.dataset.step);
+      const s = document.getElementById('slider_' + k);
+      if (!s) return;
+      const minVal = parseFloat(s.min);
+      const maxVal = parseFloat(s.max);
+      let cur = parseFloat(s.value);
+      let next = Math.min(maxVal, Math.max(minVal, Number((cur + stepVal).toFixed(4))));
+      s.value = next;
+      state.params[k] = next;
+      setValPill(k, next, s.dataset.unit || '');
+      playClick(stepVal > 0 ? 680 : 520);
+      updateTelemetry();
+    }});
+  }});
 
   // --- Presets Wiring ---
   const presetPills = document.querySelectorAll('.preset-pill');
@@ -930,9 +1047,8 @@ html, body {{
         for (const [k, val] of Object.entries(pr.params)) {{
           state.params[k] = val;
           const s = document.getElementById('slider_' + k);
-          const v = document.getElementById('val_' + k);
           if (s) s.value = val;
-          if (v) v.textContent = val + ' ' + (s.dataset.unit || '');
+          setValPill(k, val, s ? s.dataset.unit || '' : '');
         }}
         playClick(880);
         updateTelemetry();
@@ -999,9 +1115,8 @@ html, body {{
       if (!isNaN(val)) {{
         state.params[k] = val;
         const s = document.getElementById('slider_' + k);
-        const v = document.getElementById('val_' + k);
         if (s) s.value = val;
-        if (v) v.textContent = val + ' ' + (s ? s.dataset.unit || '' : '');
+        setValPill(k, val, s ? s.dataset.unit || '' : '');
         playClick(660);
         updateTelemetry();
         broadcastTelemetry('param_set', {{ key: k, value: val }});

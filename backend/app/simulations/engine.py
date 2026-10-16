@@ -461,7 +461,7 @@ DESIGN ARCHITECTURE (MANDATORY STANDARD):
        - Textbook Key Concept / Formula
    - Floating Bottom Control Dock (Glassmorphism #0b1329/90 with backdrop-filter: blur(14px), border-top: 1px solid rgba(56, 189, 248, 0.2)):
      * Presets Bar: 3 to 4 distinct scenario pills (e.g. "Default State", "High Intensity", "Equilibrium / Resonance", "Exam Problem"). Clicking a preset smoothly updates all sliders and recalculates.
-     * 2 to 4 smooth range sliders with live value badges and physical units.
+     * 2 to 4 smooth range sliders with ultra-visible values, glowing digital badges (.slider-value-pill with 1.2rem bold cyan numbers and units), step nudge buttons [-] and [+], and clear MIN/MAX range boundaries below each slider.
      * Play/Pause button (`▶ Play` / `⏸ Pause`).
      * Reset button (`↺ Reset Defaults`).
 

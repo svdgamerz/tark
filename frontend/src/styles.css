@@ -8758,56 +8758,66 @@ select optgroup {
 }
 
 .sim-readout-label {
-  font-size: 0.68rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--muted, #64748b);
 }
 
 .sim-readout-val {
-  font-size: 0.88rem;
-  font-weight: 700;
+  font-size: 1.15rem;
+  font-weight: 800;
   color: var(--accent, #4f46e5);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .sim-readout-formula {
-  font-size: 0.64rem;
+  font-size: 0.68rem;
   color: var(--muted, #94a3b8);
   font-family: monospace;
   margin-top: 1px;
 }
 
 .sim-controls-panel {
-  padding: 10px 14px;
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   background: var(--surface, #ffffff);
 }
 
 .sim-slider-row {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .sim-slider-label {
   display: flex;
   justify-content: space-between;
-  font-size: 0.76rem;
-  font-weight: 600;
+  align-items: center;
+  font-size: 0.88rem;
+  font-weight: 700;
   color: var(--text, #334155);
 }
 
 .sim-slider-value {
-  font-size: 0.76rem;
-  font-weight: 700;
+  font-size: 1.05rem;
+  font-weight: 800;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   color: #6366f1;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  padding: 3px 9px;
+  border-radius: 6px;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.15);
 }
 
 .sim-slider-input {
   width: 100%;
   accent-color: #6366f1;
-  height: 5px;
+  height: 7px;
   cursor: pointer;
 }
 
@@ -8821,21 +8831,23 @@ select optgroup {
 }
 
 /* ==========================================================================
-   Virtual Laboratory Fullscreen Workbench (Portal View)
+   Virtual Laboratory Fullscreen Workbench (Portal View - True Edge-to-Edge)
    ========================================================================== */
 
 .sim-fullscreen-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 18px;
-  animation: simBackdropFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 99999 !important;
+  background: #070d18 !important;
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  animation: simBackdropFadeIn 0.15s ease-out;
 }
 
 @keyframes simBackdropFadeIn {
@@ -8844,72 +8856,65 @@ select optgroup {
 }
 
 .sim-fullscreen-modal {
-  width: 96vw;
-  max-width: 1440px;
-  height: 92vh;
-  max-height: 880px;
-  background: var(--surface, #ffffff);
-  border-radius: 18px;
-  border: 1px solid var(--border, #e2e8f0);
-  box-shadow: 0 25px 65px -12px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.1);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  animation: simModalScaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes simModalScaleUp {
-  from {
-    opacity: 0;
-    transform: scale(0.96) translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  background: #070d18 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 /* Modal Header Bar */
 .sim-lab-header {
-  height: 62px;
-  padding: 0 22px;
+  height: 52px;
+  min-height: 52px;
+  padding: 0 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--surface-raised, #f8fafc);
-  border-bottom: 1px solid var(--border, #e2e8f0);
+  background: #070d18;
+  border-bottom: 1.5px solid rgba(56, 189, 248, 0.28);
   gap: 16px;
+  width: 100vw;
+  box-sizing: border-box;
 }
 
 .sim-lab-header-left {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   overflow: hidden;
 }
 
 .sim-lab-logo {
   font-size: 0.88rem;
-  font-weight: 700;
-  color: #6366f1;
-  background: rgba(99, 102, 241, 0.1);
+  font-weight: 800;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
   padding: 4px 10px;
   border-radius: 8px;
-  border: 1px solid rgba(99, 102, 241, 0.25);
+  border: 1px solid rgba(56, 189, 248, 0.35);
   white-space: nowrap;
 }
 
 .sim-lab-divider {
-  color: var(--border, #cbd5e1);
+  color: rgba(56, 189, 248, 0.3);
   font-size: 1.1rem;
 }
 
 .sim-lab-title {
   margin: 0;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text, #0f172a);
+  font-size: 1.12rem;
+  font-weight: 800;
+  color: #f8fafc;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -9247,23 +9252,32 @@ select optgroup {
   color: var(--muted, #64748b);
 }
 
-/* Custom HTML Fullscreen Modal */
+/* Custom HTML Fullscreen Modal - True Edge-to-Edge */
 .sim-fullscreen-modal-iframe {
-  max-width: 1300px;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .sim-lab-iframe-viewport {
   flex: 1;
-  width: 100%;
-  height: calc(100% - 62px);
+  width: 100vw;
+  height: calc(100vh - 52px);
   position: relative;
-  background: #ffffff;
+  background: #070d18;
+  overflow: hidden;
 }
 
 .sim-iframe-full {
   width: 100%;
   height: 100%;
   border: none;
+  display: block;
 }
 
 /* Simulate Action Button in Message Bar */

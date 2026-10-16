@@ -320,6 +320,19 @@ export function InteractiveSimulation({ simulation }: Props) {
                   <div className="sim-lab-header-right">
                     <button
                       className="sim-lab-btn"
+                      onClick={() => {
+                        if (!document.fullscreenElement) {
+                          document.documentElement.requestFullscreen?.().catch(() => {})
+                        } else {
+                          document.exitFullscreen?.().catch(() => {})
+                        }
+                      }}
+                      title="Toggle Full Display (F11)"
+                    >
+                      <span>⛶ Screen Focus</span>
+                    </button>
+                    <button
+                      className="sim-lab-btn"
                       onClick={() => sendToSim({ type: 'tark_reset' })}
                       title="Reset simulation parameters"
                     >
@@ -327,7 +340,12 @@ export function InteractiveSimulation({ simulation }: Props) {
                     </button>
                     <button
                       className="sim-lab-btn sim-lab-btn-close"
-                      onClick={() => setIsFullscreen(false)}
+                      onClick={() => {
+                        if (document.fullscreenElement) {
+                          document.exitFullscreen?.().catch(() => {})
+                        }
+                        setIsFullscreen(false)
+                      }}
                       title="Exit Virtual Lab (Esc)"
                     >
                       <span>✕ Exit Lab <kbd>Esc</kbd></span>
@@ -474,6 +492,19 @@ export function InteractiveSimulation({ simulation }: Props) {
                   <span className="sim-badge-concept">{template?.concept || simulation.concept}</span>
                 </div>
                 <div className="sim-lab-header-right">
+                  <button
+                    className="sim-lab-btn"
+                    onClick={() => {
+                      if (!document.fullscreenElement) {
+                        document.documentElement.requestFullscreen?.().catch(() => {})
+                      } else {
+                        document.exitFullscreen?.().catch(() => {})
+                      }
+                    }}
+                    title="Toggle Full Display (F11)"
+                  >
+                    <span>⛶ Screen Focus</span>
+                  </button>
                   <button className="sim-lab-btn" onClick={handleReset} title="Reset all sliders to defaults">
                     <span>↺ Reset Defaults</span>
                   </button>
@@ -486,7 +517,12 @@ export function InteractiveSimulation({ simulation }: Props) {
                   </button>
                   <button
                     className="sim-lab-btn sim-lab-btn-close"
-                    onClick={() => setIsFullscreen(false)}
+                    onClick={() => {
+                      if (document.fullscreenElement) {
+                        document.exitFullscreen?.().catch(() => {})
+                      }
+                      setIsFullscreen(false)
+                    }}
                     title="Exit Virtual Lab (Esc)"
                   >
                     <span>✕ Exit Lab <kbd>Esc</kbd></span>
