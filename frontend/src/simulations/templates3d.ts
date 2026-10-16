@@ -2167,7 +2167,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
     title: '3D Beating Human Heart & Circulation',
     subject: 'Biology · Human Physiology',
     concept: '4-Chambered Double Circulation & Cardiac Cycle',
-    description: 'Interactive 3D human heart with anatomical realism and physiological contraction. Double-tap or select presets to trigger the fluid Left/Right coronal split animation, exposing internal bicuspid & tricuspid valves, 3x myocardial wall thickness difference, heart strings, and SA node pacemaker.',
+    description: 'Anatomically authentic 3D human heart based on standard medical illustrations (Kenhub, WebMD & StopAfib). Displays physiological 2-phase beating, anterior coronary sulcus with LAD artery and adipose cushions, and a fluid coronal split animation exposing 3x myocardial wall thickness contrast, bicuspid & tricuspid valves, heart strings, and SA node pacemaker.',
     emoji: '🫀',
     difficulty: 'Intermediate',
     presets: [
@@ -2186,7 +2186,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
     calculateReadouts: (p) => {
       const co = ((p.bpm * p.strokeVolume) / 1000).toFixed(2)
       const cycleTime = (60 / p.bpm).toFixed(2)
-      const isSplit = p.splitView >= 0.5
+      const isSplit = p.splitView >= 0.5 || (p.focusSide && p.focusSide > 0)
       return [
         { label: 'Cardiac Output (Q)', value: co, unit: 'L/min', formula: 'Q = HR × SV' },
         { label: 'Cardiac Cycle Time', value: cycleTime, unit: 's', formula: 'T = 60 / BPM' },
@@ -2203,10 +2203,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const height = container.clientHeight || 500
 
       const scene = new THREE.Scene()
-      // Clean, premium medical studio environment (no mechanical Cartesian grid floor lines)
       createBioStudioEnvironment(scene)
 
-      // Optimal camera framing for full anatomical visibility
+      // Direct anterior coronal camera framing (standard medical illustration perspective)
       const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
       camera.position.set(0, 0.4, 13.5)
 
@@ -2219,26 +2218,28 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const controls = new OrbitControls(camera, renderer.domElement)
       controls.enableDamping = true
       controls.dampingFactor = 0.05
-      controls.target.set(0, 0.1, 0)
+      controls.target.set(0, 0.2, 0)
 
-      // Main anatomical rig with natural physiological thoracic apex tilt
+      // Main anatomical rig with natural physiological apex tilt
       const heartRig = new THREE.Group()
       heartRig.position.y = 0.1
-      heartRig.rotation.z = -0.12
+      heartRig.rotation.z = -0.1
       scene.add(heartRig)
 
-      // Two coordinated functional hemispheres for fluid Left/Right split animation
-      const leftHeartGroup = new THREE.Group()
+      // In anatomical position (patient facing viewer):
+      // Viewer's LEFT is anatomical RIGHT (Right Atrium, RV, SVC, Pulmonary Trunk)
+      // Viewer's RIGHT is anatomical LEFT (Left Atrium, LV, Aortic Arch, Apex)
       const rightHeartGroup = new THREE.Group()
-      heartRig.add(leftHeartGroup, rightHeartGroup)
+      const leftHeartGroup = new THREE.Group()
+      heartRig.add(rightHeartGroup, leftHeartGroup)
 
-      // Dedicated illumination for internal chambers
+      // Dedicated illumination inside dissected chambers
       const leftCavityLight = new THREE.PointLight(0xffedd5, 1.8, 8)
-      leftCavityLight.position.set(-0.5, 0.2, 0.5)
+      leftCavityLight.position.set(1.1, -0.2, 0.6)
       leftHeartGroup.add(leftCavityLight)
 
       const rightCavityLight = new THREE.PointLight(0xffedd5, 1.8, 8)
-      rightCavityLight.position.set(0.5, 0.2, 0.5)
+      rightCavityLight.position.set(-1.1, -0.2, 0.6)
       rightHeartGroup.add(rightCavityLight)
 
       const interactableMeshes: THREE.Object3D[] = []
@@ -2310,9 +2311,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         },
       }
 
-      // High-Fidelity Medical Materials
+      // High-Fidelity Medical Materials (matching Kenhub / WebMD)
       const myoMatLeft = new THREE.MeshStandardMaterial({
-        color: 0x9f1239,
+        color: 0x9e1238,
         roughness: 0.32,
         metalness: 0.1,
       })
@@ -2336,7 +2337,6 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         roughness: 0.38,
         side: THREE.BackSide,
       })
-      // Cut myocardial face with rich muscle tone
       const cutWallLeftMat = new THREE.MeshStandardMaterial({
         color: 0xbe123c,
         roughness: 0.32,
@@ -2373,9 +2373,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       })
 
       // State tracking
-      let isSplit = Boolean(params.splitView === 1)
+      let isSplit = Boolean(params.splitView === 1 || (params.focusSide && params.focusSide > 0))
       let splitProgress = isSplit ? 1.0 : 0.0
-      let activeDissectId: string | null = isSplit ? 'split' : null
+      let activeDissectId: string | null = params.focusSide === 1 ? 'lv' : params.focusSide === 2 ? 'ra' : isSplit ? 'split' : null
 
       function registerPart(mesh: THREE.Object3D, id: string) {
         mesh.userData = { partId: id }
@@ -2383,41 +2383,48 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       }
 
       // ========================================================
-      // 1. LEFT HEART HEMISPHERE (SYSTEMIC CIRCUIT - OXYGENATED)
+      // 1. LEFT HEART (SYSTEMIC CIRCUIT - ANATOMICAL LEFT, VIEWER'S RIGHT: X > 0)
       // ========================================================
-      // Left Ventricle Outer Shell (x <= 0)
-      const lvGeo = new THREE.SphereGeometry(2.5, 32, 32, -Math.PI / 2, Math.PI, 0, Math.PI)
-      lvGeo.scale(0.88, 1.45, 0.9)
-      const lvMesh = new THREE.Mesh(lvGeo, myoMatLeft)
-      lvMesh.position.set(0, -0.6, 0.0)
-      registerPart(lvMesh, 'lv')
-      leftHeartGroup.add(lvMesh)
+      // LV Posterior Chamber Bowl (z <= 0) - Facing camera at z = 0
+      const lvPostGeo = new THREE.SphereGeometry(2.4, 32, 32, Math.PI, Math.PI, 0, Math.PI)
+      lvPostGeo.scale(0.9, 1.45, 0.9)
+      const lvPostMesh = new THREE.Mesh(lvPostGeo, myoMatLeft)
+      lvPostMesh.position.set(1.0, -0.6, 0.0)
+      registerPart(lvPostMesh, 'lv')
+      leftHeartGroup.add(lvPostMesh)
 
-      // Left Ventricle Internal Cavity Lumen (inside x <= 0)
-      const lvCavityGeo = new THREE.SphereGeometry(2.0, 24, 24, -Math.PI / 2, Math.PI, 0, Math.PI)
+      // LV Anterior Wall Shell (z >= 0) - Covers the heart when intact
+      const lvAntGeo = new THREE.SphereGeometry(2.4, 32, 32, 0, Math.PI, 0, Math.PI)
+      lvAntGeo.scale(0.9, 1.45, 0.9)
+      const lvAntMesh = new THREE.Mesh(lvAntGeo, myoMatLeft.clone())
+      lvAntMesh.position.set(1.0, -0.6, 0.0)
+      registerPart(lvAntMesh, 'lv')
+      leftHeartGroup.add(lvAntMesh)
+
+      // LV Internal Cavity Lumen (inside posterior bowl)
+      const lvCavityGeo = new THREE.SphereGeometry(1.9, 24, 24, Math.PI, Math.PI, 0, Math.PI)
       lvCavityGeo.scale(0.72, 1.35, 0.78)
       const lvCavity = new THREE.Mesh(lvCavityGeo, lumenMat)
-      lvCavity.position.set(0, -0.6, 0.0)
+      lvCavity.position.set(1.0, -0.6, -0.05)
       registerPart(lvCavity, 'lv')
       leftHeartGroup.add(lvCavity)
 
-      // Cut Myocardium Face on x = 0 plane (Showing thick ~15 mm wall border)
-      const lvCutRingGeo = new THREE.RingGeometry(1.6, 2.45, 32)
+      // Coronal Cut Face Rim on z = 0 (Showing thick ~15 mm myocardium wall)
+      const lvCutRingGeo = new THREE.RingGeometry(1.5, 2.35, 32)
       lvCutRingGeo.scale(0.9, 1.45, 1.0)
       const lvCutFace = new THREE.Mesh(lvCutRingGeo, cutWallLeftMat)
-      lvCutFace.position.set(0.01, -0.6, 0.0)
-      lvCutFace.rotation.y = Math.PI / 2
+      lvCutFace.position.set(1.0, -0.6, 0.01)
       registerPart(lvCutFace, 'lv')
       leftHeartGroup.add(lvCutFace)
 
-      // Papillary Muscles anchored inside LV floor
+      // Papillary Muscles anchored inside LV posterior floor
       const papGeo = new THREE.CylinderGeometry(0.3, 0.45, 1.4, 12)
       const pap1 = new THREE.Mesh(papGeo, myoMatLeft)
-      pap1.position.set(-0.7, -1.0, 0.4)
+      pap1.position.set(1.4, -1.0, -0.4)
       leftHeartGroup.add(pap1)
 
       const pap2 = new THREE.Mesh(papGeo, myoMatLeft)
-      pap2.position.set(-0.7, -1.0, -0.4)
+      pap2.position.set(0.6, -1.0, -0.4)
       leftHeartGroup.add(pap2)
 
       // Fibrous Chordae Tendineae ("Heart Strings")
@@ -2435,42 +2442,34 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         leftHeartGroup.add(cordMesh)
       }
 
-      // Mitral (Bicuspid) Valve Leaflets positioned across the LV inlet
-      const mitralGeo = new THREE.PlaneGeometry(1.3, 0.75)
+      // Mitral (Bicuspid) Valve Leaflets across LV inlet
+      const mitralGeo = new THREE.PlaneGeometry(1.4, 0.75)
       const mitralCusp1 = new THREE.Mesh(mitralGeo, valveMat)
-      mitralCusp1.position.set(-0.5, 0.75, 0.25)
+      mitralCusp1.position.set(1.0, 0.75, 0.1)
       mitralCusp1.rotation.x = 0.4
       registerPart(mitralCusp1, 'lv')
       leftHeartGroup.add(mitralCusp1)
 
       const mitralCusp2 = new THREE.Mesh(mitralGeo, valveMat)
-      mitralCusp2.position.set(-0.5, 0.75, -0.25)
+      mitralCusp2.position.set(1.0, 0.75, -0.3)
       mitralCusp2.rotation.x = -0.4
       registerPart(mitralCusp2, 'lv')
       leftHeartGroup.add(mitralCusp2)
 
-      // Left Atrium (LA) Hemisphere (x <= 0)
-      const laGeo = new THREE.SphereGeometry(1.65, 24, 24, -Math.PI / 2, Math.PI, 0, Math.PI)
-      laGeo.scale(0.95, 1.0, 1.1)
+      // Left Atrium (LA) - Posterior receiving chamber
+      const laGeo = new THREE.SphereGeometry(1.65, 24, 24)
+      laGeo.scale(1.05, 1.0, 1.1)
       const laMesh = new THREE.Mesh(laGeo, atriumMat)
-      laMesh.position.set(0, 2.2, -0.2)
+      laMesh.position.set(1.2, 2.2, -0.3)
       registerPart(laMesh, 'la')
       leftHeartGroup.add(laMesh)
 
-      // LA Internal Cavity
-      const laCavityGeo = new THREE.SphereGeometry(1.4, 20, 20, -Math.PI / 2, Math.PI, 0, Math.PI)
-      laCavityGeo.scale(0.85, 0.95, 1.0)
-      const laCavity = new THREE.Mesh(laCavityGeo, lumenMat)
-      laCavity.position.set(0, 2.2, -0.2)
-      registerPart(laCavity, 'la')
-      leftHeartGroup.add(laCavity)
-
       // 4 Pulmonary Vein Intakes (Oxygenated Blood from Lungs)
       const pvOffsets = [
-        new THREE.Vector3(-0.85, 0.5, -0.6),
-        new THREE.Vector3(-0.85, -0.4, -0.6),
-        new THREE.Vector3(-0.2, 0.5, -0.8),
-        new THREE.Vector3(-0.2, -0.4, -0.8),
+        new THREE.Vector3(0.85, 0.5, -0.6),
+        new THREE.Vector3(0.85, -0.4, -0.6),
+        new THREE.Vector3(-0.4, 0.5, -0.8),
+        new THREE.Vector3(-0.4, -0.4, -0.8),
       ]
       pvOffsets.forEach((pvOff) => {
         const pvGeo = new THREE.CylinderGeometry(0.24, 0.26, 1.4, 12)
@@ -2489,23 +2488,23 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
       // Ascending Aorta & Iconic Aortic Arch
       const aortaCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(-0.2, 1.1, 0.1),
-        new THREE.Vector3(-0.1, 3.2, 0.2),
-        new THREE.Vector3(0.4, 4.8, 0),
+        new THREE.Vector3(0.3, 1.1, 0.1),
+        new THREE.Vector3(0.2, 3.2, 0.2),
+        new THREE.Vector3(-0.3, 4.8, 0),
         new THREE.Vector3(0.0, 5.4, -0.6),
-        new THREE.Vector3(-1.1, 5.0, -1.0),
-        new THREE.Vector3(-1.7, 2.8, -1.2),
+        new THREE.Vector3(1.1, 5.0, -1.0),
+        new THREE.Vector3(1.7, 2.8, -1.2),
       ])
       const aortaGeo = new THREE.TubeGeometry(aortaCurve, 32, 0.65, 16, false)
       const aortaMesh = new THREE.Mesh(aortaGeo, arterialMat)
       registerPart(aortaMesh, 'aorta')
       leftHeartGroup.add(aortaMesh)
 
-      // 3 Aortic Arch Branches (Brachiocephalic, Carotid, Subclavian)
+      // 3 Aortic Arch Branches (Brachiocephalic, Left Common Carotid, Left Subclavian)
       const archBranches = [
-        { start: new THREE.Vector3(0.3, 5.1, -0.1), dir: new THREE.Vector3(0.4, 1.4, 0.2) },
-        { start: new THREE.Vector3(-0.1, 5.3, -0.4), dir: new THREE.Vector3(0.1, 1.5, 0.1) },
-        { start: new THREE.Vector3(-0.6, 5.2, -0.7), dir: new THREE.Vector3(-0.2, 1.4, -0.1) },
+        { start: new THREE.Vector3(-0.3, 5.1, -0.1), dir: new THREE.Vector3(-0.4, 1.4, 0.2) },
+        { start: new THREE.Vector3(0.1, 5.3, -0.4), dir: new THREE.Vector3(-0.1, 1.5, 0.1) },
+        { start: new THREE.Vector3(0.6, 5.2, -0.7), dir: new THREE.Vector3(0.2, 1.4, -0.1) },
       ]
       archBranches.forEach((b) => {
         const bGeo = new THREE.CylinderGeometry(0.17, 0.21, 1.6, 12)
@@ -2517,59 +2516,58 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       })
 
       // ========================================================
-      // 2. RIGHT HEART HEMISPHERE (PULMONARY CIRCUIT - DEOXYGENATED)
+      // 2. RIGHT HEART (PULMONARY CIRCUIT - ANATOMICAL RIGHT, VIEWER'S LEFT: X < 0)
       // ========================================================
-      // Right Ventricle Outer Shell (x >= 0)
-      const rvGeo = new THREE.SphereGeometry(2.5, 32, 32, Math.PI / 2, Math.PI, 0, Math.PI)
-      rvGeo.scale(0.95, 1.3, 0.8)
-      const rvMesh = new THREE.Mesh(rvGeo, myoMatRight)
-      rvMesh.position.set(0, -0.4, 0.0)
-      registerPart(rvMesh, 'rv')
-      rightHeartGroup.add(rvMesh)
+      // RV Posterior Chamber Bowl (z <= 0)
+      const rvPostGeo = new THREE.SphereGeometry(2.3, 32, 32, Math.PI, Math.PI, 0, Math.PI)
+      rvPostGeo.scale(1.05, 1.35, 0.85)
+      const rvPostMesh = new THREE.Mesh(rvPostGeo, myoMatRight)
+      rvPostMesh.position.set(-1.0, -0.5, 0.0)
+      registerPart(rvPostMesh, 'rv')
+      rightHeartGroup.add(rvPostMesh)
 
-      // Right Ventricle Cavity (inside x >= 0)
-      const rvCavityGeo = new THREE.SphereGeometry(2.35, 24, 24, Math.PI / 2, Math.PI, 0, Math.PI)
-      rvCavityGeo.scale(0.9, 1.25, 0.75)
+      // RV Anterior Wall Shell (z >= 0)
+      const rvAntGeo = new THREE.SphereGeometry(2.3, 32, 32, 0, Math.PI, 0, Math.PI)
+      rvAntGeo.scale(1.05, 1.35, 0.85)
+      const rvAntMesh = new THREE.Mesh(rvAntGeo, myoMatRight.clone())
+      rvAntMesh.position.set(-1.0, -0.5, 0.0)
+      registerPart(rvAntMesh, 'rv')
+      rightHeartGroup.add(rvAntMesh)
+
+      // RV Internal Cavity Lumen (inside posterior bowl)
+      const rvCavityGeo = new THREE.SphereGeometry(2.15, 24, 24, Math.PI, Math.PI, 0, Math.PI)
+      rvCavityGeo.scale(1.0, 1.3, 0.8)
       const rvCavity = new THREE.Mesh(rvCavityGeo, lumenMat)
-      rvCavity.position.set(0, -0.4, 0.0)
+      rvCavity.position.set(-1.0, -0.5, -0.05)
       registerPart(rvCavity, 'rv')
       rightHeartGroup.add(rvCavity)
 
-      // Cut Myocardium Face on x = 0 plane (Showing thin ~4 mm wall border - 3x thinner than LV!)
-      const rvCutRingGeo = new THREE.RingGeometry(2.15, 2.45, 32)
-      rvCutRingGeo.scale(0.85, 1.3, 1.0)
+      // Coronal Cut Face Rim on z = 0 (Showing thin ~4 mm wall border - 3x thinner than LV!)
+      const rvCutRingGeo = new THREE.RingGeometry(2.0, 2.3, 32)
+      rvCutRingGeo.scale(1.05, 1.35, 1.0)
       const rvCutFace = new THREE.Mesh(rvCutRingGeo, cutWallRightMat)
-      rvCutFace.position.set(-0.01, -0.4, 0.0)
-      rvCutFace.rotation.y = -Math.PI / 2
+      rvCutFace.position.set(-1.0, -0.5, 0.01)
       registerPart(rvCutFace, 'rv')
       rightHeartGroup.add(rvCutFace)
 
-      // Right Atrium (RA) Hemisphere (x >= 0)
-      const raGeo = new THREE.SphereGeometry(1.7, 24, 24, Math.PI / 2, Math.PI, 0, Math.PI)
-      raGeo.scale(0.98, 1.1, 1.0)
+      // Right Atrium (RA)
+      const raGeo = new THREE.SphereGeometry(1.7, 24, 24)
+      raGeo.scale(1.08, 1.1, 1.0)
       const raMesh = new THREE.Mesh(raGeo, myoMatRight)
-      raMesh.position.set(0, 2.0, 0.0)
+      raMesh.position.set(-1.4, 2.0, 0.0)
       registerPart(raMesh, 'ra')
       rightHeartGroup.add(raMesh)
 
-      // RA Internal Cavity
-      const raCavityGeo = new THREE.SphereGeometry(1.45, 20, 20, Math.PI / 2, Math.PI, 0, Math.PI)
-      raCavityGeo.scale(0.88, 1.0, 0.95)
-      const raCavity = new THREE.Mesh(raCavityGeo, lumenMat)
-      raCavity.position.set(0, 2.0, 0.0)
-      registerPart(raCavity, 'ra')
-      rightHeartGroup.add(raCavity)
-
-      // Tricuspid Valve Leaflets across RV inlet
+      // Tricuspid Valve Leaflets
       const triGeo = new THREE.PlaneGeometry(1.3, 0.75)
       const triCusp1 = new THREE.Mesh(triGeo, valveMat)
-      triCusp1.position.set(0.5, 0.65, 0.25)
+      triCusp1.position.set(-1.0, 0.65, 0.1)
       triCusp1.rotation.x = 0.4
       registerPart(triCusp1, 'rv')
       rightHeartGroup.add(triCusp1)
 
       const triCusp2 = new THREE.Mesh(triGeo, valveMat)
-      triCusp2.position.set(0.5, 0.65, -0.25)
+      triCusp2.position.set(-1.0, 0.65, -0.3)
       triCusp2.rotation.x = -0.4
       registerPart(triCusp2, 'rv')
       rightHeartGroup.add(triCusp2)
@@ -2577,18 +2575,18 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       // Superior Vena Cava (SVC)
       const svcGeo = new THREE.CylinderGeometry(0.55, 0.55, 3.2, 16)
       const svcMesh = new THREE.Mesh(svcGeo, venousMat)
-      svcMesh.position.set(0.8, 3.8, -0.4)
+      svcMesh.position.set(-1.6, 3.8, -0.4)
       registerPart(svcMesh, 'ra')
       rightHeartGroup.add(svcMesh)
 
       // Inferior Vena Cava (IVC)
       const ivcGeo = new THREE.CylinderGeometry(0.52, 0.52, 2.6, 16)
       const ivcMesh = new THREE.Mesh(ivcGeo, venousMat)
-      ivcMesh.position.set(0.6, -1.8, -0.5)
+      ivcMesh.position.set(-1.4, -1.8, -0.5)
       registerPart(ivcMesh, 'ra')
       rightHeartGroup.add(ivcMesh)
 
-      // Sinoatrial (SA) Node Pacemaker Orb & Depolarization Wave on cut RA edge
+      // Sinoatrial (SA) Node Pacemaker Orb & Depolarization Wave
       const saGeo = new THREE.SphereGeometry(0.3, 16, 16)
       const saMat = new THREE.MeshStandardMaterial({
         color: 0x38bdf8,
@@ -2597,7 +2595,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         roughness: 0.2,
       })
       const saMesh = new THREE.Mesh(saGeo, saMat)
-      saMesh.position.set(0.4, 2.8, 0.5)
+      saMesh.position.set(-1.6, 3.1, 0.6)
       registerPart(saMesh, 'sanode')
       rightHeartGroup.add(saMesh)
 
@@ -2607,14 +2605,14 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.65, side: THREE.DoubleSide })
       )
       saPulseMesh.position.copy(saMesh.position)
-      saPulseMesh.rotation.y = -Math.PI / 4
+      saPulseMesh.rotation.y = Math.PI / 4
       rightHeartGroup.add(saPulseMesh)
 
       // Pulmonary Trunk (emerging from RV) & Bifurcation into Left/Right Pulmonary Arteries
       const ptCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0.5, 0.8, 0.5),
-        new THREE.Vector3(0.3, 2.6, 0.8),
-        new THREE.Vector3(-0.1, 3.8, 0.3),
+        new THREE.Vector3(-0.4, 0.8, 0.5),
+        new THREE.Vector3(-0.2, 2.6, 0.8),
+        new THREE.Vector3(0.2, 3.8, 0.3),
       ])
       const ptGeo = new THREE.TubeGeometry(ptCurve, 24, 0.55, 16, false)
       const ptMesh = new THREE.Mesh(ptGeo, venousMat)
@@ -2625,15 +2623,15 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const rpaGeo = new THREE.CylinderGeometry(0.32, 0.32, 2.4, 12)
       rpaGeo.translate(0, 1.2, 0)
       const rpaMesh = new THREE.Mesh(rpaGeo, venousMat)
-      rpaMesh.position.set(-0.1, 3.8, 0.3)
-      rpaMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(1.3, 0.2, -0.6).normalize())
+      rpaMesh.position.set(0.2, 3.8, 0.3)
+      rpaMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(-1.3, 0.2, -0.6).normalize())
       rightHeartGroup.add(rpaMesh)
 
       const lpaGeo = new THREE.CylinderGeometry(0.32, 0.32, 2.2, 12)
       lpaGeo.translate(0, 1.1, 0)
       const lpaMesh = new THREE.Mesh(lpaGeo, venousMat)
-      lpaMesh.position.set(-0.1, 3.8, 0.3)
-      lpaMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(-1.2, 0.4, -0.7).normalize())
+      lpaMesh.position.set(0.2, 3.8, 0.3)
+      lpaMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(1.2, 0.4, -0.7).normalize())
       rightHeartGroup.add(lpaMesh)
 
       // ========================================================
@@ -2642,17 +2640,17 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       // Yellow Adipose Fat Cushion along Anterior Interventricular Groove
       const fatGeo = new THREE.TorusGeometry(2.35, 0.22, 10, 32, Math.PI * 0.72)
       const fatMesh = new THREE.Mesh(fatGeo, fatMat)
-      fatMesh.position.set(0.05, 0.4, 1.05)
-      fatMesh.rotation.z = -Math.PI / 3.4
+      fatMesh.position.set(-0.05, 0.4, 1.05)
+      fatMesh.rotation.z = Math.PI / 3.4
       heartRig.add(fatMesh)
 
-      // Left Anterior Descending (LAD) Coronary Artery (Crimson vessel)
+      // Left Anterior Descending (LAD) Coronary Artery (Crimson vessel running down to apex)
       const ladCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0.1, 1.6, 1.35),
-        new THREE.Vector3(0.2, 0.6, 1.55),
+        new THREE.Vector3(-0.1, 1.6, 1.35),
+        new THREE.Vector3(-0.2, 0.6, 1.55),
         new THREE.Vector3(0.0, -0.6, 1.45),
-        new THREE.Vector3(-0.3, -1.8, 1.15),
-        new THREE.Vector3(-0.6, -2.6, 0.55),
+        new THREE.Vector3(0.3, -1.8, 1.15),
+        new THREE.Vector3(0.6, -2.6, 0.55),
       ])
       const ladGeo = new THREE.TubeGeometry(ladCurve, 24, 0.08, 10, false)
       const ladMesh = new THREE.Mesh(ladGeo, arterialMat)
@@ -2660,10 +2658,10 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
       // Great Cardiac Vein running parallel to LAD
       const gcvCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0.25, 1.5, 1.3),
-        new THREE.Vector3(0.35, 0.5, 1.5),
-        new THREE.Vector3(0.15, -0.7, 1.4),
-        new THREE.Vector3(-0.15, -1.9, 1.1),
+        new THREE.Vector3(-0.25, 1.5, 1.3),
+        new THREE.Vector3(-0.35, 0.5, 1.5),
+        new THREE.Vector3(-0.15, -0.7, 1.4),
+        new THREE.Vector3(0.15, -1.9, 1.1),
       ])
       const gcvGeo = new THREE.TubeGeometry(gcvCurve, 20, 0.07, 10, false)
       const gcvMesh = new THREE.Mesh(gcvGeo, venousMat)
@@ -2679,10 +2677,10 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
       for (let i = 0; i < particleCount; i++) {
         const isOxygenated = i < particleCount / 2
-        const xBase = isOxygenated ? -1.1 : 1.1
-        bloodPos[i * 3] = xBase + (Math.random() - 0.5) * 1.6
+        const xBase = isOxygenated ? 1.0 : -1.0
+        bloodPos[i * 3] = xBase + (Math.random() - 0.5) * 1.5
         bloodPos[i * 3 + 1] = (Math.random() - 0.5) * 5.5
-        bloodPos[i * 3 + 2] = -0.1 + (Math.random() - 0.5) * 1.2
+        bloodPos[i * 3 + 2] = -0.2 + (Math.random() - 0.5) * 1.0
 
         // Oxygenated: bright crimson (0xef4444); Deoxygenated: royal cyan-blue (0x38bdf8)
         if (isOxygenated) {
@@ -2760,8 +2758,8 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       renderer.domElement.addEventListener('dblclick', handleDblClick)
       renderer.domElement.addEventListener('touchend', handleTouchEnd)
 
-      if (isSplit && DISSECT_CARDS.split) {
-        callbacks.onInspectPart?.(DISSECT_CARDS.split)
+      if (isSplit && activeDissectId && DISSECT_CARDS[activeDissectId]) {
+        callbacks.onInspectPart?.(DISSECT_CARDS[activeDissectId])
       }
 
       let pulseTime = 0
@@ -2770,20 +2768,33 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         animId = requestAnimationFrame(animate)
 
         // Smooth fluid Left/Right splitting animation with cubic easing
-        const targetSplit = (isSplit || params.splitView === 1) ? 1.0 : 0.0
+        const targetSplit = (isSplit || params.splitView === 1 || (params.focusSide && params.focusSide > 0)) ? 1.0 : 0.0
         splitProgress += (targetSplit - splitProgress) * 0.085
 
-        // Left Heart translates left and opens its cut face towards the viewer (-Y rotation turns +X towards +Z!)
-        leftHeartGroup.position.x = -splitProgress * 2.8
-        leftHeartGroup.rotation.y = -splitProgress * 0.75
-        leftHeartGroup.position.z = -splitProgress * 0.3
+        // Right Heart (viewer's left) translates left and tilts inward
+        rightHeartGroup.position.x = -splitProgress * 2.8
+        rightHeartGroup.rotation.y = splitProgress * 0.18
+        rightHeartGroup.position.z = -splitProgress * 0.2
 
-        // Right Heart translates right and opens its cut face towards the viewer (+Y rotation turns -X towards +Z!)
-        rightHeartGroup.position.x = splitProgress * 2.8
-        rightHeartGroup.rotation.y = splitProgress * 0.75
-        rightHeartGroup.position.z = -splitProgress * 0.3
+        // Left Heart (viewer's right) translates right and tilts inward
+        leftHeartGroup.position.x = splitProgress * 2.8
+        leftHeartGroup.rotation.y = -splitProgress * 0.18
+        leftHeartGroup.position.z = -splitProgress * 0.2
 
-        // Fade anterior sulcus fat, LAD vessels, and cut faces when split
+        // Anterior ventricle flaps swing open and fade to reveal the coronal section
+        lvAntMesh.rotation.y = splitProgress * 1.5
+        const lvAntMat = lvAntMesh.material as THREE.MeshStandardMaterial
+        lvAntMat.transparent = splitProgress > 0.05
+        lvAntMat.opacity = Math.max(0, 1.0 - splitProgress * 1.4)
+        lvAntMesh.visible = splitProgress < 0.85
+
+        rvAntMesh.rotation.y = -splitProgress * 1.5
+        const rvAntMat = rvAntMesh.material as THREE.MeshStandardMaterial
+        rvAntMat.transparent = splitProgress > 0.05
+        rvAntMat.opacity = Math.max(0, 1.0 - splitProgress * 1.4)
+        rvAntMesh.visible = splitProgress < 0.85
+
+        // Fade anterior sulcus fat, LAD vessels, and cut faces
         fatMesh.visible = splitProgress < 0.25
         ladMesh.visible = splitProgress < 0.25
         gcvMesh.visible = splitProgress < 0.25
@@ -2800,15 +2811,17 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           const isVentBeat = cyclePhase >= Math.PI * 0.4 && cyclePhase < Math.PI * 1.2
 
           const atriaContraction = isAtrialBeat ? 1.0 - Math.sin(cyclePhase * 2.5) * 0.12 : 1.0
-          laMesh.scale.set(0.95 * atriaContraction, 1.0 * atriaContraction, 1.1 * atriaContraction)
-          raMesh.scale.set(0.98 * atriaContraction, 1.1 * atriaContraction, 1.0 * atriaContraction)
+          laMesh.scale.set(1.05 * atriaContraction, 1.0 * atriaContraction, 1.1 * atriaContraction)
+          raMesh.scale.set(1.08 * atriaContraction, 1.1 * atriaContraction, 1.0 * atriaContraction)
 
           const ventScale = isVentBeat
             ? 1.0 - Math.sin((cyclePhase - Math.PI * 0.4) * 1.25) * 0.14
             : 1.0 + Math.sin(cyclePhase) * 0.04
 
-          lvMesh.scale.set(0.88 * ventScale, 1.45 * (2 - ventScale), 0.9 * ventScale)
-          rvMesh.scale.set(0.95 * ventScale, 1.3 * (2 - ventScale), 0.8 * ventScale)
+          lvPostMesh.scale.set(0.9 * ventScale, 1.45 * (2 - ventScale), 0.9 * ventScale)
+          lvAntMesh.scale.set(0.9 * ventScale, 1.45 * (2 - ventScale), 0.9 * ventScale)
+          rvPostMesh.scale.set(1.05 * ventScale, 1.35 * (2 - ventScale), 0.85 * ventScale)
+          rvAntMesh.scale.set(1.05 * ventScale, 1.35 * (2 - ventScale), 0.85 * ventScale)
 
           // Dynamic Valve Leaflets flapping in sync with cardiac cycle
           const valveOpenAngle = isVentBeat ? 0.06 : 0.65
@@ -2874,7 +2887,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           isSplit = false
           activeDissectId = null
           callbacks.onInspectPart?.(null)
-          heartRig.rotation.set(0, 0, -0.12)
+          heartRig.rotation.set(0, 0, -0.1)
         },
         closeDissection: () => {
           isSplit = false
