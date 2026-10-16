@@ -98,37 +98,13 @@ export function AuthPage({
   const [resendIn, setResendIn] = useState(0)
 
   function handlePostAuthRedirect(signedInUser: any) {
-    const localBoard = localStorage.getItem('tark_board') || localStorage.getItem('board')
-    const localGrade = localStorage.getItem('tark_grade') || localStorage.getItem('grade')
-    const localSchool = localStorage.getItem('tark_school') || localStorage.getItem('school')
-    const localExam = localStorage.getItem('tark_target_exam') || localStorage.getItem('exam')
-
-    const effBoard = signedInUser?.board || localBoard
-    const effGrade = signedInUser?.grade || localGrade
-
-    // If student ALREADY configured profile before (or in DB):
-    if (effBoard && effGrade) {
-      if (!signedInUser?.board || !signedInUser?.grade) {
-        updateProfile({
-          board: effBoard,
-          grade: effGrade,
-          school: localSchool || undefined,
-          exam: localExam || undefined,
-          tutoring_style: localStorage.getItem('tark_tutoring_style') || undefined,
-          language: localStorage.getItem('tark_language_pref') || undefined,
-          weak_subjects: localStorage.getItem('tark_weak_subjects') || undefined,
-        }).catch(() => {})
-      }
-      localStorage.setItem('tark_board', effBoard)
-      localStorage.setItem('tark_grade', effGrade)
-      if (localSchool) localStorage.setItem('tark_school', localSchool)
+    if (signedInUser?.board && signedInUser?.grade) {
+      localStorage.setItem('tark_board', signedInUser.board)
+      localStorage.setItem('tark_grade', signedInUser.grade)
+      if (signedInUser.school) localStorage.setItem('tark_school', signedInUser.school)
       localStorage.setItem('tark_profile_completed', '1')
-      onClose()
-      return
     }
-
-    // Only if brand new student with no profile in DB or localStorage:
-    go('onboard')
+    onClose()
   }
 
   useEffect(() => {

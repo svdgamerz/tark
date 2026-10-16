@@ -106,7 +106,7 @@ function friendlyError(raw: string): string {
 }
 
 export default function App() {
-  const { user, token, updateProfile } = useAuth()
+  const { user, token } = useAuth()
   const userKey = user?.email ?? 'guest'
 
   const {
@@ -254,42 +254,28 @@ export default function App() {
     }
   }, [])
 
-  // Automatically check if profile is already configured in DB or localStorage
+  // Automatically check if profile is configured in DB or if setup should prompt
   useEffect(() => {
-    const localBoard = localStorage.getItem('tark_board') || localStorage.getItem('board')
-    const localGrade = localStorage.getItem('tark_grade') || localStorage.getItem('grade')
-    const isCompleted = localStorage.getItem('tark_profile_completed') === '1'
-
     if (user) {
-      // If user in DB lacks board/grade, but localStorage ALREADY has them from earlier:
-      if ((!user.board || !user.grade) && localBoard && localGrade) {
-        updateProfile({
-          board: localBoard,
-          grade: localGrade,
-          school: localStorage.getItem('tark_school') || undefined,
-          exam: localStorage.getItem('tark_target_exam') || undefined,
-          tutoring_style: localStorage.getItem('tark_tutoring_style') || undefined,
-          language: localStorage.getItem('tark_language_pref') || undefined,
-          weak_subjects: localStorage.getItem('tark_weak_subjects') || undefined,
-        }).catch(() => {})
-        setShowProfileSetup(false)
-        setShowProfileBanner(false)
-        return
-      }
-
-      // If user already has board and grade in DB:
+      // If user has board and grade in DB, their profile is already completed:
       if (user.board && user.grade) {
         localStorage.setItem('tark_board', user.board)
         localStorage.setItem('tark_grade', user.grade)
         if (user.school) localStorage.setItem('tark_school', user.school)
+        if (user.exam) localStorage.setItem('tark_target_exam', user.exam)
+        if (user.tutoring_style) localStorage.setItem('tark_tutoring_style', user.tutoring_style)
+        if (user.language) localStorage.setItem('tark_language_pref', user.language)
+        if (user.weak_subjects) localStorage.setItem('tark_weak_subjects', user.weak_subjects)
         localStorage.setItem('tark_profile_completed', '1')
         setShowProfileSetup(false)
         setShowProfileBanner(false)
         return
       }
 
-      // Only prompt if neither DB nor localStorage has board/grade and user hasn't completed it
-      if (!localBoard && !localGrade && !isCompleted) {
+      // User has not configured their profile yet in DB:
+      // Check if user has opted to skip for this session:
+      const isSkippedThisSession = sessionStorage.getItem('tark_profile_skipped') === '1'
+      if (!isSkippedThisSession) {
         setShowProfileSetup(true)
         setShowProfileBanner(false)
       } else {
@@ -300,7 +286,12 @@ export default function App() {
     }
 
     // Guest user (not logged in):
-    if (!isCompleted && (!localBoard || !localGrade)) {
+    const localBoard = localStorage.getItem('tark_board') || localStorage.getItem('board')
+    const localGrade = localStorage.getItem('tark_grade') || localStorage.getItem('grade')
+    const isCompleted = localStorage.getItem('tark_profile_completed') === '1'
+    const isSkippedThisSession = sessionStorage.getItem('tark_profile_skipped') === '1'
+
+    if (!isCompleted && (!localBoard || !localGrade) && !isSkippedThisSession) {
       const snoozedAt = Number(localStorage.getItem('tark_profile_snoozed_at') ?? 0)
       if (Date.now() - snoozedAt > 20 * 60 * 1000) {
         setShowProfileBanner(true)

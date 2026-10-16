@@ -52,46 +52,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
   const [loading, setLoading] = useState(true)
 
-  function syncAndSetUser(u: AuthUser, authToken?: string | null) {
-    const localBoard = localStorage.getItem('tark_board') || localStorage.getItem('board')
-    const localGrade = localStorage.getItem('tark_grade') || localStorage.getItem('grade')
-    const localSchool = localStorage.getItem('tark_school') || localStorage.getItem('school')
-
+  function syncAndSetUser(u: AuthUser, _authToken?: string | null) {
     if (u.board && u.grade) {
       localStorage.setItem('tark_board', u.board)
       localStorage.setItem('tark_grade', u.grade)
       if (u.school) localStorage.setItem('tark_school', u.school)
+      if (u.exam) localStorage.setItem('tark_target_exam', u.exam)
+      if (u.tutoring_style) localStorage.setItem('tark_tutoring_style', u.tutoring_style)
+      if (u.language) localStorage.setItem('tark_language_pref', u.language)
+      if (u.weak_subjects) localStorage.setItem('tark_weak_subjects', u.weak_subjects)
       localStorage.setItem('tark_profile_completed', '1')
-      setUser(u)
-      return
+    } else {
+      localStorage.removeItem('tark_profile_completed')
     }
-
-    if (localBoard && localGrade) {
-      const effBoard = (u.board || localBoard) ?? undefined
-      const effGrade = (u.grade || localGrade) ?? undefined
-      const effSchool = (u.school || localSchool || '') ?? undefined
-      const mergedUser: AuthUser = {
-        ...u,
-        board: effBoard,
-        grade: effGrade,
-        school: effSchool,
-      }
-      setUser(mergedUser)
-      const tk = authToken || token || localStorage.getItem(TOKEN_KEY)
-      if (tk) {
-        authApi.updateProfile(tk, {
-          board: effBoard,
-          grade: effGrade,
-          school: effSchool,
-          exam: localStorage.getItem('tark_target_exam') || undefined,
-          tutoring_style: localStorage.getItem('tark_tutoring_style') || undefined,
-          language: localStorage.getItem('tark_language_pref') || undefined,
-          weak_subjects: localStorage.getItem('tark_weak_subjects') || undefined,
-        }).catch(() => {})
-      }
-      return
-    }
-
     setUser(u)
   }
 
@@ -189,24 +162,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const r = await authApi.firebaseAuth(idToken)
       if (!r.ok) return { error: r.error }
       save(r.token, r.user)
-      const localBoard = localStorage.getItem('tark_board') || localStorage.getItem('board')
-      const localGrade = localStorage.getItem('tark_grade') || localStorage.getItem('grade')
-      const effectiveUser = r.user ? {
-        ...r.user,
-        board: r.user.board || localBoard || undefined,
-        grade: r.user.grade || localGrade || undefined,
-      } : undefined
-      return { user: effectiveUser }
+      return { user: r.user }
     },
     updateProfile: async (profile) => {
       if (!token) return { error: 'Not logged in.' }
       const r = await authApi.updateProfile(token, profile)
       if (!r.ok) return { error: r.error }
-      if (r.user) setUser(r.user)
+      if (r.user) syncAndSetUser(r.user)
       return {}
     },
     signOut: () => {
       localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem('tark_board')
+      localStorage.removeItem('tark_grade')
+      localStorage.removeItem('tark_school')
+      localStorage.removeItem('tark_target_exam')
+      localStorage.removeItem('tark_tutoring_style')
+      localStorage.removeItem('tark_language_pref')
+      localStorage.removeItem('tark_weak_subjects')
+      localStorage.removeItem('tark_profile_completed')
+      localStorage.removeItem('tark_profile_snoozed_at')
+      sessionStorage.removeItem('tark_profile_skipped')
       setToken(null)
       setUser(null)
     },
