@@ -2167,34 +2167,34 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
     title: '3D Beating Human Heart & Circulation',
     subject: 'Biology · Human Physiology',
     concept: '4-Chambered Double Circulation & Cardiac Cycle',
-    description: '3D anatomical human heart with realistic rhythmic systole and diastole contractions. Double-tap on the Left Atrium, Left Ventricle, or other chambers to dissect and reveal internal valves, heart strings, and lumen.',
+    description: 'Interactive 3D human heart with anatomical realism and physiological contraction. Double-tap or select presets to trigger the fluid Left/Right coronal split animation, exposing internal bicuspid & tricuspid valves, 3x myocardial wall thickness difference, heart strings, and SA node pacemaker.',
     emoji: '🫀',
     difficulty: 'Intermediate',
     presets: [
-      { label: '❤️ Normal Resting Heartbeat (72 BPM)', params: { bpm: 72, strokeVolume: 70, showValves: 1, dissectMode: 0 } },
-      { label: '🔍 Dissect Left Atrium (Inside View)', params: { bpm: 60, strokeVolume: 70, showValves: 1, dissectMode: 1 } },
-      { label: '🔍 Dissect Left Ventricle & Cords', params: { bpm: 60, strokeVolume: 70, showValves: 1, dissectMode: 2 } },
-      { label: '🏃 Athletic Cardio Workout (130 BPM)', params: { bpm: 130, strokeVolume: 90, showValves: 1, dissectMode: 0 } },
+      { label: '❤️ Intact Beating Organ (72 BPM)', params: { bpm: 72, strokeVolume: 70, splitView: 0, focusSide: 0, showValves: 1 } },
+      { label: '✂️ Split Left & Right Halves (Anatomical Section)', params: { bpm: 60, strokeVolume: 70, splitView: 1, focusSide: 0, showValves: 1 } },
+      { label: '🔴 Left Heart (Oxygenated Systemic Circuit & Thick LV)', params: { bpm: 60, strokeVolume: 70, splitView: 1, focusSide: 1, showValves: 1 } },
+      { label: '🔵 Right Heart (Deoxygenated Pulmonary Circuit & SA Node)', params: { bpm: 60, strokeVolume: 70, splitView: 1, focusSide: 2, showValves: 1 } },
+      { label: '🏃 Athletic Cardio Workout (130 BPM)', params: { bpm: 130, strokeVolume: 95, splitView: 0, focusSide: 0, showValves: 1 } },
     ],
     params: [
       { key: 'bpm', label: 'Heart Rate (BPM)', min: 45, max: 180, step: 1, defaultValue: 72, unit: 'bpm' },
       { key: 'strokeVolume', label: 'Stroke Volume', min: 40, max: 120, step: 2, defaultValue: 70, unit: 'mL' },
+      { key: 'splitView', label: 'Split Left & Right Halves (0: Intact, 1: Split Open)', min: 0, max: 1, step: 1, defaultValue: 0, unit: '' },
       { key: 'showValves', label: 'Internal Valve Visibility', min: 0, max: 1, step: 1, defaultValue: 1, unit: '' },
-      { key: 'dissectMode', label: 'Dissect Chamber (0:All Closed, 1:Left Atrium, 2:Left Ventricle, 3:Right Atrium, 4:Right Ventricle)', min: 0, max: 4, step: 1, defaultValue: 0, unit: '' },
     ],
     calculateReadouts: (p) => {
       const co = ((p.bpm * p.strokeVolume) / 1000).toFixed(2)
       const cycleTime = (60 / p.bpm).toFixed(2)
-      const dissectNames = ['None (Intact Organ)', 'Left Atrium (Opened)', 'Left Ventricle (Opened)', 'Right Atrium (Opened)', 'Right Ventricle (Opened)']
-      const curDissect = dissectNames[Math.round(p.dissectMode)] || dissectNames[0]
+      const isSplit = p.splitView >= 0.5
       return [
         { label: 'Cardiac Output (Q)', value: co, unit: 'L/min', formula: 'Q = HR × SV' },
         { label: 'Cardiac Cycle Time', value: cycleTime, unit: 's', formula: 'T = 60 / BPM' },
-        { label: 'Inner Dissection', value: curDissect },
+        { label: 'Anatomical Section', value: isSplit ? 'Left & Right Halves Split' : 'Intact Organ' },
         { label: 'Circulation Circuit', value: 'Double Circulation (Systemic & Pulmonary)' },
       ]
     },
-    initScene: (container, initialParams, callbacks) => {
+    initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
       let animId: number
@@ -2203,11 +2203,12 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const height = container.clientHeight || 500
 
       const scene = new THREE.Scene()
-      // Clean medical studio environment without any harsh graph paper grid floor!
+      // Clean, premium medical studio environment (no mechanical Cartesian grid floor lines)
       createBioStudioEnvironment(scene)
 
+      // Optimal camera framing for full anatomical visibility
       const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
-      camera.position.set(0, 4, 21)
+      camera.position.set(0, 0.4, 13.5)
 
       const renderer = new THREE.WebGLRenderer({ antialias: true })
       renderer.setSize(width, height)
@@ -2218,508 +2219,540 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const controls = new OrbitControls(camera, renderer.domElement)
       controls.enableDamping = true
       controls.dampingFactor = 0.05
-      controls.target.set(0, 1.2, 0)
+      controls.target.set(0, 0.1, 0)
 
-      const heartGroup = new THREE.Group()
-      scene.add(heartGroup)
+      // Main anatomical rig with natural physiological thoracic apex tilt
+      const heartRig = new THREE.Group()
+      heartRig.position.y = 0.1
+      heartRig.rotation.z = -0.12
+      scene.add(heartRig)
 
-      // High-Fidelity Anatomical Materials
+      // Two coordinated functional hemispheres for fluid Left/Right split animation
+      const leftHeartGroup = new THREE.Group()
+      const rightHeartGroup = new THREE.Group()
+      heartRig.add(leftHeartGroup, rightHeartGroup)
+
+      // Dedicated illumination for internal chambers
+      const leftCavityLight = new THREE.PointLight(0xffedd5, 1.8, 8)
+      leftCavityLight.position.set(-0.5, 0.2, 0.5)
+      leftHeartGroup.add(leftCavityLight)
+
+      const rightCavityLight = new THREE.PointLight(0xffedd5, 1.8, 8)
+      rightCavityLight.position.set(0.5, 0.2, 0.5)
+      rightHeartGroup.add(rightCavityLight)
+
+      const interactableMeshes: THREE.Object3D[] = []
+
+      // Pedagogical Dissection Metadata Dictionary
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        split: {
+          title: 'Heart Coronal Section · Left & Right Halves Split',
+          partName: 'Functional Double Pump Hemispheres Dissected',
+          role: 'Reveals the two independent circuits: Systemic High-Pressure Circuit (Left) and Pulmonary Low-Pressure Circuit (Right)',
+          internalStructures: ['Thick Myocardial Wall (Left Ventricle ~15 mm)', 'Thin Myocardial Wall (Right Ventricle ~4 mm)', 'Muscular Interventricular Septum', 'Bicuspid (Mitral) & Tricuspid Valves', 'Papillary Muscles & Chordae Tendineae'],
+          description: 'The heart has split along the coronal septum. Notice the profound thickness difference: the Left Ventricle has 3x thicker muscular walls to generate 120 mmHg systolic pressure to supply the entire body, whereas the Right Ventricle only pumps against 25 mmHg pulmonary resistance.',
+        },
+        la: {
+          title: 'Left Atrium (Atrium Sinistrum) · Interior Dissected',
+          partName: 'Oxygenated Receiving Chamber',
+          role: 'Collects freshly oxygenated blood from both lungs via 4 pulmonary veins; delivers into Left Ventricle',
+          bloodType: 'Oxygenated',
+          internalStructures: ['4 Pulmonary Vein Intakes (Left & Right pairs)', 'Bicuspid (Mitral) Valve Orifice', 'Pectinate Muscles in Left Auricle', 'Interatrial Septum Wall'],
+          description: 'The Left Atrium receives high-oxygen blood returning from alveolar capillaries. Blood passes through the bicuspid (mitral) valve during ventricular diastole.',
+        },
+        lv: {
+          title: 'Left Ventricle (Ventriculus Sinister) · Interior Cavity',
+          partName: 'Systemic Muscular Powerhouse',
+          role: 'Ejects oxygenated blood under high pressure into the ascending aorta to perfuse the brain, viscera, and extremities',
+          bloodType: 'Oxygenated',
+          internalStructures: ['Thick Myocardial Wall (3x thicker ~15mm)', 'Stout Papillary Pillars', 'Fibrous Chordae Tendineae (Heart Strings)', 'Bicuspid Valve Leaflets', 'Aortic Vestibule'],
+          description: 'Notice the prominent papillary muscles and chordae tendineae anchored to the mitral valve cusps. These strings act like parachute guy-wires, preventing valve prolapse under 120 mmHg systolic pressure.',
+        },
+        ra: {
+          title: 'Right Atrium (Atrium Dextrum) & SA Node Pacemaker',
+          partName: 'Deoxygenated Venous Receiving Chamber',
+          role: 'Receives systemic venous return from Superior & Inferior Vena Cava; houses the SA Node natural pacemaker',
+          bloodType: 'Deoxygenated',
+          internalStructures: ['Sinoatrial (SA) Node Pacemaker', 'Superior Vena Cava (SVC) Intake', 'Inferior Vena Cava (IVC) Intake', 'Fossa Ovalis Depression', 'Tricuspid Valve Orifice'],
+          description: 'The Right Atrium collects oxygen-depleted blood from the upper and lower body. The SA Node in its upper wall generates rhythmic electrical depolarization waves driving the heartbeat.',
+        },
+        rv: {
+          title: 'Right Ventricle (Ventriculus Dexter) · Pulmonary Pump',
+          partName: 'Low-Pressure Pulmonary Pump',
+          role: 'Pumps venous blood through the pulmonary valve and trunk into the lungs for alveolar gas exchange',
+          bloodType: 'Deoxygenated',
+          internalStructures: ['Thin Myocardial Wall (~4 mm)', 'Tricuspid Valve (3 Cusps)', 'Trabeculae Carneae Muscular Columns', 'Conus Arteriosus Funnel', 'Moderator Band'],
+          description: 'The Right Ventricle has a crescent shape and thinner wall (~4 mm) compared to the left ventricle, since pulmonary capillary vascular resistance requires only ~25 mmHg systolic pressure.',
+        },
+        aorta: {
+          title: 'Ascending Aorta & Systemic Arch',
+          partName: 'Principal Systemic Arterial Trunk',
+          role: 'Distributes oxygenated blood under high pulsatile pressure to the coronary arteries, head, upper extremities, and descending systemic circulation',
+          bloodType: 'Oxygenated',
+          internalStructures: ['Aortic Valve Cusps', 'Sinuses of Valsalva', 'Brachiocephalic Artery', 'Left Common Carotid Artery', 'Left Subclavian Artery'],
+          description: 'The thick, elastic aortic wall dampens systolic pressure spikes (Windkessel effect) and sustains blood flow into peripheral tissues during ventricular diastole.',
+        },
+        pulmonary: {
+          title: 'Pulmonary Artery Trunk & Bifurcation',
+          partName: 'Pulmonary Outflow Trunk',
+          role: 'Carries deoxygenated blood from the right ventricle to the left and right lungs for oxygenation',
+          bloodType: 'Deoxygenated',
+          internalStructures: ['Pulmonary Semilunar Valve', 'Main Pulmonary Trunk', 'Left Pulmonary Artery', 'Right Pulmonary Artery', 'Ligamentum Arteriosum'],
+          description: 'The pulmonary trunk emerges anterior to the ascending aorta and quickly bifurcates into the left and right pulmonary arteries to deliver blood to pulmonary capillaries.',
+        },
+        sanode: {
+          title: 'Sinoatrial (SA) Node · Heart Pacemaker',
+          partName: 'Primary Cardiac Pacemaker',
+          role: 'Generates spontaneous, rhythmic action potentials that initiate each heartbeat and set cardiac rhythm',
+          bloodType: 'Neutral',
+          internalStructures: ['P-cells (Pacemaker Cells)', 'Funny Channels (If Current)', 'Bachmann Bundle Conduction Pathway', 'Crista Terminalis Junction'],
+          description: 'The SA Node generates intrinsic rhythmic depolarization pulses (~72 beats per minute). Notice the glowing golden-cyan conduction waves spreading across the atria before ventricular contraction.',
+        },
+      }
+
+      // High-Fidelity Medical Materials
       const myoMatLeft = new THREE.MeshStandardMaterial({
         color: 0x9f1239,
         roughness: 0.32,
-        metalness: 0.12,
+        metalness: 0.1,
       })
       const myoMatRight = new THREE.MeshStandardMaterial({
-        color: 0xb91c1c,
-        roughness: 0.36,
+        color: 0x881337,
+        roughness: 0.34,
         metalness: 0.1,
       })
       const atriumMat = new THREE.MeshStandardMaterial({
-        color: 0x881337,
-        roughness: 0.4,
-        metalness: 0.1,
+        color: 0xb91c1c,
+        roughness: 0.35,
+        metalness: 0.08,
       })
       const fatMat = new THREE.MeshStandardMaterial({
         color: 0xfef08a,
-        roughness: 0.7,
-        metalness: 0.05,
+        roughness: 0.72,
+        metalness: 0.04,
       })
       const lumenMat = new THREE.MeshStandardMaterial({
-        color: 0x4c0519,
-        roughness: 0.5,
+        color: 0x580614,
+        roughness: 0.38,
         side: THREE.BackSide,
+      })
+      // Cut myocardial face with rich muscle tone
+      const cutWallLeftMat = new THREE.MeshStandardMaterial({
+        color: 0xbe123c,
+        roughness: 0.32,
+        metalness: 0.1,
+        side: THREE.DoubleSide,
+      })
+      const cutWallRightMat = new THREE.MeshStandardMaterial({
+        color: 0x9f1239,
+        roughness: 0.34,
+        metalness: 0.08,
+        side: THREE.DoubleSide,
       })
       const valveMat = new THREE.MeshStandardMaterial({
         color: 0xffedd5,
-        roughness: 0.25,
+        roughness: 0.2,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.9,
+        opacity: 0.92,
       })
       const chordaeMat = new THREE.MeshStandardMaterial({
         color: 0xf8fafc,
-        roughness: 0.3,
-        metalness: 0.1,
+        roughness: 0.25,
+        metalness: 0.15,
       })
-      const coronaryMat = new THREE.MeshStandardMaterial({
-        color: 0xf43f5e,
-        emissive: 0xbe123c,
-        emissiveIntensity: 0.7,
-        roughness: 0.2,
+      const arterialMat = new THREE.MeshStandardMaterial({
+        color: 0xef4444,
+        roughness: 0.24,
+        metalness: 0.26,
+      })
+      const venousMat = new THREE.MeshStandardMaterial({
+        color: 0x2563eb,
+        roughness: 0.26,
+        metalness: 0.26,
       })
 
-      // Interactive Dissection State
-      let activeDissectId: 'la' | 'lv' | 'ra' | 'rv' | 'aorta' | null = null
-      if (params.dissectMode === 1) activeDissectId = 'la'
-      else if (params.dissectMode === 2) activeDissectId = 'lv'
-      else if (params.dissectMode === 3) activeDissectId = 'ra'
-      else if (params.dissectMode === 4) activeDissectId = 'rv'
+      // State tracking
+      let isSplit = Boolean(params.splitView === 1)
+      let splitProgress = isSplit ? 1.0 : 0.0
+      let activeDissectId: string | null = isSplit ? 'split' : null
 
-      // Opening progress interpolators (0: closed, 1: fully opened)
-      const openProgress = { la: 0, lv: 0, ra: 0, rv: 0, aorta: 0 }
-
-      // Raycast Target Meshes
-      const interactableMeshes: THREE.Mesh[] = []
-
-      // Helper to register interactable chamber mesh
-      function registerChamberMesh(mesh: THREE.Mesh, id: 'la' | 'lv' | 'ra' | 'rv' | 'aorta', name: string) {
-        mesh.userData = { chamberId: id, chamberName: name }
+      function registerPart(mesh: THREE.Object3D, id: string) {
+        mesh.userData = { partId: id }
         interactableMeshes.push(mesh)
       }
 
       // ========================================================
-      // 1. LEFT ATRIUM (LA) WITH DOUBLE-TAP DISSECTION
+      // 1. LEFT HEART HEMISPHERE (SYSTEMIC CIRCUIT - OXYGENATED)
       // ========================================================
-      const laGroup = new THREE.Group()
-      laGroup.position.set(-1.4, 2.3, -0.4)
-      heartGroup.add(laGroup)
+      // Left Ventricle Outer Shell (x <= 0)
+      const lvGeo = new THREE.SphereGeometry(2.5, 32, 32, -Math.PI / 2, Math.PI, 0, Math.PI)
+      lvGeo.scale(0.88, 1.45, 0.9)
+      const lvMesh = new THREE.Mesh(lvGeo, myoMatLeft)
+      lvMesh.position.set(0, -0.6, 0.0)
+      registerPart(lvMesh, 'lv')
+      leftHeartGroup.add(lvMesh)
 
-      // Inner Lumen Shell (Visible when opened)
-      const laInnerGeo = new THREE.SphereGeometry(1.65, 24, 24)
-      laInnerGeo.scale(1.1, 1.0, 1.2)
-      const laInnerMesh = new THREE.Mesh(laInnerGeo, lumenMat)
-      laGroup.add(laInnerMesh)
+      // Left Ventricle Internal Cavity Lumen (inside x <= 0)
+      const lvCavityGeo = new THREE.SphereGeometry(2.0, 24, 24, -Math.PI / 2, Math.PI, 0, Math.PI)
+      lvCavityGeo.scale(0.72, 1.35, 0.78)
+      const lvCavity = new THREE.Mesh(lvCavityGeo, lumenMat)
+      lvCavity.position.set(0, -0.6, 0.0)
+      registerPart(lvCavity, 'lv')
+      leftHeartGroup.add(lvCavity)
 
-      // 4 Pulmonary Vein Intakes into Left Atrium (2 left lung, 2 right lung)
-      const pvPositions = [
-        new THREE.Vector3(-1.1, 0.5, -0.6),
-        new THREE.Vector3(-1.1, -0.4, -0.6),
-        new THREE.Vector3(0.9, 0.5, -0.8),
-        new THREE.Vector3(0.9, -0.4, -0.8),
-      ]
-      pvPositions.forEach((pvPos) => {
-        const pvGeo = new THREE.CylinderGeometry(0.24, 0.26, 1.5, 12)
-        pvGeo.translate(0, 0.75, 0)
-        const pvMesh = new THREE.Mesh(pvGeo, new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 }))
-        pvMesh.position.copy(pvPos)
-        pvMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), pvPos.clone().normalize())
-        laGroup.add(pvMesh)
+      // Cut Myocardium Face on x = 0 plane (Showing thick ~15 mm wall border)
+      const lvCutRingGeo = new THREE.RingGeometry(1.6, 2.45, 32)
+      lvCutRingGeo.scale(0.9, 1.45, 1.0)
+      const lvCutFace = new THREE.Mesh(lvCutRingGeo, cutWallLeftMat)
+      lvCutFace.position.set(0.01, -0.6, 0.0)
+      lvCutFace.rotation.y = Math.PI / 2
+      registerPart(lvCutFace, 'lv')
+      leftHeartGroup.add(lvCutFace)
 
-        // Glowing red intake ring ostium
-        const ostiumGeo = new THREE.TorusGeometry(0.26, 0.05, 8, 16)
-        const ostiumMesh = new THREE.Mesh(ostiumGeo, new THREE.MeshBasicMaterial({ color: 0xfca5a5 }))
-        ostiumMesh.position.copy(pvPos)
-        ostiumMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), pvPos.clone().normalize())
-        laGroup.add(ostiumMesh)
-      })
-
-      // Pectinate Muscle Ridges inside LA
-      for (let p = 0; p < 6; p++) {
-        const ridgeGeo = new THREE.TorusGeometry(0.7 + p * 0.12, 0.04, 6, 16, Math.PI * 0.8)
-        const ridgeMesh = new THREE.Mesh(ridgeGeo, myoMatLeft)
-        ridgeMesh.position.set(-0.2, -0.2 + p * 0.08, 0.1)
-        ridgeMesh.rotation.x = Math.PI / 2
-        laGroup.add(ridgeMesh)
-      }
-
-      // Left Atrium Outer Wall Flap (Hinged to swing open upon double-tap)
-      const laHinge = new THREE.Group()
-      laHinge.position.set(-1.2, 0, 0.6)
-      laGroup.add(laHinge)
-
-      const laFlapGeo = new THREE.SphereGeometry(1.72, 24, 24, 0, Math.PI * 1.1, 0, Math.PI)
-      laFlapGeo.scale(1.1, 1.0, 1.2)
-      const laFlapMesh = new THREE.Mesh(laFlapGeo, atriumMat)
-      laFlapMesh.position.set(1.2, 0, -0.6)
-      registerChamberMesh(laFlapMesh, 'la', 'Left Atrium')
-      laHinge.add(laFlapMesh)
-
-      // ========================================================
-      // 2. LEFT VENTRICLE (LV) WITH DOUBLE-TAP DISSECTION
-      // ========================================================
-      const lvGroup = new THREE.Group()
-      lvGroup.position.set(-0.8, -0.6, 0.2)
-      lvGroup.rotation.z = 0.18
-      heartGroup.add(lvGroup)
-
-      // Inner Ventricular Cavity
-      const lvInnerGeo = new THREE.SphereGeometry(2.7, 32, 32)
-      lvInnerGeo.scale(0.85, 1.4, 0.9)
-      const lvInnerMesh = new THREE.Mesh(lvInnerGeo, lumenMat)
-      lvGroup.add(lvInnerMesh)
-
-      // Muscular Papillary Muscles on LV Floor
-      const papGeo = new THREE.CylinderGeometry(0.35, 0.5, 1.6, 12)
+      // Papillary Muscles anchored inside LV floor
+      const papGeo = new THREE.CylinderGeometry(0.3, 0.45, 1.4, 12)
       const pap1 = new THREE.Mesh(papGeo, myoMatLeft)
-      pap1.position.set(-0.6, -1.2, 0.2)
-      lvGroup.add(pap1)
+      pap1.position.set(-0.7, -1.0, 0.4)
+      leftHeartGroup.add(pap1)
 
       const pap2 = new THREE.Mesh(papGeo, myoMatLeft)
-      pap2.position.set(0.6, -1.2, -0.2)
-      lvGroup.add(pap2)
+      pap2.position.set(-0.7, -1.0, -0.4)
+      leftHeartGroup.add(pap2)
 
-      // Fibrous Chordae Tendineae ("Heart Strings") connecting Papillary Muscles to Mitral Cusps
+      // Fibrous Chordae Tendineae ("Heart Strings")
       for (let c = 0; c < 8; c++) {
-        const cordGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.2, 6)
-        cordGeo.translate(0, 0.6, 0)
+        const cordGeo = new THREE.CylinderGeometry(0.035, 0.035, 1.25, 6)
+        cordGeo.translate(0, 0.62, 0)
         const cordMesh = new THREE.Mesh(cordGeo, chordaeMat)
         const isPap1 = c < 4
-        cordMesh.position.copy(isPap1 ? pap1.position : pap2.position).add(new THREE.Vector3(0, 0.8, 0))
+        cordMesh.position.copy(isPap1 ? pap1.position : pap2.position).add(new THREE.Vector3(0, 0.7, 0))
         const angle = ((c % 4) * Math.PI) / 3
         cordMesh.quaternion.setFromUnitVectors(
           new THREE.Vector3(0, 1, 0),
-          new THREE.Vector3(Math.cos(angle) * 0.3, 1.0, Math.sin(angle) * 0.3).normalize()
+          new THREE.Vector3(Math.cos(angle) * 0.35, 1.0, Math.sin(angle) * 0.35).normalize()
         )
-        lvGroup.add(cordMesh)
+        leftHeartGroup.add(cordMesh)
       }
 
-      // Left Ventricle Outer Wall Flap
-      const lvHinge = new THREE.Group()
-      lvHinge.position.set(-1.8, 0, 0.5)
-      lvGroup.add(lvHinge)
+      // Mitral (Bicuspid) Valve Leaflets positioned across the LV inlet
+      const mitralGeo = new THREE.PlaneGeometry(1.3, 0.75)
+      const mitralCusp1 = new THREE.Mesh(mitralGeo, valveMat)
+      mitralCusp1.position.set(-0.5, 0.75, 0.25)
+      mitralCusp1.rotation.x = 0.4
+      registerPart(mitralCusp1, 'lv')
+      leftHeartGroup.add(mitralCusp1)
 
-      const lvFlapGeo = new THREE.SphereGeometry(2.82, 32, 32, 0, Math.PI * 1.15, 0, Math.PI)
-      lvFlapGeo.scale(0.9, 1.45, 0.95)
-      const lvFlapMesh = new THREE.Mesh(lvFlapGeo, myoMatLeft)
-      lvFlapMesh.position.set(1.8, 0, -0.5)
-      registerChamberMesh(lvFlapMesh, 'lv', 'Left Ventricle')
-      lvHinge.add(lvFlapMesh)
+      const mitralCusp2 = new THREE.Mesh(mitralGeo, valveMat)
+      mitralCusp2.position.set(-0.5, 0.75, -0.25)
+      mitralCusp2.rotation.x = -0.4
+      registerPart(mitralCusp2, 'lv')
+      leftHeartGroup.add(mitralCusp2)
 
-      // ========================================================
-      // 3. RIGHT ATRIUM (RA) WITH DOUBLE-TAP DISSECTION
-      // ========================================================
-      const raGroup = new THREE.Group()
-      raGroup.position.set(1.5, 2.0, 0.3)
-      heartGroup.add(raGroup)
+      // Left Atrium (LA) Hemisphere (x <= 0)
+      const laGeo = new THREE.SphereGeometry(1.65, 24, 24, -Math.PI / 2, Math.PI, 0, Math.PI)
+      laGeo.scale(0.95, 1.0, 1.1)
+      const laMesh = new THREE.Mesh(laGeo, atriumMat)
+      laMesh.position.set(0, 2.2, -0.2)
+      registerPart(laMesh, 'la')
+      leftHeartGroup.add(laMesh)
 
-      const raInnerGeo = new THREE.SphereGeometry(1.75, 24, 24)
-      raInnerGeo.scale(1.1, 1.1, 1.0)
-      const raInnerMesh = new THREE.Mesh(raInnerGeo, lumenMat)
-      raGroup.add(raInnerMesh)
+      // LA Internal Cavity
+      const laCavityGeo = new THREE.SphereGeometry(1.4, 20, 20, -Math.PI / 2, Math.PI, 0, Math.PI)
+      laCavityGeo.scale(0.85, 0.95, 1.0)
+      const laCavity = new THREE.Mesh(laCavityGeo, lumenMat)
+      laCavity.position.set(0, 2.2, -0.2)
+      registerPart(laCavity, 'la')
+      leftHeartGroup.add(laCavity)
 
-      // Fossa Ovalis (Oval depression in interatrial septum)
-      const fossaGeo = new THREE.RingGeometry(0.25, 0.55, 16)
-      const fossaMesh = new THREE.Mesh(fossaGeo, new THREE.MeshStandardMaterial({ color: 0x334155, side: THREE.DoubleSide }))
-      fossaMesh.position.set(-0.8, 0, 0)
-      fossaMesh.rotation.y = Math.PI / 2
-      raGroup.add(fossaMesh)
+      // 4 Pulmonary Vein Intakes (Oxygenated Blood from Lungs)
+      const pvOffsets = [
+        new THREE.Vector3(-0.85, 0.5, -0.6),
+        new THREE.Vector3(-0.85, -0.4, -0.6),
+        new THREE.Vector3(-0.2, 0.5, -0.8),
+        new THREE.Vector3(-0.2, -0.4, -0.8),
+      ]
+      pvOffsets.forEach((pvOff) => {
+        const pvGeo = new THREE.CylinderGeometry(0.24, 0.26, 1.4, 12)
+        pvGeo.translate(0, 0.7, 0)
+        const pvMesh = new THREE.Mesh(pvGeo, arterialMat)
+        pvMesh.position.copy(laMesh.position).add(pvOff)
+        pvMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), pvOff.clone().normalize())
+        leftHeartGroup.add(pvMesh)
 
-      // Right Atrium Outer Wall Flap
-      const raHinge = new THREE.Group()
-      raHinge.position.set(1.5, 0, 0.6)
-      raGroup.add(raHinge)
+        // Glowing red intake ostium
+        const ostium = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.05, 8, 16), new THREE.MeshBasicMaterial({ color: 0xfca5a5 }))
+        ostium.position.copy(pvMesh.position)
+        ostium.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), pvOff.clone().normalize())
+        leftHeartGroup.add(ostium)
+      })
 
-      const raFlapGeo = new THREE.SphereGeometry(1.82, 24, 24, 0, Math.PI * 1.15, 0, Math.PI)
-      raFlapGeo.scale(1.1, 1.1, 1.0)
-      const raFlapMesh = new THREE.Mesh(raFlapGeo, atriumMat)
-      raFlapMesh.position.set(-1.5, 0, -0.6)
-      registerChamberMesh(raFlapMesh, 'ra', 'Right Atrium')
-      raHinge.add(raFlapMesh)
-
-      // ========================================================
-      // 4. RIGHT VENTRICLE (RV) WITH DOUBLE-TAP DISSECTION
-      // ========================================================
-      const rvGroup = new THREE.Group()
-      rvGroup.position.set(1.1, -0.4, 0.5)
-      rvGroup.rotation.z = -0.15
-      heartGroup.add(rvGroup)
-
-      const rvInnerGeo = new THREE.SphereGeometry(2.4, 32, 32)
-      rvInnerGeo.scale(1.05, 1.3, 0.8)
-      const rvInnerMesh = new THREE.Mesh(rvInnerGeo, lumenMat)
-      rvGroup.add(rvInnerMesh)
-
-      // Trabeculae Carneae (Muscular ridges in RV)
-      for (let t = 0; t < 5; t++) {
-        const trabGeo = new THREE.TorusGeometry(0.8 + t * 0.15, 0.08, 6, 16, Math.PI * 0.7)
-        const trabMesh = new THREE.Mesh(trabGeo, myoMatRight)
-        trabMesh.position.set(0.1, -1.0 + t * 0.25, -0.1)
-        trabMesh.rotation.x = Math.PI / 2.5
-        rvGroup.add(trabMesh)
-      }
-
-      // Right Ventricle Outer Wall Flap
-      const rvHinge = new THREE.Group()
-      rvHinge.position.set(1.6, 0, 0.6)
-      rvGroup.add(rvHinge)
-
-      const rvFlapGeo = new THREE.SphereGeometry(2.52, 32, 32, 0, Math.PI * 1.15, 0, Math.PI)
-      rvFlapGeo.scale(1.05, 1.3, 0.8)
-      const rvFlapMesh = new THREE.Mesh(rvFlapGeo, myoMatRight)
-      rvFlapMesh.position.set(-1.6, 0, -0.6)
-      registerChamberMesh(rvFlapMesh, 'rv', 'Right Ventricle')
-      rvHinge.add(rvFlapMesh)
-
-      // ========================================================
-      // 5. GREAT VESSELS: AORTA, PULMONARY TRUNK, VENA CAVA
-      // ========================================================
-      // Ascending Aorta & Arch (Sweeping Red Trunk with 3 Head/Neck Branches)
+      // Ascending Aorta & Iconic Aortic Arch
       const aortaCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(-0.2, 1.2, 0),
+        new THREE.Vector3(-0.2, 1.1, 0.1),
         new THREE.Vector3(-0.1, 3.2, 0.2),
-        new THREE.Vector3(0.6, 4.8, 0),
-        new THREE.Vector3(0.2, 5.4, -0.6),
-        new THREE.Vector3(-1.2, 5.0, -1.0),
-        new THREE.Vector3(-1.8, 2.8, -1.2),
+        new THREE.Vector3(0.4, 4.8, 0),
+        new THREE.Vector3(0.0, 5.4, -0.6),
+        new THREE.Vector3(-1.1, 5.0, -1.0),
+        new THREE.Vector3(-1.7, 2.8, -1.2),
       ])
       const aortaGeo = new THREE.TubeGeometry(aortaCurve, 32, 0.65, 16, false)
-      const aortaMat = new THREE.MeshStandardMaterial({
-        color: 0xef4444,
-        roughness: 0.22,
-        metalness: 0.28,
-      })
-      const aortaMesh = new THREE.Mesh(aortaGeo, aortaMat)
-      registerChamberMesh(aortaMesh, 'aorta', 'Aorta Arch')
-      heartGroup.add(aortaMesh)
+      const aortaMesh = new THREE.Mesh(aortaGeo, arterialMat)
+      registerPart(aortaMesh, 'aorta')
+      leftHeartGroup.add(aortaMesh)
 
-      // 3 Head/Neck Branches: Brachiocephalic trunk, Left common carotid, Left subclavian
-      const branchPositions = [
-        { start: new THREE.Vector3(0.5, 5.1, -0.1), dir: new THREE.Vector3(0.4, 1.4, 0.2) },
-        { start: new THREE.Vector3(0.0, 5.3, -0.4), dir: new THREE.Vector3(0.1, 1.5, 0.1) },
+      // 3 Aortic Arch Branches (Brachiocephalic, Carotid, Subclavian)
+      const archBranches = [
+        { start: new THREE.Vector3(0.3, 5.1, -0.1), dir: new THREE.Vector3(0.4, 1.4, 0.2) },
+        { start: new THREE.Vector3(-0.1, 5.3, -0.4), dir: new THREE.Vector3(0.1, 1.5, 0.1) },
         { start: new THREE.Vector3(-0.6, 5.2, -0.7), dir: new THREE.Vector3(-0.2, 1.4, -0.1) },
       ]
-      branchPositions.forEach((b) => {
-        const bGeo = new THREE.CylinderGeometry(0.18, 0.22, 1.6, 12)
+      archBranches.forEach((b) => {
+        const bGeo = new THREE.CylinderGeometry(0.17, 0.21, 1.6, 12)
         bGeo.translate(0, 0.8, 0)
-        const bMesh = new THREE.Mesh(bGeo, aortaMat)
+        const bMesh = new THREE.Mesh(bGeo, arterialMat)
         bMesh.position.copy(b.start)
         bMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.dir.clone().normalize())
-        heartGroup.add(bMesh)
+        leftHeartGroup.add(bMesh)
       })
 
-      // Pulmonary Trunk (Venous Blue Arch curving across anterior Aorta)
-      const pulmCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0.6, 1.2, 0.8),
-        new THREE.Vector3(0.4, 3.0, 0.9),
-        new THREE.Vector3(-0.6, 3.8, 0.4),
-      ])
-      const pulmGeo = new THREE.TubeGeometry(pulmCurve, 20, 0.58, 16, false)
-      const venousMat = new THREE.MeshStandardMaterial({
-        color: 0x2563eb,
-        roughness: 0.25,
-        metalness: 0.25,
-      })
-      const pulmMesh = new THREE.Mesh(pulmGeo, venousMat)
-      heartGroup.add(pulmMesh)
-
-      // Left & Right Pulmonary Arteries
-      const leftPulmGeo = new THREE.CylinderGeometry(0.3, 0.35, 2.2, 12)
-      leftPulmGeo.translate(0, 1.1, 0)
-      const leftPulm = new THREE.Mesh(leftPulmGeo, venousMat)
-      leftPulm.position.set(-0.6, 3.8, 0.4)
-      leftPulm.rotation.z = Math.PI / 2.3
-      heartGroup.add(leftPulm)
-
-      const rightPulmGeo = new THREE.CylinderGeometry(0.3, 0.35, 2.2, 12)
-      rightPulmGeo.translate(0, 1.1, 0)
-      const rightPulm = new THREE.Mesh(rightPulmGeo, venousMat)
-      rightPulm.position.set(-0.6, 3.8, 0.4)
-      rightPulm.rotation.z = -Math.PI / 2.4
-      heartGroup.add(rightPulm)
-
-      // Superior & Inferior Vena Cava (Blue Great Vessels into RA)
-      const svcGeo = new THREE.CylinderGeometry(0.55, 0.6, 3.0, 16)
-      const svcMesh = new THREE.Mesh(svcGeo, venousMat)
-      svcMesh.position.set(2.4, 3.4, 0.0)
-      heartGroup.add(svcMesh)
-
-      const ivcGeo = new THREE.CylinderGeometry(0.55, 0.55, 2.2, 16)
-      const ivcMesh = new THREE.Mesh(ivcGeo, venousMat)
-      ivcMesh.position.set(2.2, -1.4, -0.3)
-      heartGroup.add(ivcMesh)
-
       // ========================================================
-      // 6. ADIPOSE FAT PADS & CORONARY ARTERY NETWORK
+      // 2. RIGHT HEART HEMISPHERE (PULMONARY CIRCUIT - DEOXYGENATED)
       // ========================================================
-      // Subepicardial Adipose Tissue (Fat pads along coronary sulcus)
-      const fatBandCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(-1.8, 1.4, 0.4),
-        new THREE.Vector3(0.1, 1.8, 1.4),
-        new THREE.Vector3(1.8, 1.4, 0.6),
-        new THREE.Vector3(0.0, 1.2, -1.2),
-      ])
-      const fatBandGeo = new THREE.TubeGeometry(fatBandCurve, 24, 0.28, 10, true)
-      const fatBandMesh = new THREE.Mesh(fatBandGeo, fatMat)
-      heartGroup.add(fatBandMesh)
+      // Right Ventricle Outer Shell (x >= 0)
+      const rvGeo = new THREE.SphereGeometry(2.5, 32, 32, Math.PI / 2, Math.PI, 0, Math.PI)
+      rvGeo.scale(0.95, 1.3, 0.8)
+      const rvMesh = new THREE.Mesh(rvGeo, myoMatRight)
+      rvMesh.position.set(0, -0.4, 0.0)
+      registerPart(rvMesh, 'rv')
+      rightHeartGroup.add(rvMesh)
 
-      // Anterior Interventricular Coronary Artery
-      const coronaryCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0.1, 1.8, 1.4),
-        new THREE.Vector3(0.3, 0.6, 1.6),
-        new THREE.Vector3(0.0, -0.8, 1.4),
-        new THREE.Vector3(-0.4, -2.1, 0.9),
-      ])
-      const coronaryGeo = new THREE.TubeGeometry(coronaryCurve, 20, 0.12, 12, false)
-      const coronaryMesh = new THREE.Mesh(coronaryGeo, coronaryMat)
-      heartGroup.add(coronaryMesh)
+      // Right Ventricle Cavity (inside x >= 0)
+      const rvCavityGeo = new THREE.SphereGeometry(2.35, 24, 24, Math.PI / 2, Math.PI, 0, Math.PI)
+      rvCavityGeo.scale(0.9, 1.25, 0.75)
+      const rvCavity = new THREE.Mesh(rvCavityGeo, lumenMat)
+      rvCavity.position.set(0, -0.4, 0.0)
+      registerPart(rvCavity, 'rv')
+      rightHeartGroup.add(rvCavity)
 
-      // ========================================================
-      // 7. INTERNAL ATRIOVENTRICULAR VALVES
-      // ========================================================
-      const valveGroup = new THREE.Group()
-      heartGroup.add(valveGroup)
-      valveGroup.visible = Boolean(params.showValves === 1)
+      // Cut Myocardium Face on x = 0 plane (Showing thin ~4 mm wall border - 3x thinner than LV!)
+      const rvCutRingGeo = new THREE.RingGeometry(2.15, 2.45, 32)
+      rvCutRingGeo.scale(0.85, 1.3, 1.0)
+      const rvCutFace = new THREE.Mesh(rvCutRingGeo, cutWallRightMat)
+      rvCutFace.position.set(-0.01, -0.4, 0.0)
+      rvCutFace.rotation.y = -Math.PI / 2
+      registerPart(rvCutFace, 'rv')
+      rightHeartGroup.add(rvCutFace)
 
-      // Mitral Valve Cusps (Left Heart)
-      const mitralCuspGeo = new THREE.PlaneGeometry(1.2, 0.8)
-      const mitralCusp1 = new THREE.Mesh(mitralCuspGeo, valveMat)
-      mitralCusp1.position.set(-0.9, 0.8, 0.1)
-      mitralCusp1.rotation.x = 0.5
-      valveGroup.add(mitralCusp1)
+      // Right Atrium (RA) Hemisphere (x >= 0)
+      const raGeo = new THREE.SphereGeometry(1.7, 24, 24, Math.PI / 2, Math.PI, 0, Math.PI)
+      raGeo.scale(0.98, 1.1, 1.0)
+      const raMesh = new THREE.Mesh(raGeo, myoMatRight)
+      raMesh.position.set(0, 2.0, 0.0)
+      registerPart(raMesh, 'ra')
+      rightHeartGroup.add(raMesh)
 
-      const mitralCusp2 = new THREE.Mesh(mitralCuspGeo, valveMat)
-      mitralCusp2.position.set(-0.9, 0.8, -0.2)
-      mitralCusp2.rotation.x = -0.5
-      valveGroup.add(mitralCusp2)
+      // RA Internal Cavity
+      const raCavityGeo = new THREE.SphereGeometry(1.45, 20, 20, Math.PI / 2, Math.PI, 0, Math.PI)
+      raCavityGeo.scale(0.88, 1.0, 0.95)
+      const raCavity = new THREE.Mesh(raCavityGeo, lumenMat)
+      raCavity.position.set(0, 2.0, 0.0)
+      registerPart(raCavity, 'ra')
+      rightHeartGroup.add(raCavity)
 
-      // Tricuspid Valve Cusps (Right Heart)
-      const triCuspGeo = new THREE.PlaneGeometry(1.1, 0.7)
-      const triCusp1 = new THREE.Mesh(triCuspGeo, valveMat)
-      triCusp1.position.set(1.0, 0.7, 0.4)
+      // Tricuspid Valve Leaflets across RV inlet
+      const triGeo = new THREE.PlaneGeometry(1.3, 0.75)
+      const triCusp1 = new THREE.Mesh(triGeo, valveMat)
+      triCusp1.position.set(0.5, 0.65, 0.25)
       triCusp1.rotation.x = 0.4
-      valveGroup.add(triCusp1)
+      registerPart(triCusp1, 'rv')
+      rightHeartGroup.add(triCusp1)
 
-      const triCusp2 = new THREE.Mesh(triCuspGeo, valveMat)
-      triCusp2.position.set(1.0, 0.7, 0.0)
+      const triCusp2 = new THREE.Mesh(triGeo, valveMat)
+      triCusp2.position.set(0.5, 0.65, -0.25)
       triCusp2.rotation.x = -0.4
-      valveGroup.add(triCusp2)
+      registerPart(triCusp2, 'rv')
+      rightHeartGroup.add(triCusp2)
+
+      // Superior Vena Cava (SVC)
+      const svcGeo = new THREE.CylinderGeometry(0.55, 0.55, 3.2, 16)
+      const svcMesh = new THREE.Mesh(svcGeo, venousMat)
+      svcMesh.position.set(0.8, 3.8, -0.4)
+      registerPart(svcMesh, 'ra')
+      rightHeartGroup.add(svcMesh)
+
+      // Inferior Vena Cava (IVC)
+      const ivcGeo = new THREE.CylinderGeometry(0.52, 0.52, 2.6, 16)
+      const ivcMesh = new THREE.Mesh(ivcGeo, venousMat)
+      ivcMesh.position.set(0.6, -1.8, -0.5)
+      registerPart(ivcMesh, 'ra')
+      rightHeartGroup.add(ivcMesh)
+
+      // Sinoatrial (SA) Node Pacemaker Orb & Depolarization Wave on cut RA edge
+      const saGeo = new THREE.SphereGeometry(0.3, 16, 16)
+      const saMat = new THREE.MeshStandardMaterial({
+        color: 0x38bdf8,
+        emissive: 0x0284c7,
+        emissiveIntensity: 0.95,
+        roughness: 0.2,
+      })
+      const saMesh = new THREE.Mesh(saGeo, saMat)
+      saMesh.position.set(0.4, 2.8, 0.5)
+      registerPart(saMesh, 'sanode')
+      rightHeartGroup.add(saMesh)
+
+      const saPulseGeo = new THREE.RingGeometry(0.35, 0.7, 32)
+      const saPulseMesh = new THREE.Mesh(
+        saPulseGeo,
+        new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.65, side: THREE.DoubleSide })
+      )
+      saPulseMesh.position.copy(saMesh.position)
+      saPulseMesh.rotation.y = -Math.PI / 4
+      rightHeartGroup.add(saPulseMesh)
+
+      // Pulmonary Trunk (emerging from RV) & Bifurcation into Left/Right Pulmonary Arteries
+      const ptCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0.5, 0.8, 0.5),
+        new THREE.Vector3(0.3, 2.6, 0.8),
+        new THREE.Vector3(-0.1, 3.8, 0.3),
+      ])
+      const ptGeo = new THREE.TubeGeometry(ptCurve, 24, 0.55, 16, false)
+      const ptMesh = new THREE.Mesh(ptGeo, venousMat)
+      registerPart(ptMesh, 'pulmonary')
+      rightHeartGroup.add(ptMesh)
+
+      // Left & Right Pulmonary Branches
+      const rpaGeo = new THREE.CylinderGeometry(0.32, 0.32, 2.4, 12)
+      rpaGeo.translate(0, 1.2, 0)
+      const rpaMesh = new THREE.Mesh(rpaGeo, venousMat)
+      rpaMesh.position.set(-0.1, 3.8, 0.3)
+      rpaMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(1.3, 0.2, -0.6).normalize())
+      rightHeartGroup.add(rpaMesh)
+
+      const lpaGeo = new THREE.CylinderGeometry(0.32, 0.32, 2.2, 12)
+      lpaGeo.translate(0, 1.1, 0)
+      const lpaMesh = new THREE.Mesh(lpaGeo, venousMat)
+      lpaMesh.position.set(-0.1, 3.8, 0.3)
+      lpaMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(-1.2, 0.4, -0.7).normalize())
+      rightHeartGroup.add(lpaMesh)
 
       // ========================================================
-      // 8. OXYGENATED & DEOXYGENATED BLOOD PARTICLES
+      // 3. ANTERIOR CORONARY SULCUS & SULCUS VESSELS (INTACT VIEW)
       // ========================================================
-      const particleCount = 280
+      // Yellow Adipose Fat Cushion along Anterior Interventricular Groove
+      const fatGeo = new THREE.TorusGeometry(2.35, 0.22, 10, 32, Math.PI * 0.72)
+      const fatMesh = new THREE.Mesh(fatGeo, fatMat)
+      fatMesh.position.set(0.05, 0.4, 1.05)
+      fatMesh.rotation.z = -Math.PI / 3.4
+      heartRig.add(fatMesh)
+
+      // Left Anterior Descending (LAD) Coronary Artery (Crimson vessel)
+      const ladCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0.1, 1.6, 1.35),
+        new THREE.Vector3(0.2, 0.6, 1.55),
+        new THREE.Vector3(0.0, -0.6, 1.45),
+        new THREE.Vector3(-0.3, -1.8, 1.15),
+        new THREE.Vector3(-0.6, -2.6, 0.55),
+      ])
+      const ladGeo = new THREE.TubeGeometry(ladCurve, 24, 0.08, 10, false)
+      const ladMesh = new THREE.Mesh(ladGeo, arterialMat)
+      heartRig.add(ladMesh)
+
+      // Great Cardiac Vein running parallel to LAD
+      const gcvCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0.25, 1.5, 1.3),
+        new THREE.Vector3(0.35, 0.5, 1.5),
+        new THREE.Vector3(0.15, -0.7, 1.4),
+        new THREE.Vector3(-0.15, -1.9, 1.1),
+      ])
+      const gcvGeo = new THREE.TubeGeometry(gcvCurve, 20, 0.07, 10, false)
+      const gcvMesh = new THREE.Mesh(gcvGeo, venousMat)
+      heartRig.add(gcvMesh)
+
+      // ========================================================
+      // 4. DOUBLE CIRCULATION BLOOD PARTICLES
+      // ========================================================
+      const particleCount = 200
       const bloodGeo = new THREE.BufferGeometry()
       const bloodPos = new Float32Array(particleCount * 3)
       const bloodColors = new Float32Array(particleCount * 3)
 
       for (let i = 0; i < particleCount; i++) {
-        const isOxy = i % 2 === 0
-        if (isOxy) {
-          // Oxygenated in Left Atrium, LV & Aorta
-          bloodPos[i * 3] = -0.8 + (Math.random() - 0.5) * 1.8
-          bloodPos[i * 3 + 1] = -1.2 + Math.random() * 5.0
-          bloodPos[i * 3 + 2] = 0.1 + (Math.random() - 0.5) * 1.4
-          bloodColors[i * 3] = 0.98
-          bloodColors[i * 3 + 1] = 0.15
-          bloodColors[i * 3 + 2] = 0.2
+        const isOxygenated = i < particleCount / 2
+        const xBase = isOxygenated ? -1.1 : 1.1
+        bloodPos[i * 3] = xBase + (Math.random() - 0.5) * 1.6
+        bloodPos[i * 3 + 1] = (Math.random() - 0.5) * 5.5
+        bloodPos[i * 3 + 2] = -0.1 + (Math.random() - 0.5) * 1.2
+
+        // Oxygenated: bright crimson (0xef4444); Deoxygenated: royal cyan-blue (0x38bdf8)
+        if (isOxygenated) {
+          bloodColors[i * 3] = 0.95
+          bloodColors[i * 3 + 1] = 0.2
+          bloodColors[i * 3 + 2] = 0.25
         } else {
-          // Deoxygenated in RA, RV & Pulmonary Trunk
-          bloodPos[i * 3] = 1.1 + (Math.random() - 0.5) * 1.8
-          bloodPos[i * 3 + 1] = -1.2 + Math.random() * 4.8
-          bloodPos[i * 3 + 2] = 0.4 + (Math.random() - 0.5) * 1.4
-          bloodColors[i * 3] = 0.2
-          bloodColors[i * 3 + 1] = 0.5
-          bloodColors[i * 3 + 2] = 0.98
+          bloodColors[i * 3] = 0.15
+          bloodColors[i * 3 + 1] = 0.65
+          bloodColors[i * 3 + 2] = 0.95
         }
       }
 
       bloodGeo.setAttribute('position', new THREE.BufferAttribute(bloodPos, 3))
       bloodGeo.setAttribute('color', new THREE.BufferAttribute(bloodColors, 3))
+
       const bloodMat = new THREE.PointsMaterial({
-        size: 0.38,
+        size: 0.15,
         vertexColors: true,
         transparent: true,
         opacity: 0.9,
+        blending: THREE.AdditiveBlending,
       })
       const bloodParticles = new THREE.Points(bloodGeo, bloodMat)
-      heartGroup.add(bloodParticles)
+      heartRig.add(bloodParticles)
 
-      // Pedagogical Dissection Metadata Dictionary
-      const DISSECT_CARDS: Record<string, DissectInfo> = {
-        la: {
-          title: 'Left Atrium (Atrium Sinistrum)',
-          partName: 'Left Atrium · Interior Lumen Dissected',
-          role: 'Receives oxygen-rich blood from lungs via 4 pulmonary veins; pumps into Left Ventricle',
-          bloodType: 'Oxygenated',
-          internalStructures: ['4 Pulmonary Vein Ostia', 'Bicuspid (Mitral) Valve Orifice', 'Pectinate Muscles', 'Interatrial Septum'],
-          description: 'The anterior wall is opened to reveal the interior chamber. You can see the 4 pulmonary vein orifices entering from both lungs, delicate pectinate ridges, and the bicuspid (mitral) valve at the base leading into the thick-walled left ventricle.',
-        },
-        lv: {
-          title: 'Left Ventricle (Ventriculus Sinister)',
-          partName: 'Left Ventricle · Interior Cavity Dissected',
-          role: 'High-pressure muscular pump driving systemic circulation throughout the entire body',
-          bloodType: 'Oxygenated',
-          internalStructures: ['Thick Myocardial Wall (3x thicker)', 'Papillary Muscles', 'Chordae Tendineae (Heart Strings)', 'Mitral Valve Leaflets', 'Aortic Vestibule'],
-          description: 'Notice the prominent papillary muscles and fibrous chordae tendineae anchored to the bicuspid valve leaflets. These strings prevent the valve flaps from prolapsing backwards into the left atrium under massive systolic pressure.',
-        },
-        ra: {
-          title: 'Right Atrium (Atrium Dextrum)',
-          partName: 'Right Atrium · Deoxygenated Receiving Chamber',
-          role: 'Collects oxygen-depleted venous blood from the entire body via Vena Cava',
-          bloodType: 'Deoxygenated',
-          internalStructures: ['Superior & Inferior Vena Cava', 'Fossa Ovalis (Fetal Shunt Remnant)', 'Coronary Sinus Orifice', 'Tricuspid Valve'],
-          description: 'Exposes the entry of the superior and inferior vena cava. The smooth oval depression is the Fossa Ovalis (remnant of the fetal shunt). Blood flows through the tricuspid valve into the right ventricle.',
-        },
-        rv: {
-          title: 'Right Ventricle (Ventriculus Dexter)',
-          partName: 'Right Ventricle · Pulmonary Pump',
-          role: 'Pumps deoxygenated blood under low resistance to the lungs for gas exchange',
-          bloodType: 'Deoxygenated',
-          internalStructures: ['Tricuspid Valve', 'Trabeculae Carneae', 'Papillary Muscles', 'Pulmonary Semilunar Valve'],
-          description: 'The muscular ridges inside are trabeculae carneae. Blood is propelled through the pulmonary semilunar valve into the pulmonary artery heading towards alveolar capillary beds.',
-        },
-        aorta: {
-          title: 'Ascending Aorta & Arch',
-          partName: 'Aorta Root · Aortic Semilunar Valve Dissected',
-          role: 'Main arterial trunk distributing oxygenated blood under systemic systolic pressure (120 mmHg)',
-          bloodType: 'Oxygenated',
-          internalStructures: ['3 Semilunar Pocket Cusps', 'Left & Right Coronary Ostia', 'Brachiocephalic Trunk', 'Left Common Carotid', 'Left Subclavian Artery'],
-          description: 'Exposing the aortic root reveals the 3 pocket-like semilunar cusps that snap shut immediately after ventricular ejection, preventing backflow and directing blood into the coronary ostia.',
-        },
-      }
-
-      // Raycaster for Double-Tap & Double-Click Dissection
+      // Raycaster for Mouse Double-Click and Mobile Double-Tap
       const raycaster = new THREE.Raycaster()
-      const pointer = new THREE.Vector2()
+      const mouse = new THREE.Vector2()
 
-      function triggerDissectionAtPoint(clientX: number, clientY: number) {
+      function triggerRaycast(clientX: number, clientY: number) {
         const rect = renderer.domElement.getBoundingClientRect()
-        pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
-        pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
+        mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1
 
-        raycaster.setFromCamera(pointer, camera)
-        const intersects = raycaster.intersectObjects(interactableMeshes, false)
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
 
-        if (intersects.length > 0) {
-          const hit = intersects[0].object as THREE.Mesh
-          const id = hit.userData?.chamberId as 'la' | 'lv' | 'ra' | 'rv' | 'aorta' | undefined
-          if (id) {
-            if (activeDissectId === id) {
-              activeDissectId = null
-              callbacks.onInspectPart?.(null)
-            } else {
-              activeDissectId = id
-              const card = DISSECT_CARDS[id]
-              if (card) callbacks.onInspectPart?.(card)
-            }
+        if (hits.length > 0) {
+          const hit = hits[0].object
+          const id = hit.userData?.partId as string | undefined
+
+          if (id && DISSECT_CARDS[id]) {
+            activeDissectId = id
+            isSplit = true
+            callbacks.onInspectPart?.(DISSECT_CARDS[id])
+          } else {
+            // Toggle Left/Right split
+            isSplit = !isSplit
+            activeDissectId = isSplit ? 'split' : null
+            callbacks.onInspectPart?.(isSplit ? DISSECT_CARDS.split : null)
           }
         } else {
-          // Tapped outside on background: close dissection
-          activeDissectId = null
-          callbacks.onInspectPart?.(null)
+          // Double-tapped background: toggle Left/Right split
+          isSplit = !isSplit
+          activeDissectId = isSplit ? 'split' : null
+          callbacks.onInspectPart?.(isSplit ? DISSECT_CARDS.split : null)
         }
       }
 
-      const handleDblClick = (e: MouseEvent) => {
-        triggerDissectionAtPoint(e.clientX, e.clientY)
+      function handleDblClick(e: MouseEvent) {
+        triggerRaycast(e.clientX, e.clientY)
       }
 
       let lastTouchTime = 0
-      const handleTouchEnd = (e: TouchEvent) => {
-        const now = performance.now()
-        if (now - lastTouchTime < 340 && e.changedTouches.length > 0) {
+      function handleTouchEnd(e: TouchEvent) {
+        const now = Date.now()
+        if (now - lastTouchTime < 350 && e.changedTouches.length > 0) {
           const t = e.changedTouches[0]
-          triggerDissectionAtPoint(t.clientX, t.clientY)
+          triggerRaycast(t.clientX, t.clientY)
         }
         lastTouchTime = now
       }
@@ -2727,9 +2760,8 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       renderer.domElement.addEventListener('dblclick', handleDblClick)
       renderer.domElement.addEventListener('touchend', handleTouchEnd)
 
-      // Notify initial card if dissectMode was preset
-      if (activeDissectId && DISSECT_CARDS[activeDissectId]) {
-        callbacks.onInspectPart?.(DISSECT_CARDS[activeDissectId])
+      if (isSplit && DISSECT_CARDS.split) {
+        callbacks.onInspectPart?.(DISSECT_CARDS.split)
       }
 
       let pulseTime = 0
@@ -2737,70 +2769,67 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       function animate() {
         animId = requestAnimationFrame(animate)
 
-        // Smooth Chamber Opening Hinge Interpolation
-        const targetLA = activeDissectId === 'la' ? 1.0 : 0.0
-        openProgress.la += (targetLA - openProgress.la) * 0.1
-        laHinge.rotation.y = -openProgress.la * 1.35
-        laFlapMesh.material.transparent = openProgress.la > 0.05
-        ;(laFlapMesh.material as THREE.MeshStandardMaterial).opacity = 1.0 - openProgress.la * 0.45
+        // Smooth fluid Left/Right splitting animation with cubic easing
+        const targetSplit = (isSplit || params.splitView === 1) ? 1.0 : 0.0
+        splitProgress += (targetSplit - splitProgress) * 0.085
 
-        const targetLV = activeDissectId === 'lv' ? 1.0 : 0.0
-        openProgress.lv += (targetLV - openProgress.lv) * 0.1
-        lvHinge.rotation.y = -openProgress.lv * 1.25
-        lvFlapMesh.material.transparent = openProgress.lv > 0.05
-        ;(lvFlapMesh.material as THREE.MeshStandardMaterial).opacity = 1.0 - openProgress.lv * 0.45
+        // Left Heart translates left and opens its cut face towards the viewer (-Y rotation turns +X towards +Z!)
+        leftHeartGroup.position.x = -splitProgress * 2.8
+        leftHeartGroup.rotation.y = -splitProgress * 0.75
+        leftHeartGroup.position.z = -splitProgress * 0.3
 
-        const targetRA = activeDissectId === 'ra' ? 1.0 : 0.0
-        openProgress.ra += (targetRA - openProgress.ra) * 0.1
-        raHinge.rotation.y = openProgress.ra * 1.25
+        // Right Heart translates right and opens its cut face towards the viewer (+Y rotation turns -X towards +Z!)
+        rightHeartGroup.position.x = splitProgress * 2.8
+        rightHeartGroup.rotation.y = splitProgress * 0.75
+        rightHeartGroup.position.z = -splitProgress * 0.3
 
-        const targetRV = activeDissectId === 'rv' ? 1.0 : 0.0
-        openProgress.rv += (targetRV - openProgress.rv) * 0.1
-        rvHinge.rotation.y = openProgress.rv * 1.25
+        // Fade anterior sulcus fat, LAD vessels, and cut faces when split
+        fatMesh.visible = splitProgress < 0.25
+        ladMesh.visible = splitProgress < 0.25
+        gcvMesh.visible = splitProgress < 0.25
+        lvCutFace.visible = splitProgress > 0.04
+        rvCutFace.visible = splitProgress > 0.04
 
         if (isPlaying) {
           const freq = (params.bpm / 60) * Math.PI * 2
           pulseTime += 0.024
           const cyclePhase = (pulseTime * freq) % (Math.PI * 2)
 
-          // Wiggers Diagram Cardiac Cycle Approximation:
-          // Phase 1 (0 to 0.25): Atrial Systole
-          // Phase 2 (0.25 to 0.70): Ventricular Systole
-          // Phase 3 (0.70 to 2*PI): Diastole / Relaxation
+          // 2-Phase Cardiac Cycle: Atrial Systole -> Ventricular Systole -> Diastole
           const isAtrialBeat = cyclePhase < Math.PI * 0.4
           const isVentBeat = cyclePhase >= Math.PI * 0.4 && cyclePhase < Math.PI * 1.2
 
           const atriaContraction = isAtrialBeat ? 1.0 - Math.sin(cyclePhase * 2.5) * 0.12 : 1.0
-          laGroup.scale.set(1.1 * atriaContraction, 1.0 * atriaContraction, 1.2 * atriaContraction)
-          raGroup.scale.set(1.1 * atriaContraction, 1.1 * atriaContraction, 1.0 * atriaContraction)
+          laMesh.scale.set(0.95 * atriaContraction, 1.0 * atriaContraction, 1.1 * atriaContraction)
+          raMesh.scale.set(0.98 * atriaContraction, 1.1 * atriaContraction, 1.0 * atriaContraction)
 
           const ventScale = isVentBeat
-            ? 1.0 - Math.sin((cyclePhase - Math.PI * 0.4) * 1.25) * 0.16
-            : 1.0 + Math.sin(cyclePhase) * 0.05
+            ? 1.0 - Math.sin((cyclePhase - Math.PI * 0.4) * 1.25) * 0.14
+            : 1.0 + Math.sin(cyclePhase) * 0.04
 
-          lvGroup.scale.set(0.9 * ventScale, 1.45 * (2 - ventScale), 0.95 * ventScale)
-          rvGroup.scale.set(1.05 * ventScale, 1.3 * (2 - ventScale), 0.8 * ventScale)
+          lvMesh.scale.set(0.88 * ventScale, 1.45 * (2 - ventScale), 0.9 * ventScale)
+          rvMesh.scale.set(0.95 * ventScale, 1.3 * (2 - ventScale), 0.8 * ventScale)
 
-          // Valve flapping: open during filling (diastole), snap closed during systole
-          const valveOpenAngle = isVentBeat ? 0.05 : 0.65
+          // Dynamic Valve Leaflets flapping in sync with cardiac cycle
+          const valveOpenAngle = isVentBeat ? 0.06 : 0.65
           mitralCusp1.rotation.x = valveOpenAngle
           mitralCusp2.rotation.x = -valveOpenAngle
           triCusp1.rotation.x = valveOpenAngle * 0.9
           triCusp2.rotation.x = -valveOpenAngle * 0.9
 
-          // Blood circulation particles movement
+          // SA Node electrical conduction pulse
+          const saWave = (Math.sin(cyclePhase) + 1.0) * 0.5
+          saPulseMesh.scale.setScalar(1.0 + saWave * 1.4)
+          ;(saPulseMesh.material as THREE.MeshBasicMaterial).opacity = 0.65 - saWave * 0.55
+
+          // Double circulation blood particles
           const pos = bloodGeo.attributes.position as THREE.BufferAttribute
           for (let i = 0; i < particleCount; i++) {
-            let y = pos.getY(i) + 0.11
-            if (y > 5.2) y = -2.8
+            let y = pos.getY(i) + (isVentBeat ? 0.16 : 0.09)
+            if (y > 5.2) y = -2.6
             pos.setY(i, y)
           }
           pos.needsUpdate = true
-
-          // Slow organic rotation if not actively dissecting
-          if (!activeDissectId) {
-            heartGroup.rotation.y += 0.005
-          }
         }
 
         controls.update()
@@ -2816,21 +2845,25 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         camera.updateProjectionMatrix()
         renderer.setSize(w, h)
       }
+
       window.addEventListener('resize', handleResize)
 
       return {
         updateParams: (newParams) => {
           params = { ...newParams }
-          if (params.dissectMode === 1) activeDissectId = 'la'
-          else if (params.dissectMode === 2) activeDissectId = 'lv'
-          else if (params.dissectMode === 3) activeDissectId = 'ra'
-          else if (params.dissectMode === 4) activeDissectId = 'rv'
-          else if (params.dissectMode === 0 && activeDissectId) {
+          isSplit = Boolean(params.splitView === 1 || (params.focusSide && params.focusSide > 0))
+          if (params.focusSide === 1) {
+            activeDissectId = 'lv'
+            callbacks.onInspectPart?.(DISSECT_CARDS.lv)
+          } else if (params.focusSide === 2) {
+            activeDissectId = 'ra'
+            callbacks.onInspectPart?.(DISSECT_CARDS.ra)
+          } else if (isSplit && (!activeDissectId || activeDissectId === 'lv' || activeDissectId === 'ra')) {
+            activeDissectId = 'split'
+            callbacks.onInspectPart?.(DISSECT_CARDS.split)
+          } else if (!isSplit && activeDissectId) {
             activeDissectId = null
             callbacks.onInspectPart?.(null)
-          }
-          if (activeDissectId && DISSECT_CARDS[activeDissectId]) {
-            callbacks.onInspectPart?.(DISSECT_CARDS[activeDissectId])
           }
         },
         setPlaying: (playing) => {
@@ -2838,10 +2871,13 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         },
         reset: () => {
           pulseTime = 0
+          isSplit = false
           activeDissectId = null
           callbacks.onInspectPart?.(null)
+          heartRig.rotation.set(0, 0, -0.12)
         },
         closeDissection: () => {
+          isSplit = false
           activeDissectId = null
           callbacks.onInspectPart?.(null)
         },
@@ -2858,7 +2894,6 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       }
     },
   },
-
   // ==========================================
   // 7. BIOLOGY: 3D EPIDERMAL LAYERS & SKIN HISTOLOGY
   // ==========================================
