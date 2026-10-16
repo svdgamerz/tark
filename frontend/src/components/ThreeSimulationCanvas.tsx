@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { BuiltinTemplate3D } from '../simulations/templates3d'
+import type { BuiltinTemplate3D, DissectInfo } from '../simulations/templates3d'
 import type { SimulationReadout } from '../simulations/types'
 
 interface Props {
@@ -23,6 +23,7 @@ export function ThreeSimulationCanvas({
     setPlaying: (playing: boolean) => void
     reset: () => void
     dispose: () => void
+    closeDissection?: () => void
   } | null>(null)
 
   const [params, setParams] = useState<Record<string, number>>(() => {
@@ -34,6 +35,7 @@ export function ThreeSimulationCanvas({
   })
 
   const [isPlaying, setIsPlaying] = useState(true)
+  const [inspectedPart, setInspectedPart] = useState<DissectInfo | null>(null)
   const [readouts, setReadouts] = useState<SimulationReadout[]>(() =>
     template.calculateReadouts(params)
   )
@@ -41,9 +43,11 @@ export function ThreeSimulationCanvas({
   // Initialize Three.js 3D Scene
   useEffect(() => {
     if (!containerRef.current) return
+    setInspectedPart(null)
 
     const controller = template.initScene(containerRef.current, params, {
       onUpdateReadouts: (newReadouts) => setReadouts(newReadouts),
+      onInspectPart: (info) => setInspectedPart(info),
     })
     controllerRef.current = controller
 
@@ -77,7 +81,15 @@ export function ThreeSimulationCanvas({
     setParams(defaultParams)
     controllerRef.current?.updateParams(defaultParams)
     controllerRef.current?.reset()
+    controllerRef.current?.closeDissection?.()
+    setInspectedPart(null)
     setReadouts(template.calculateReadouts(defaultParams))
+  }
+
+  // Handle Close Dissection
+  const handleCloseDissect = () => {
+    setInspectedPart(null)
+    controllerRef.current?.closeDissection?.()
   }
 
   // Handle Preset Selection
@@ -135,19 +147,65 @@ export function ThreeSimulationCanvas({
         <div ref={containerRef} className="sim-3d-canvas-host" />
 
         {/* 3D Orbit Control Interaction Hint Overlay */}
-        <div className="sim-3d-gesture-hint">
-          <span>🖱️ <strong>Left-Drag:</strong> Rotate 360°</span>
-          <span>•</span>
-          <span>🔍 <strong>Scroll:</strong> Zoom</span>
-          <span>•</span>
-          <span>✋ <strong>Right-Drag:</strong> Pan</span>
-        </div>
+        {!inspectedPart && (
+          <div className="sim-3d-gesture-hint">
+            <span>🖱️ <strong>Left-Drag:</strong> Rotate 360°</span>
+            <span>•</span>
+            <span>🔍 <strong>Scroll:</strong> Zoom</span>
+            <span>•</span>
+            <span>👆 <strong>Double-Tap:</strong> Dissect & Inspect Inside</span>
+          </div>
+        )}
 
         {/* 60 FPS Badge */}
         <div className="sim-3d-fps-badge">
           <span className={`sim-status-dot ${isPlaying ? 'active' : 'paused'}`} />
           <span>{isPlaying ? '60 FPS 3D Engine' : 'Paused'}</span>
         </div>
+
+        {/* Floating Interactive Dissection & Inner Anatomy Card */}
+        {inspectedPart && (
+          <div className="sim-3d-dissect-card animate-fade-in">
+            <div className="sim-3d-dissect-header">
+              <div className="sim-3d-dissect-badge-group">
+                <span className="sim-3d-dissect-badge">🔬 Inner Dissection</span>
+                {inspectedPart.bloodType && (
+                  <span className={`sim-3d-blood-pill ${inspectedPart.bloodType.toLowerCase()}`}>
+                    {inspectedPart.bloodType === 'Oxygenated' ? '🔴 Oxygenated' : '🔵 Deoxygenated'}
+                  </span>
+                )}
+              </div>
+              <button
+                className="sim-3d-dissect-close-btn"
+                onClick={handleCloseDissect}
+                title="Close inner chamber wall"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="sim-3d-dissect-content">
+              <h4 className="sim-3d-dissect-title">{inspectedPart.partName}</h4>
+              <p className="sim-3d-dissect-role">{inspectedPart.role}</p>
+              {inspectedPart.internalStructures && inspectedPart.internalStructures.length > 0 && (
+                <div className="sim-3d-dissect-features">
+                  <span className="sim-3d-features-heading">Interior Structures Revealed:</span>
+                  <div className="sim-3d-features-tags">
+                    {inspectedPart.internalStructures.map((s, i) => (
+                      <span key={i} className="sim-3d-feature-tag">{s}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <p className="sim-3d-dissect-desc">{inspectedPart.description}</p>
+            </div>
+            <div className="sim-3d-dissect-footer">
+              <button className="sim-3d-dissect-btn-close" onClick={handleCloseDissect}>
+                ↺ Close Chamber Wall
+              </button>
+              <span className="sim-3d-dissect-hint">💡 Double-tap chamber to toggle</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Real-Time Mathematical & Physics Telemetry Readouts */}

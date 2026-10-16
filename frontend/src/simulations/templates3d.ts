@@ -2,6 +2,16 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { SimulationParam, SimulationReadout } from './types'
 
+export interface DissectInfo {
+  title: string
+  partName: string
+  role: string
+  bloodType?: 'Oxygenated' | 'Deoxygenated' | 'Neutral'
+  internalStructures: string[]
+  description: string
+  actionHint?: string
+}
+
 export interface BuiltinTemplate3D {
   type: string
   title: string
@@ -16,12 +26,16 @@ export interface BuiltinTemplate3D {
   initScene: (
     container: HTMLElement,
     params: Record<string, number>,
-    callbacks: { onUpdateReadouts?: (r: SimulationReadout[]) => void }
+    callbacks: {
+      onUpdateReadouts?: (r: SimulationReadout[]) => void
+      onInspectPart?: (info: DissectInfo | null) => void
+    }
   ) => {
     updateParams: (params: Record<string, number>) => void
     setPlaying: (playing: boolean) => void
     reset: () => void
     dispose: () => void
+    closeDissection?: () => void
   }
 }
 
@@ -33,7 +47,7 @@ export function setupRenderer(renderer: THREE.WebGLRenderer) {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap
 }
 
-// Helper: Create a styled 3D laboratory environment (grid, lighting, soft shadows)
+// Helper: Create a styled 3D laboratory environment (for physics, optics & mechanics)
 function createLabEnvironment(scene: THREE.Scene, gridSize = 40, divisions = 40) {
   scene.background = new THREE.Color(0x070c18)
   scene.fog = new THREE.FogExp2(0x070c18, 0.012)
@@ -74,6 +88,64 @@ function createLabEnvironment(scene: THREE.Scene, gridSize = 40, divisions = 40)
   scene.add(fillLight)
 }
 
+// Helper: Create an authentic medical/biological studio environment (NO harsh graph paper grid!)
+function createBioStudioEnvironment(scene: THREE.Scene) {
+  scene.background = new THREE.Color(0x070d18)
+  scene.fog = new THREE.FogExp2(0x070d18, 0.016)
+
+  // Soft surgical pedestal disc (smooth non-grid floor)
+  const discGeo = new THREE.CircleGeometry(14, 64)
+  const discMat = new THREE.MeshStandardMaterial({
+    color: 0x0f172a,
+    roughness: 0.85,
+    metalness: 0.15,
+  })
+  const pedestalDisc = new THREE.Mesh(discGeo, discMat)
+  pedestalDisc.rotation.x = -Math.PI / 2
+  pedestalDisc.position.y = -4.5
+  pedestalDisc.receiveShadow = true
+  scene.add(pedestalDisc)
+
+  // Soft luminous rim circle
+  const rimGeo = new THREE.RingGeometry(13.7, 14.0, 64)
+  const rimMat = new THREE.MeshBasicMaterial({ color: 0x0284c7, side: THREE.DoubleSide, transparent: true, opacity: 0.3 })
+  const rim = new THREE.Mesh(rimGeo, rimMat)
+  rim.rotation.x = -Math.PI / 2
+  rim.position.y = -4.49
+  scene.add(rim)
+
+  // Gentle floating dust/fluid particles for volumetric depth
+  const bioDustCount = 150
+  const bioDustGeo = new THREE.BufferGeometry()
+  const bioDustPos = new Float32Array(bioDustCount * 3)
+  for (let i = 0; i < bioDustCount * 3; i++) {
+    bioDustPos[i] = (Math.random() - 0.5) * 35
+  }
+  bioDustGeo.setAttribute('position', new THREE.BufferAttribute(bioDustPos, 3))
+  const bioDustMat = new THREE.PointsMaterial({ color: 0x38bdf8, size: 0.35, transparent: true, opacity: 0.35 })
+  const bioDust = new THREE.Points(bioDustGeo, bioDustMat)
+  scene.add(bioDust)
+
+  // Medical studio lighting (high CRI clean specular)
+  const hemiLight = new THREE.HemisphereLight(0x93c5fd, 0x0f172a, 0.95)
+  scene.add(hemiLight)
+
+  const keyLight = new THREE.DirectionalLight(0xfff7ed, 1.6)
+  keyLight.position.set(16, 26, 18)
+  keyLight.castShadow = true
+  keyLight.shadow.mapSize.width = 1024
+  keyLight.shadow.mapSize.height = 1024
+  scene.add(keyLight)
+
+  const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.2)
+  rimLight.position.set(-18, 14, -14)
+  scene.add(rimLight)
+
+  const warmUnderlight = new THREE.DirectionalLight(0xf43f5e, 0.4)
+  warmUnderlight.position.set(12, -8, -10)
+  scene.add(warmUnderlight)
+}
+
 export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
   // ==========================================
   // 1. PHYSICS: 3D PROJECTILE MOTION
@@ -111,7 +183,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         { label: 'Flight Time (T)', value: timeOfFlight.toFixed(2), unit: 's', formula: 'T = (2v₀ sin θ)/g' },
       ]
     },
-    initScene: (container, initialParams) => {
+    initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
       let animId: number
@@ -136,6 +208,26 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       controls.dampingFactor = 0.05
       controls.target.set(10, 5, 0)
 
+      const interactableMeshes: THREE.Object3D[] = []
+
+      // Pedagogical Dissection Metadata Dictionary
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        projectile: {
+          title: '3D Projectile Kinematics & Velocity Decomposition',
+          partName: 'Instantaneous Vector Orthogonal Decomposition',
+          role: 'Demonstrates Galileo\'s principle of independent horizontal and vertical motions in gravitational fields',
+          internalStructures: ['Horizontal Constant Velocity: vx = v₀ cos(θ)', 'Vertical Accelerated Velocity: vy(t) = v₀ sin(θ) - gt', 'Resultant Velocity Vector: v(t) = √(vx² + vy²)', 'Mechanical Energy Conservation: Ek(t) + Ug(t) = const'],
+          description: 'Double-tapping the projectile dissects the velocity vector in real time. Because gravity acts strictly downward along the -Y axis (ay = -g), horizontal speed vx remains completely constant throughout flight while vertical vy decelerates to zero at apex.',
+        },
+        cannon: {
+          title: 'Articulated Ballistic Launcher & Elevation Turret',
+          partName: 'Muzzle Vector Orientation (Elevation θ & Azimuth φ)',
+          role: 'Directs initial kinetic energy impulse vector in 3D spherical coordinate angles',
+          internalStructures: ['Muzzle Velocity Vector (v₀ = 10..45 m/s)', 'Elevation Range (10° to 80° for max 45° range)', 'Azimuth Heading Axis (-90° to +90°)', 'Gravitational Potential Energy Datum (y = 0)'],
+          description: 'The articulated cannon decomposes launch energy into 3D Cartesian coordinates: vx = v₀ cos(θ) cos(φ), vy = v₀ sin(θ), and vz = v₀ cos(θ) sin(φ).',
+        },
+      }
+
       // 3D Articulated Cannon Rig
       const cannonGroup = new THREE.Group()
       scene.add(cannonGroup)
@@ -144,9 +236,10 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const metalMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.25 })
       const baseMesh = new THREE.Mesh(baseGeo, metalMat)
       baseMesh.position.y = 0.4
+      baseMesh.userData = { partId: 'cannon' }
       cannonGroup.add(baseMesh)
+      interactableMeshes.push(baseMesh)
 
-      // Turret & Barrel
       const turretPivot = new THREE.Group()
       turretPivot.position.y = 1.0
       cannonGroup.add(turretPivot)
@@ -159,7 +252,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const barrelMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.9, roughness: 0.2 })
       const barrelMesh = new THREE.Mesh(barrelGeo, barrelMat)
       barrelMesh.rotation.x = Math.PI / 2
+      barrelMesh.userData = { partId: 'cannon' }
       barrelGroup.add(barrelMesh)
+      interactableMeshes.push(barrelMesh)
 
       // Target Rings on the Ground
       const targetGroup = new THREE.Group()
@@ -174,7 +269,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         targetGroup.add(ring)
       }
 
-      // Parabolic Trajectory Line (3D Ribbon)
+      // Parabolic Trajectory Line
       const maxTrailPoints = 300
       const trailPositions = new Float32Array(maxTrailPoints * 3)
       const trailGeo = new THREE.BufferGeometry()
@@ -187,31 +282,90 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const ballGeo = new THREE.SphereGeometry(0.55, 32, 32)
       const ballMat = new THREE.MeshStandardMaterial({
         color: 0xf59e0b,
-        metalness: 0.6,
+        metalness: 0.8,
         roughness: 0.2,
         emissive: 0xd97706,
-        emissiveIntensity: 0.35,
+        emissiveIntensity: 0.4,
       })
       const ballMesh = new THREE.Mesh(ballGeo, ballMat)
+      ballMesh.castShadow = true
+      ballMesh.userData = { partId: 'projectile' }
       scene.add(ballMesh)
+      interactableMeshes.push(ballMesh)
 
-      // Velocity Vector Arrow
-      const arrowHelper = new THREE.ArrowHelper(new THREE.Vector3(1, 1, 0).normalize(), new THREE.Vector3(), 4, 0x10b981, 1, 0.5)
-      scene.add(arrowHelper)
+      // Dynamic Velocity Vector Arrows
+      const vectorGroup = new THREE.Group()
+      vectorGroup.visible = false
+      scene.add(vectorGroup)
 
-      let simTime = 0
+      const velArrowResultant = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), 4.0, 0xf59e0b, 0.8, 0.4)
+      const velArrowX = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), 3.0, 0x06b6d4, 0.6, 0.3)
+      const velArrowY = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(), 3.0, 0xec4899, 0.6, 0.3)
+      vectorGroup.add(velArrowResultant, velArrowX, velArrowY)
+
+      let t = 0
+      let trailIndex = 0
+
+      // Raycaster for Double-Tap & Double-Click Dissection
+      let activeDissectId: 'projectile' | 'cannon' | null = null
+      const raycaster = new THREE.Raycaster()
+      const pointer = new THREE.Vector2()
+
+      function triggerDissectionAtPoint(clientX: number, clientY: number) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(pointer, camera)
+        const intersects = raycaster.intersectObjects(interactableMeshes, false)
+
+        if (intersects.length > 0) {
+          const hit = intersects[0].object as THREE.Mesh
+          const id = hit.userData?.partId as 'projectile' | 'cannon' | undefined
+          if (id) {
+            if (activeDissectId === id) {
+              activeDissectId = null
+              callbacks.onInspectPart?.(null)
+            } else {
+              activeDissectId = id
+              callbacks.onInspectPart?.(DISSECT_CARDS[id])
+            }
+            vectorGroup.visible = Boolean(activeDissectId === 'projectile')
+          }
+        } else {
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+          vectorGroup.visible = false
+        }
+      }
+
+      const handleDblClick = (e: MouseEvent) => {
+        triggerDissectionAtPoint(e.clientX, e.clientY)
+      }
+
+      let lastTouchTime = 0
+      const handleTouchEnd = (e: TouchEvent) => {
+        const now = performance.now()
+        if (now - lastTouchTime < 340 && e.changedTouches.length > 0) {
+          const t = e.changedTouches[0]
+          triggerDissectionAtPoint(t.clientX, t.clientY)
+        }
+        lastTouchTime = now
+      }
+
+      renderer.domElement.addEventListener('dblclick', handleDblClick)
+      renderer.domElement.addEventListener('touchend', handleTouchEnd)
 
       function updateCannonOrientation() {
-        const el = (params.angle * Math.PI) / 180
-        const az = (-params.azimuth * Math.PI) / 180
-        turretPivot.rotation.y = az
-        barrelGroup.rotation.x = -el
+        const azRad = (params.azimuth * Math.PI) / 180
+        const elRad = (params.angle * Math.PI) / 180
+        turretPivot.rotation.y = -azRad
+        barrelGroup.rotation.x = -elRad
 
-        // Place target at theoretical landing position
-        const g = params.gravity
         const v0 = params.speed
-        const range = (v0 * v0 * Math.sin(2 * el)) / g
-        targetGroup.position.set(range * Math.cos(az), 0, range * Math.sin(az))
+        const g = params.gravity
+        const range = (v0 * v0 * Math.sin(2 * elRad)) / g
+        targetGroup.position.set(range * Math.cos(azRad), 0, range * Math.sin(azRad))
       }
 
       updateCannonOrientation()
@@ -219,53 +373,56 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       function animate() {
         animId = requestAnimationFrame(animate)
 
-        const el = (params.angle * Math.PI) / 180
-        const az = (-params.azimuth * Math.PI) / 180
-        const g = params.gravity
-        const v0 = params.speed
-        const totalTime = (2 * v0 * Math.sin(el)) / g
-
         if (isPlaying) {
-          simTime += 0.025
-          if (simTime > totalTime + 0.8) {
-            simTime = 0
+          t += 0.02
+          const elRad = (params.angle * Math.PI) / 180
+          const azRad = (params.azimuth * Math.PI) / 180
+          const v0 = params.speed
+          const g = params.gravity
+
+          const vx = v0 * Math.cos(elRad)
+          const vy = v0 * Math.sin(elRad) - g * t
+          const flightTime = (2 * v0 * Math.sin(elRad)) / g
+
+          if (t <= flightTime) {
+            const posX = v0 * Math.cos(elRad) * t * Math.cos(azRad)
+            const posY = Math.max(0.4, v0 * Math.sin(elRad) * t - 0.5 * g * t * t)
+            const posZ = v0 * Math.cos(elRad) * t * Math.sin(azRad)
+            ballMesh.position.set(posX, posY, posZ)
+
+            // Dynamic velocity vector arrows attached to projectile
+            vectorGroup.position.set(posX, posY, posZ)
+            const vInst = new THREE.Vector3(vx * Math.cos(azRad), vy, vx * Math.sin(azRad))
+            const vLen = Math.max(0.5, vInst.length() * 0.15)
+            velArrowResultant.setDirection(vInst.clone().normalize())
+            velArrowResultant.setLength(vLen, 0.6, 0.3)
+
+            const vXDir = new THREE.Vector3(Math.cos(azRad), 0, Math.sin(azRad)).normalize()
+            velArrowX.setDirection(vXDir)
+            velArrowX.setLength(Math.max(0.4, Math.abs(vx) * 0.15), 0.5, 0.25)
+
+            velArrowY.setDirection(new THREE.Vector3(0, vy >= 0 ? 1 : -1, 0))
+            velArrowY.setLength(Math.max(0.4, Math.abs(vy) * 0.15), 0.5, 0.25)
+
+            if (trailIndex < maxTrailPoints) {
+              const posAttr = trailGeo.attributes.position as THREE.BufferAttribute
+              posAttr.setXYZ(trailIndex, posX, posY, posZ)
+              posAttr.needsUpdate = true
+              trailIndex++
+            }
+          } else {
+            // Loop trajectory after 1.2s delay
+            if (t > flightTime + 1.2) {
+              t = 0
+              trailIndex = 0
+              const posAttr = trailGeo.attributes.position as THREE.BufferAttribute
+              for (let i = 0; i < maxTrailPoints; i++) {
+                posAttr.setXYZ(i, 0, 0, 0)
+              }
+              posAttr.needsUpdate = true
+            }
           }
         }
-
-        const t = Math.min(simTime, totalTime)
-        const vx = v0 * Math.cos(el) * Math.cos(az)
-        const vz = v0 * Math.cos(el) * Math.sin(az)
-        const vy = v0 * Math.sin(el) - g * t
-
-        const currentX = v0 * Math.cos(el) * Math.cos(az) * t
-        const currentY = Math.max(0, v0 * Math.sin(el) * t - 0.5 * g * t * t)
-        const currentZ = v0 * Math.cos(el) * Math.sin(az) * t
-
-        ballMesh.position.set(currentX, currentY + 1.2, currentZ)
-
-        // Update velocity arrow
-        const vDir = new THREE.Vector3(vx, vy, vz)
-        const vMag = vDir.length()
-        if (vMag > 0.01) {
-          arrowHelper.position.copy(ballMesh.position)
-          arrowHelper.setDirection(vDir.clone().normalize())
-          arrowHelper.setLength(Math.min(vMag * 0.25, 6), 1, 0.4)
-        }
-
-        // Draw trajectory trail
-        const pts = Math.floor(Math.min((t / (totalTime || 1)) * maxTrailPoints, maxTrailPoints))
-        const posAttr = trailGeo.attributes.position as THREE.BufferAttribute
-        for (let i = 0; i < pts; i++) {
-          const ptTime = (i / maxTrailPoints) * totalTime
-          const px = v0 * Math.cos(el) * Math.cos(az) * ptTime
-          const py = v0 * Math.sin(el) * ptTime - 0.5 * g * ptTime * ptTime + 1.2
-          const pz = v0 * Math.cos(el) * Math.sin(az) * ptTime
-          posAttr.setXYZ(i, px, Math.max(0, py), pz)
-        }
-        for (let i = pts; i < maxTrailPoints; i++) {
-          posAttr.setXYZ(i, currentX, currentY + 1.2, currentZ)
-        }
-        posAttr.needsUpdate = true
 
         controls.update()
         renderer.render(scene, camera)
@@ -286,17 +443,29 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         updateParams: (newParams) => {
           params = { ...newParams }
           updateCannonOrientation()
-          simTime = 0
+          t = 0
+          trailIndex = 0
         },
         setPlaying: (playing) => {
           isPlaying = playing
         },
         reset: () => {
-          simTime = 0
+          t = 0
+          trailIndex = 0
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+          vectorGroup.visible = false
+        },
+        closeDissection: () => {
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+          vectorGroup.visible = false
         },
         dispose: () => {
           cancelAnimationFrame(animId)
           window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('dblclick', handleDblClick)
+          renderer.domElement.removeEventListener('touchend', handleTouchEnd)
           renderer.dispose()
           if (container.contains(renderer.domElement)) {
             container.removeChild(renderer.domElement)
@@ -336,7 +505,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         { label: 'Kepler Ratio (T²/r³)', value: '1.00', unit: 'AU⁻³ yr²', formula: 'T²/a³ = const' },
       ]
     },
-    initScene: (container, initialParams) => {
+    initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
       let animId: number
@@ -360,7 +529,41 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       controls.enableDamping = true
       controls.dampingFactor = 0.05
 
-      // Starfield particles in the background
+      const interactableMeshes: THREE.Object3D[] = []
+
+      // Pedagogical Dissection Metadata Dictionary
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        sun: {
+          title: 'The Sun (Sol) · Thermonuclear Core Dissected',
+          partName: 'Stellar Interior · Fusion Engine & Radiative Zone',
+          role: 'Supplies 99.86% of the solar system\'s mass; generates energy via the proton-proton (p-p) nuclear fusion chain',
+          internalStructures: ['Thermonuclear Core (15,000,000 K, 4H → He + 26.7 MeV)', 'Radiative Diffusion Zone (~100,000 yr photon travel)', 'Convective Boiling Granule Cells', 'Photosphere (5,800 K) & Chromosphere Spicules'],
+          description: 'Double-tapping peels open the solar interior: in the deep core, 600 million tons of hydrogen fuse into helium every second, converting 4 million tons of mass into pure electromagnetic radiant energy via E = mc².',
+        },
+        earth: {
+          title: 'Earth (Tellus) · Geosphere Cross-Section Dissected',
+          partName: 'Terrestrial Core, Mantle & Lithosphere',
+          role: 'Active planetary geodynamo maintaining an atmosphere and magnetosphere protective of biological life',
+          internalStructures: ['Continental & Oceanic Crust (0–35 km)', 'Convecting Silicate Mantle (35–2890 km)', 'Liquid Iron-Nickel Outer Core (Geodynamo, 2890–5150 km)', 'Solid Crystallized Inner Core (5150–6371 km, 5400°C)'],
+          description: 'Dissecting Earth exposes the liquid iron outer core circulating at high temperatures to generate our protective geomagnetic shield, while thermal convection in the mantle drives continental drift and plate tectonics.',
+        },
+        saturn: {
+          title: 'Saturn & Ring System · Cryogenic Debris Field',
+          partName: 'Planetary Ice Rings & Metallic Hydrogen Mantle',
+          role: 'Second largest gas giant featuring the most extensive planetary ring system in the solar system',
+          internalStructures: ['Cassini Division (4800 km gravitational clearing by moon Mimas)', 'Water-Ice Particles (microns to 10-meter boulders)', 'Metallic Liquid Hydrogen Interior Ocean', 'Dense Rock-Iron Core (~15 Earth masses)'],
+          description: 'Inspecting Saturn reveals the billions of discrete water-ice particles orbiting at speeds dictated by Kepler\'s 3rd law. The rings are only ~10 to 30 meters thick despite spanning over 280,000 kilometers across.',
+        },
+        mars: {
+          title: 'Mars · Basaltic Crust & Solidified Dynamo',
+          partName: 'Terrestrial Iron-Oxide Regolith & Core',
+          role: 'Dry terrestrial planet holding geological records of ancient fluvial lakes and extinct volcanism',
+          internalStructures: ['Iron(III) Oxide Red Dust Regolith', 'Tharsis Volcanic Shield (Olympus Mons, 22 km)', 'Solidified Sulfide-Rich Core (loss of magnetic dynamo)', 'Polar Water & Dry-Ice CO2 Caps'],
+          description: 'Dissecting Mars reveals why its atmosphere stripped away: when its small core cooled and the geodynamo shut down ~4 billion years ago, solar winds eroded the atmosphere, turning water lakes into frozen regolith.',
+        },
+      }
+
+      // Starfield background
       const starsCount = 1200
       const starsGeo = new THREE.BufferGeometry()
       const starsPos = new Float32Array(starsCount * 3)
@@ -372,13 +575,15 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const stars = new THREE.Points(starsGeo, starsMat)
       scene.add(stars)
 
-      // The Sun (Glowing Central Sphere with Multi-Layered Coronal Plasma Aura)
+      // The Sun
       const sunGroup = new THREE.Group()
       scene.add(sunGroup)
       const sunGeo = new THREE.SphereGeometry(3.5, 32, 32)
       const sunMat = new THREE.MeshBasicMaterial({ color: 0xfff7ed })
       const sunMesh = new THREE.Mesh(sunGeo, sunMat)
+      sunMesh.userData = { bodyId: 'sun' }
       sunGroup.add(sunMesh)
+      interactableMeshes.push(sunMesh)
 
       const coronaGeo = new THREE.SphereGeometry(4.3, 32, 32)
       const coronaMat = new THREE.MeshBasicMaterial({
@@ -390,9 +595,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const coronaMesh = new THREE.Mesh(coronaGeo, coronaMat)
       sunGroup.add(coronaMesh)
 
-      const outerCoronaGeo = new THREE.SphereGeometry(5.4, 32, 32)
+      const outerCoronaGeo = new THREE.SphereGeometry(5.2, 32, 32)
       const outerCoronaMat = new THREE.MeshBasicMaterial({
-        color: 0xef4444,
+        color: 0xd97706,
         transparent: true,
         opacity: 0.15,
         side: THREE.BackSide,
@@ -400,30 +605,28 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const outerCoronaMesh = new THREE.Mesh(outerCoronaGeo, outerCoronaMat)
       sunGroup.add(outerCoronaMesh)
 
-      // Sun Light & Point Light
-      const sunLight = new THREE.PointLight(0xfffbeb, 2.8, 350, 0.2)
-      scene.add(sunLight)
-      const ambLight = new THREE.AmbientLight(0x334155, 0.5)
-      scene.add(ambLight)
+      const sunLight = new THREE.PointLight(0xfffbeb, 2.5, 300)
+      sunGroup.add(sunLight)
 
-      // Planets Definitions: [Name, DistanceAU, Radius, Color, PeriodRatio, HasRings, HasMoon]
+      // Planets setup
       const planetData = [
-        { name: 'Mercury', dist: 7, size: 0.55, color: 0x94a3b8, speed: 4.15 },
-        { name: 'Venus', dist: 11, size: 0.95, color: 0xf59e0b, speed: 1.62 },
-        { name: 'Earth', dist: 16, size: 1.1, color: 0x38bdf8, speed: 1.0, hasMoon: true },
-        { name: 'Mars', dist: 22, size: 0.7, color: 0xef4444, speed: 0.53 },
-        { name: 'Jupiter', dist: 30, size: 2.4, color: 0xd97706, speed: 0.084 },
-        { name: 'Saturn', dist: 38, size: 1.9, color: 0xfde047, speed: 0.034, hasRings: true },
+        { name: 'Mercury', size: 0.7, dist: 6.5, speed: 4.15, color: 0x94a3b8 },
+        { name: 'Venus', size: 1.1, dist: 9.8, speed: 1.62, color: 0xf59e0b },
+        { name: 'Earth', size: 1.25, dist: 14.0, speed: 1.0, color: 0x38bdf8, hasMoon: true },
+        { name: 'Mars', size: 0.85, dist: 18.5, speed: 0.53, color: 0xef4444 },
+        { name: 'Jupiter', size: 2.8, dist: 25.5, speed: 0.084, color: 0xd97706 },
+        { name: 'Saturn', size: 2.2, dist: 33.5, speed: 0.034, color: 0xfef08a, hasRings: true },
       ]
 
-      let earthMoon: THREE.Mesh | null = null
       const planets: {
         mesh: THREE.Mesh
         pivot: THREE.Group
         orbitLine: THREE.Line
-        data: typeof planetData[0]
+        data: (typeof planetData)[0]
         angle: number
       }[] = []
+
+      let earthMoon: THREE.Mesh | null = null
 
       planetData.forEach((p) => {
         const pivot = new THREE.Group()
@@ -433,7 +636,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         const pMat = new THREE.MeshStandardMaterial({ color: p.color, roughness: 0.5, metalness: 0.1 })
         const mesh = new THREE.Mesh(pGeo, pMat)
         mesh.position.x = p.dist * params.scaleDist
+        mesh.userData = { bodyId: p.name.toLowerCase() }
         pivot.add(mesh)
+        interactableMeshes.push(mesh)
 
         if (p.hasMoon) {
           const mGeo = new THREE.SphereGeometry(0.32, 16, 16)
@@ -443,7 +648,6 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         }
 
         if (p.hasRings) {
-          // Inner Ring B
           const ringGeo1 = new THREE.RingGeometry(p.size * 1.35, p.size * 1.8, 48)
           const ringMat1 = new THREE.MeshBasicMaterial({
             color: 0xfde047,
@@ -455,7 +659,6 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           ring1.rotation.x = Math.PI / 2.3
           mesh.add(ring1)
 
-          // Outer Ring A (separated by Cassini Division gap)
           const ringGeo2 = new THREE.RingGeometry(p.size * 1.92, p.size * 2.45, 48)
           const ringMat2 = new THREE.MeshBasicMaterial({
             color: 0xd97706,
@@ -468,7 +671,6 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           mesh.add(ring2)
         }
 
-        // Orbit Line
         const orbitCurve = new THREE.EllipseCurve(0, 0, p.dist * params.scaleDist, p.dist * params.scaleDist, 0, 2 * Math.PI, false, 0)
         const points = orbitCurve.getPoints(64)
         const orbitGeo = new THREE.BufferGeometry().setFromPoints(points.map((pt) => new THREE.Vector3(pt.x, 0, pt.y)))
@@ -478,6 +680,55 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
         planets.push({ mesh, pivot, orbitLine, data: p, angle: Math.random() * Math.PI * 2 })
       })
+
+      // Raycaster for Double-Tap & Double-Click Dissection
+      let activeDissectId: string | null = null
+      const raycaster = new THREE.Raycaster()
+      const pointer = new THREE.Vector2()
+
+      function triggerDissectionAtPoint(clientX: number, clientY: number) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(pointer, camera)
+        const intersects = raycaster.intersectObjects(interactableMeshes, false)
+
+        if (intersects.length > 0) {
+          const hit = intersects[0].object as THREE.Mesh
+          const id = hit.userData?.bodyId as string | undefined
+          if (id) {
+            if (activeDissectId === id) {
+              activeDissectId = null
+              callbacks.onInspectPart?.(null)
+            } else {
+              activeDissectId = id
+              const card = DISSECT_CARDS[id] || DISSECT_CARDS.earth
+              callbacks.onInspectPart?.(card)
+            }
+          }
+        } else {
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+        }
+      }
+
+      const handleDblClick = (e: MouseEvent) => {
+        triggerDissectionAtPoint(e.clientX, e.clientY)
+      }
+
+      let lastTouchTime = 0
+      const handleTouchEnd = (e: TouchEvent) => {
+        const now = performance.now()
+        if (now - lastTouchTime < 340 && e.changedTouches.length > 0) {
+          const t = e.changedTouches[0]
+          triggerDissectionAtPoint(t.clientX, t.clientY)
+        }
+        lastTouchTime = now
+      }
+
+      renderer.domElement.addEventListener('dblclick', handleDblClick)
+      renderer.domElement.addEventListener('touchend', handleTouchEnd)
 
       function animate() {
         animId = requestAnimationFrame(animate)
@@ -532,10 +783,18 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         },
         reset: () => {
           planets.forEach((p) => (p.angle = 0))
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+        },
+        closeDissection: () => {
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
         },
         dispose: () => {
           cancelAnimationFrame(animId)
           window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('dblclick', handleDblClick)
+          renderer.domElement.removeEventListener('touchend', handleTouchEnd)
           renderer.dispose()
           if (container.contains(renderer.domElement)) {
             container.removeChild(renderer.domElement)
@@ -580,7 +839,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         { label: 'Spectral Series', value: nf === 1 ? 'Lyman (UV)' : nf === 2 ? 'Balmer (Visible)' : 'Paschen (IR)' },
       ]
     },
-    initScene: (container, initialParams) => {
+    initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
       let animId: number
@@ -603,6 +862,26 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const controls = new OrbitControls(camera, renderer.domElement)
       controls.enableDamping = true
       controls.dampingFactor = 0.05
+
+      const interactableMeshes: THREE.Object3D[] = []
+
+      // Pedagogical Dissection Metadata Dictionary
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        nucleus: {
+          title: 'Atomic Nucleus · Subatomic Quark Interior Dissected',
+          partName: 'Nucleon Core · Valence Quarks & Gluon Field',
+          role: 'Contains 99.95% of atomic mass bound together by the Residual Strong Nuclear Force',
+          internalStructures: ['2 Up Quarks (u: +2/3 e)', '1 Down Quark (d: -1/3 e)', 'Gluon Color-Force Flux Springs', 'Yukawa Pion Exchange Field', 'Nuclear Binding Energy (8.8 MeV/nucleon)'],
+          description: 'The nucleon shell has peeled open to reveal the subatomic valence quarks: two Up quarks (+2/3 charge) and one Down quark (-1/3 charge) bound by gluon flux tubes oscillating with asymptotic freedom.',
+        },
+        electron: {
+          title: 'Quantum Electron · Wave-Particle Dissection',
+          partName: 'Electron Wavepacket & Quantum Numbers',
+          role: 'Quantized lepton executing orbital angular momentum transitions around the Coulomb potential',
+          internalStructures: ['Principal Quantum Number (n = 1..5)', 'Orbital Angular Momentum (l = 0..n-1)', 'Magnetic Quantum Number (m_l)', 'Fermion Spin (m_s = ±½)', 'de Broglie Wavelength (λ = h/p)'],
+          description: 'Inspecting the orbiting electron reveals its wavepacket representation. Rather than a classical Newtonian point particle, it exists as a complex probability amplitude cloud ψ(r,θ,φ) whose energy matches E_n = -13.6 eV / n².',
+        },
+      }
 
       // Starfield background
       const starGeo = new THREE.BufferGeometry()
@@ -632,7 +911,6 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         metalness: 0.2,
       })
 
-      // Central glowing core
       const coreLight = new THREE.PointLight(0xf59e0b, 2.2, 40)
       nucleusGroup.add(coreLight)
 
@@ -651,14 +929,61 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         new THREE.Vector3(0.65, 0.1, -0.5),
       ]
 
+      const nucleonMeshes: THREE.Mesh[] = []
       nucleonPositions.forEach((pos, idx) => {
         const mat = idx % 2 === 0 ? protonMat : neutronMat
         const nMesh = new THREE.Mesh(nucleonGeo, mat)
         nMesh.position.copy(pos)
+        nMesh.userData = { partId: 'nucleus' }
         nucleusGroup.add(nMesh)
+        nucleonMeshes.push(nMesh)
+        interactableMeshes.push(nMesh)
       })
 
-      // Shell Rings (n=1 to 5) with quantized Bohr radii r_n = r_0 * n^1.3 (visually scaled)
+      const nucHitMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(1.8, 16, 16),
+        new THREE.MeshBasicMaterial({ visible: false })
+      )
+      nucHitMesh.userData = { partId: 'nucleus' }
+      nucleusGroup.add(nucHitMesh)
+      interactableMeshes.push(nucHitMesh)
+
+      // Subatomic Inner Quark Triad
+      const quarkGroup = new THREE.Group()
+      quarkGroup.visible = false
+      scene.add(quarkGroup)
+
+      const quarkGeo = new THREE.SphereGeometry(0.35, 20, 20)
+      const upQuarkMat = new THREE.MeshStandardMaterial({
+        color: 0x06b6d4,
+        emissive: 0x0891b2,
+        emissiveIntensity: 0.8,
+        roughness: 0.15,
+        metalness: 0.3,
+      })
+      const downQuarkMat = new THREE.MeshStandardMaterial({
+        color: 0xf43f5e,
+        emissive: 0xe11d48,
+        emissiveIntensity: 0.8,
+        roughness: 0.15,
+        metalness: 0.3,
+      })
+
+      const upQuark1 = new THREE.Mesh(quarkGeo, upQuarkMat)
+      const upQuark2 = new THREE.Mesh(quarkGeo, upQuarkMat)
+      const downQuark = new THREE.Mesh(quarkGeo, downQuarkMat)
+      quarkGroup.add(upQuark1, upQuark2, downQuark)
+
+      const gluonMat = new THREE.LineBasicMaterial({ color: 0xfbbf24, linewidth: 2 })
+      const gluonLines: THREE.Line[] = []
+      for (let g = 0; g < 3; g++) {
+        const gGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()])
+        const gLine = new THREE.Line(gGeo, gluonMat)
+        quarkGroup.add(gLine)
+        gluonLines.push(gLine)
+      }
+
+      // Shell Rings (n=1 to 5)
       const shellRadii = [3.6, 6.8, 10.4, 14.2, 18.0]
       const shellLines: THREE.Line[] = []
       const shellGlowRings: THREE.Mesh[] = []
@@ -676,7 +1001,6 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         scene.add(line)
         shellLines.push(line)
 
-        // Subtle glowing translucent ring disc
         const ringGeo = new THREE.RingGeometry(r - 0.08, r + 0.08, 64)
         const ringMat = new THREE.MeshBasicMaterial({
           color: idx === params.nFinal - 1 ? 0x10b981 : idx === params.nInitial - 1 ? 0xef4444 : 0x0284c7,
@@ -690,7 +1014,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         shellGlowRings.push(ringMesh)
       })
 
-      // Ambient Ground-State Electrons on lower shells
+      // Ambient Ground-State Electrons
       const ambientElectrons: { mesh: THREE.Mesh; r: number; speed: number; angle: number }[] = []
       const ambElecGeo = new THREE.SphereGeometry(0.28, 16, 16)
       const ambElecMat = new THREE.MeshStandardMaterial({
@@ -724,7 +1048,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         metalness: 0.5,
       })
       const electron = new THREE.Mesh(elecGeo, elecMat)
+      electron.userData = { partId: 'electron' }
       scene.add(electron)
+      interactableMeshes.push(electron)
 
       // Electron Trail
       const trailCount = 25
@@ -735,7 +1061,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const trailLine = new THREE.Line(trailGeo, trailMat)
       scene.add(trailLine)
 
-      // Photon Wave Packet (Emitted on downward quantum jumps)
+      // Photon Wave Packet
       const photonGroup = new THREE.Group()
       scene.add(photonGroup)
       photonGroup.visible = false
@@ -750,7 +1076,6 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const photonGlow = new THREE.Mesh(photonGlowGeo, photonGlowMat)
       photonGroup.add(photonGlow)
 
-      // Sinusoidal wave tail for photon wave packet
       const wavePtsCount = 40
       const wavePos = new Float32Array(wavePtsCount * 3)
       const waveGeo = new THREE.BufferGeometry()
@@ -759,7 +1084,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const waveLine = new THREE.Line(waveGeo, waveMat)
       photonGroup.add(waveLine)
 
-      // 3D Quantum Orbital Lobes (px, py, pz dumbbell surfaces)
+      // 3D Quantum Orbital Lobes
       const orbitalGroup = new THREE.Group()
       scene.add(orbitalGroup)
       orbitalGroup.visible = Boolean(params.orbitalMode === 1)
@@ -784,93 +1109,200 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         clearcoat: 0.6,
       })
 
-      // Pz lobes (vertical)
       const topLobeZ = new THREE.Mesh(lobeGeo, lobeMatPos)
-      topLobeZ.position.y = 3.4
+      topLobeZ.position.y = 3.6
       orbitalGroup.add(topLobeZ)
 
       const botLobeZ = new THREE.Mesh(lobeGeo, lobeMatNeg)
-      botLobeZ.position.y = -3.4
+      botLobeZ.position.y = -3.6
       orbitalGroup.add(botLobeZ)
 
-      // Px lobes (horizontal)
-      const lobeGeoX = lobeGeo.clone()
-      lobeGeoX.rotateZ(Math.PI / 2)
-      const rightLobeX = new THREE.Mesh(lobeGeoX, lobeMatPos)
-      rightLobeX.position.x = 3.4
-      orbitalGroup.add(rightLobeX)
+      const posLobeX = new THREE.Mesh(lobeGeo, lobeMatPos)
+      posLobeX.rotation.z = Math.PI / 2
+      posLobeX.position.x = 3.6
+      orbitalGroup.add(posLobeX)
 
-      const leftLobeX = new THREE.Mesh(lobeGeoX, lobeMatNeg)
-      leftLobeX.position.x = -3.4
-      orbitalGroup.add(leftLobeX)
+      const negLobeX = new THREE.Mesh(lobeGeo, lobeMatNeg)
+      negLobeX.rotation.z = Math.PI / 2
+      negLobeX.position.x = -3.6
+      orbitalGroup.add(negLobeX)
 
-      // Helper to compute spectral color hex based on transition
-      function getSpectralColor(ni: number, nf: number): number {
-        if (nf === 1) return 0xa855f7 // Lyman UV (Violet Glow)
-        if (nf === 2) {
-          if (ni === 3) return 0xef4444 // Balmer H-alpha 656.3 nm Red
-          if (ni === 4) return 0x06b6d4 // Balmer H-beta 486.1 nm Cyan
-          if (ni >= 5) return 0x8b5cf6 // Balmer H-gamma 434.0 nm Violet
+      // Raycaster for Double-Tap / Double-Click Dissection
+      let activeDissectId: 'nucleus' | 'electron' | null = null
+      let openProgress = { nucleus: 0.0, electron: 0.0 }
+      const raycaster = new THREE.Raycaster()
+      const pointer = new THREE.Vector2()
+
+      function triggerDissectionAtPoint(clientX: number, clientY: number) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(pointer, camera)
+        const intersects = raycaster.intersectObjects(interactableMeshes, false)
+
+        if (intersects.length > 0) {
+          const hit = intersects[0].object as THREE.Mesh
+          const id = hit.userData?.partId as 'nucleus' | 'electron' | undefined
+          if (id) {
+            if (activeDissectId === id) {
+              activeDissectId = null
+              callbacks.onInspectPart?.(null)
+            } else {
+              activeDissectId = id
+              callbacks.onInspectPart?.(DISSECT_CARDS[id])
+            }
+          }
+        } else {
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
         }
-        return 0xf59e0b // Paschen IR (Amber Glow)
       }
 
-      let theta = 0
+      const handleDblClick = (e: MouseEvent) => {
+        triggerDissectionAtPoint(e.clientX, e.clientY)
+      }
+
+      let lastTouchTime = 0
+      const handleTouchEnd = (e: TouchEvent) => {
+        const now = performance.now()
+        if (now - lastTouchTime < 340 && e.changedTouches.length > 0) {
+          const t = e.changedTouches[0]
+          triggerDissectionAtPoint(t.clientX, t.clientY)
+        }
+        lastTouchTime = now
+      }
+
+      renderer.domElement.addEventListener('dblclick', handleDblClick)
+      renderer.domElement.addEventListener('touchend', handleTouchEnd)
+
+      // Quantum jump state machine
+      let electronAngle = 0
       let currentR = shellRadii[Math.max(0, Math.min(params.nInitial - 1, 4))]
-      let photonDistance = 0
-      let photonDir = new THREE.Vector3(1, 0.4, 0.5).normalize()
-      let photonActive = false
+      let isTransitioning = false
+      let transitionProgress = 0
       let cycleTimer = 0
+
+      let photonActive = false
+      let photonDistance = 0
+      const photonDir = new THREE.Vector3(1, 0.4, 0).normalize()
+
+      const getSpectralColor = (ni: number, nf: number) => {
+        if (nf === 2) {
+          if (ni === 3) return 0xef4444
+          if (ni === 4) return 0x06b6d4
+          if (ni === 5) return 0x8b5cf6
+        }
+        if (nf === 1) return 0x6366f1
+        return 0xf97316
+      }
+
+      const triggerQuantumJump = () => {
+        const rInitial = shellRadii[Math.max(0, Math.min(params.nInitial - 1, 4))]
+        currentR = rInitial
+        isTransitioning = true
+        transitionProgress = 0
+
+        const colorHex = getSpectralColor(params.nInitial, params.nFinal)
+        photonGlowMat.color.setHex(colorHex)
+        waveMat.color.setHex(colorHex)
+        photonActive = true
+        photonDistance = 0
+        photonGroup.position.copy(electron.position)
+        photonGroup.visible = true
+      }
 
       function animate() {
         animId = requestAnimationFrame(animate)
 
-        if (isPlaying) {
-          theta += 0.038
-          nucleusGroup.rotation.y += 0.008
-          nucleusGroup.rotation.x += 0.005
-          orbitalGroup.rotation.y += 0.012
+        const targetNuc = activeDissectId === 'nucleus' ? 1.0 : 0.0
+        openProgress.nucleus += (targetNuc - openProgress.nucleus) * 0.1
 
-          // Update ambient electrons
-          ambientElectrons.forEach((el) => {
-            el.angle += el.speed
-            el.mesh.position.set(el.r * Math.cos(el.angle), 0, el.r * Math.sin(el.angle))
-          })
-
-          // Smooth quantum transition between shells
-          const targetR = shellRadii[Math.max(0, Math.min(params.nFinal - 1, 4))]
-          currentR += (targetR - currentR) * 0.045
-
-          electron.position.set(currentR * Math.cos(theta), 0, currentR * Math.sin(theta))
-
-          // Update electron trail
-          const tPos = trailGeo.attributes.position as THREE.BufferAttribute
-          for (let i = trailCount - 1; i > 0; i--) {
-            tPos.setXYZ(i, tPos.getX(i - 1), tPos.getY(i - 1), tPos.getZ(i - 1))
+        nucleonPositions.forEach((basePos, idx) => {
+          const nMesh = nucleonMeshes[idx]
+          if (nMesh) {
+            const spread = 1.0 + openProgress.nucleus * 2.8
+            nMesh.position.set(basePos.x * spread, basePos.y * spread, basePos.z * spread)
+            const nMat = nMesh.material as THREE.MeshStandardMaterial
+            nMat.transparent = openProgress.nucleus > 0.05
+            nMat.opacity = 1.0 - openProgress.nucleus * 0.35
           }
-          tPos.setXYZ(0, electron.position.x, electron.position.y, electron.position.z)
-          tPos.needsUpdate = true
+        })
 
-          // Trigger photon emission wave packet periodically
-          cycleTimer += 0.016
-          if (cycleTimer > 2.8) {
+        if (openProgress.nucleus > 0.05) {
+          quarkGroup.visible = true
+          const qTime = performance.now() * 0.003
+          const qR = 0.9 + Math.sin(qTime * 4) * 0.1
+          const q1Pos = new THREE.Vector3(Math.cos(qTime) * qR, Math.sin(qTime) * qR * 0.5, 0.4)
+          const q2Pos = new THREE.Vector3(Math.cos(qTime + 2.09) * qR, Math.sin(qTime + 2.09) * qR * 0.5, -0.3)
+          const q3Pos = new THREE.Vector3(Math.cos(qTime + 4.18) * qR, Math.sin(qTime + 4.18) * qR * 0.5, 0.1)
+
+          upQuark1.position.copy(q1Pos)
+          upQuark2.position.copy(q2Pos)
+          downQuark.position.copy(q3Pos)
+
+          const gTri = [
+            [q1Pos, q2Pos],
+            [q2Pos, q3Pos],
+            [q3Pos, q1Pos],
+          ]
+          gTri.forEach((pair, gi) => {
+            const line = gluonLines[gi]
+            if (line) {
+              const pts: THREE.Vector3[] = []
+              const steps = 14
+              for (let s = 0; s <= steps; s++) {
+                const alpha = s / steps
+                const pt = new THREE.Vector3().lerpVectors(pair[0], pair[1], alpha)
+                const wiggle = Math.sin(alpha * Math.PI * 4 + qTime * 8) * 0.15
+                pt.y += wiggle
+                pts.push(pt)
+              }
+              line.geometry.dispose()
+              line.geometry = new THREE.BufferGeometry().setFromPoints(pts)
+            }
+          })
+        } else {
+          quarkGroup.visible = false
+        }
+
+        if (isPlaying) {
+          cycleTimer += 0.02
+          electronAngle += 0.035
+
+          if (cycleTimer > 4.0 && !isTransitioning) {
+            triggerQuantumJump()
             cycleTimer = 0
-            if (params.nInitial > params.nFinal) {
-              photonActive = true
-              photonDistance = targetR
-              photonDir.set(Math.cos(theta), 0.35, Math.sin(theta)).normalize()
-              const spectralCol = getSpectralColor(params.nInitial, params.nFinal)
-              photonGlowMat.color.setHex(spectralCol)
-              waveMat.color.setHex(spectralCol)
-              photonGroup.visible = true
+          }
+
+          if (isTransitioning) {
+            transitionProgress += 0.04
+            currentR = THREE.MathUtils.lerp(
+              shellRadii[Math.max(0, Math.min(params.nInitial - 1, 4))],
+              shellRadii[Math.max(0, Math.min(params.nFinal - 1, 4))],
+              transitionProgress
+            )
+
+            if (transitionProgress >= 1) {
+              isTransitioning = false
+              currentR = shellRadii[Math.max(0, Math.min(params.nFinal - 1, 4))]
             }
           }
+
+          electron.position.x = Math.cos(electronAngle) * currentR
+          electron.position.z = Math.sin(electronAngle) * currentR
+          electron.position.y = Math.sin(electronAngle * 3) * 0.4
+
+          ambientElectrons.forEach((el) => {
+            el.angle += el.speed
+            el.mesh.position.x = Math.cos(el.angle) * el.r
+            el.mesh.position.z = Math.sin(el.angle) * el.r
+          })
 
           if (photonActive) {
             photonDistance += 0.32
             photonGroup.position.copy(photonDir.clone().multiplyScalar(photonDistance))
 
-            // Animate sinusoidal wave packet tail
             const wAttr = waveGeo.attributes.position as THREE.BufferAttribute
             for (let i = 0; i < wavePtsCount; i++) {
               const lag = i * 0.25
@@ -926,10 +1358,18 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           photonActive = false
           photonGroup.visible = false
           cycleTimer = 0
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+        },
+        closeDissection: () => {
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
         },
         dispose: () => {
           cancelAnimationFrame(animId)
           window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('dblclick', handleDblClick)
+          renderer.domElement.removeEventListener('touchend', handleTouchEnd)
           renderer.dispose()
           if (container.contains(renderer.domElement)) {
             container.removeChild(renderer.domElement)
@@ -975,7 +1415,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         { label: 'Dipole Moment', value: m.polar },
       ]
     },
-    initScene: (container, initialParams) => {
+    initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
       let animId: number
@@ -984,7 +1424,8 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const height = container.clientHeight || 500
 
       const scene = new THREE.Scene()
-      createLabEnvironment(scene, 30, 30)
+      // Clean scientific pedestal without harsh graph paper grid floor
+      createBioStudioEnvironment(scene)
 
       const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
       camera.position.set(0, 10, 20)
@@ -999,6 +1440,26 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       controls.enableDamping = true
       controls.dampingFactor = 0.05
 
+      const interactableMeshes: THREE.Object3D[] = []
+
+      // Pedagogical Dissection Metadata Dictionary
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        central: {
+          title: 'Central Atom · VSEPR Hybridization & Lone Pairs Dissected',
+          partName: 'Valence Shell Electron-Pair Repulsion (VSEPR) Geometry',
+          role: 'Determines 3D spatial conformation via electrostatic repulsion between bonding and non-bonding electron pairs',
+          internalStructures: ['sp³ / sp² / sp Hybridized Orbitals', 'Lone-Pair Electron Repulsion Lobes', 'Steric Number (SN = Bonding + Lone Pairs)', 'Bent 104.5° / Trigonal 107° / Tetrahedral 109.5° Angles'],
+          description: 'Double-tapping peels open the electron cloud to reveal non-bonding lone pairs. Because unshared electron pairs occupy more space and exert stronger Coulomb repulsion (lp-lp > lp-bp > bp-bp), they compress the bond angle away from the ideal 109.5°.',
+        },
+        dipole: {
+          title: 'Molecular Polarity & Dipole Moment Vector (μ)',
+          partName: 'Pauling Electronegativity Difference & Net Dipole',
+          role: 'Asymmetric distribution of electron density creating permanent dipole moment',
+          internalStructures: ['Partial Positive Charge (δ⁺ on H)', 'Partial Negative Charge (δ⁻ on O/N)', 'Dipole Moment (μ = q × d, measured in Debyes)', 'Intermolecular Hydrogen Bonding Affinity'],
+          description: 'The large electronegativity gradient (Oxygen: 3.44 vs Hydrogen: 2.20) pulls shared electrons strongly toward the central nucleus, generating a permanent net dipole moment responsible for high boiling points and solvent capabilities.',
+        },
+      }
+
       const molGroup = new THREE.Group()
       scene.add(molGroup)
 
@@ -1011,17 +1472,37 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         bond: new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.4, metalness: 0.3 }),
       }
 
+      // Lone Pair Orbital Lobe Material (Translucent glowing cyan)
+      const lonePairMat = new THREE.MeshPhysicalMaterial({
+        color: 0x06b6d4,
+        transparent: true,
+        opacity: 0.55,
+        roughness: 0.1,
+        transmission: 0.6,
+        clearcoat: 0.8,
+      })
+
+      const lonePairGroup = new THREE.Group()
+      molGroup.add(lonePairGroup)
+
+      let activeDissectId: 'central' | 'dipole' | null = null
+
       function buildMolecule() {
         while (molGroup.children.length > 0) {
           molGroup.remove(molGroup.children[0])
         }
+        lonePairGroup.clear()
+        molGroup.add(lonePairGroup)
+        interactableMeshes.length = 0
 
         const scale = params.bondScale
 
         if (params.moleculeId === 0) {
           // Water (H2O): Oxygen at origin, two Hydrogens at 104.5 degrees
           const oMesh = new THREE.Mesh(new THREE.SphereGeometry(1.4, 32, 32), mats.O)
+          oMesh.userData = { partId: 'central' }
           molGroup.add(oMesh)
+          interactableMeshes.push(oMesh)
 
           const angle = (104.5 * Math.PI) / 180
           const hDist = 3.2 * scale
@@ -1030,13 +1511,16 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
           const h1 = new THREE.Mesh(new THREE.SphereGeometry(0.85, 24, 24), mats.H)
           h1.position.copy(h1Pos)
+          h1.userData = { partId: 'dipole' }
           molGroup.add(h1)
+          interactableMeshes.push(h1)
 
           const h2 = new THREE.Mesh(new THREE.SphereGeometry(0.85, 24, 24), mats.H)
           h2.position.copy(h2Pos)
+          h2.userData = { partId: 'dipole' }
           molGroup.add(h2)
+          interactableMeshes.push(h2)
 
-          // Cylinder Bonds
           const addBond = (p1: THREE.Vector3, p2: THREE.Vector3) => {
             const dir = new THREE.Vector3().subVectors(p2, p1)
             const len = dir.length()
@@ -1045,15 +1529,34 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
             const bMesh = new THREE.Mesh(bGeo, mats.bond)
             bMesh.position.copy(p1)
             bMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize())
+            bMesh.userData = { partId: 'central' }
             molGroup.add(bMesh)
+            interactableMeshes.push(bMesh)
           }
 
           addBond(new THREE.Vector3(0, 0, 0), h1Pos)
           addBond(new THREE.Vector3(0, 0, 0), h2Pos)
+
+          // 2 Dissected Lone Pair Lobes for Oxygen
+          const lobeGeo = new THREE.SphereGeometry(1.3, 24, 24)
+          lobeGeo.scale(0.65, 1.45, 0.65)
+
+          const lp1 = new THREE.Mesh(lobeGeo, lonePairMat)
+          lp1.position.set(0, 1.6, 1.8)
+          lp1.rotation.x = Math.PI / 4
+          lonePairGroup.add(lp1)
+
+          const lp2 = new THREE.Mesh(lobeGeo, lonePairMat)
+          lp2.position.set(0, 1.6, -1.8)
+          lp2.rotation.x = -Math.PI / 4
+          lonePairGroup.add(lp2)
+
         } else if (params.moleculeId === 1) {
           // Methane (CH4): Carbon at origin, 4 Hydrogens at tetrahedral vertices
           const cMesh = new THREE.Mesh(new THREE.SphereGeometry(1.5, 32, 32), mats.C)
+          cMesh.userData = { partId: 'central' }
           molGroup.add(cMesh)
+          interactableMeshes.push(cMesh)
 
           const d = 3.4 * scale
           const hVerts = [
@@ -1066,7 +1569,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           hVerts.forEach((pos) => {
             const h = new THREE.Mesh(new THREE.SphereGeometry(0.85, 24, 24), mats.H)
             h.position.copy(pos)
+            h.userData = { partId: 'dipole' }
             molGroup.add(h)
+            interactableMeshes.push(h)
 
             const dir = pos.clone()
             const len = dir.length()
@@ -1074,35 +1579,46 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
             bGeo.translate(0, len / 2, 0)
             const bMesh = new THREE.Mesh(bGeo, mats.bond)
             bMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize())
+            bMesh.userData = { partId: 'central' }
             molGroup.add(bMesh)
+            interactableMeshes.push(bMesh)
           })
         } else if (params.moleculeId === 2) {
           // Carbon Dioxide (CO2): Linear O=C=O
           const cMesh = new THREE.Mesh(new THREE.SphereGeometry(1.4, 32, 32), mats.C)
+          cMesh.userData = { partId: 'central' }
           molGroup.add(cMesh)
+          interactableMeshes.push(cMesh)
 
           const dist = 3.6 * scale
           const o1 = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 32), mats.O)
           o1.position.set(dist, 0, 0)
+          o1.userData = { partId: 'dipole' }
           molGroup.add(o1)
+          interactableMeshes.push(o1)
 
           const o2 = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 32), mats.O)
           o2.position.set(-dist, 0, 0)
+          o2.userData = { partId: 'dipole' }
           molGroup.add(o2)
+          interactableMeshes.push(o2)
 
-          // Double bond cylinders
           const addDoubleBond = (xOffset: number) => {
             const bGeo = new THREE.CylinderGeometry(0.2, 0.2, dist, 16)
             bGeo.translate(0, dist / 2, 0)
             const b1 = new THREE.Mesh(bGeo, mats.bond)
-            b1.position.set(xOffset > 0 ? 0 : 0, 0.4, 0)
+            b1.position.set(0, 0.4, 0)
             b1.rotation.z = xOffset > 0 ? -Math.PI / 2 : Math.PI / 2
+            b1.userData = { partId: 'central' }
             molGroup.add(b1)
+            interactableMeshes.push(b1)
 
             const b2 = new THREE.Mesh(bGeo, mats.bond)
-            b2.position.set(xOffset > 0 ? 0 : 0, -0.4, 0)
+            b2.position.set(0, -0.4, 0)
             b2.rotation.z = xOffset > 0 ? -Math.PI / 2 : Math.PI / 2
+            b2.userData = { partId: 'central' }
             molGroup.add(b2)
+            interactableMeshes.push(b2)
           }
           addDoubleBond(dist)
           addDoubleBond(-dist)
@@ -1110,7 +1626,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           // Ammonia (NH3): Nitrogen with 3 Hydrogens in trigonal pyramid
           const nMesh = new THREE.Mesh(new THREE.SphereGeometry(1.4, 32, 32), mats.N)
           nMesh.position.y = 0.8
+          nMesh.userData = { partId: 'central' }
           molGroup.add(nMesh)
+          interactableMeshes.push(nMesh)
 
           const dist = 3.1 * scale
           for (let i = 0; i < 3; i++) {
@@ -1118,7 +1636,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
             const hPos = new THREE.Vector3(dist * Math.cos(a), -1.2, dist * Math.sin(a))
             const h = new THREE.Mesh(new THREE.SphereGeometry(0.85, 24, 24), mats.H)
             h.position.copy(hPos)
+            h.userData = { partId: 'dipole' }
             molGroup.add(h)
+            interactableMeshes.push(h)
 
             const dir = new THREE.Vector3().subVectors(hPos, nMesh.position)
             const len = dir.length()
@@ -1127,18 +1647,83 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
             const bMesh = new THREE.Mesh(bGeo, mats.bond)
             bMesh.position.copy(nMesh.position)
             bMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize())
+            bMesh.userData = { partId: 'central' }
             molGroup.add(bMesh)
+            interactableMeshes.push(bMesh)
           }
+
+          // Single Apex Lone Pair Lobe for Nitrogen
+          const lobeGeo = new THREE.SphereGeometry(1.4, 24, 24)
+          lobeGeo.scale(0.7, 1.5, 0.7)
+          const lpN = new THREE.Mesh(lobeGeo, lonePairMat)
+          lpN.position.set(0, 2.6, 0)
+          lonePairGroup.add(lpN)
         }
+
+        lonePairGroup.visible = Boolean(activeDissectId === 'central')
       }
 
       buildMolecule()
 
+      // Raycaster for Double-Tap & Double-Click Dissection
+      const raycaster = new THREE.Raycaster()
+      const pointer = new THREE.Vector2()
+
+      function triggerDissectionAtPoint(clientX: number, clientY: number) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(pointer, camera)
+        const intersects = raycaster.intersectObjects(interactableMeshes, false)
+
+        if (intersects.length > 0) {
+          const hit = intersects[0].object as THREE.Mesh
+          const id = hit.userData?.partId as 'central' | 'dipole' | undefined
+          if (id) {
+            if (activeDissectId === id) {
+              activeDissectId = null
+              callbacks.onInspectPart?.(null)
+            } else {
+              activeDissectId = id
+              callbacks.onInspectPart?.(DISSECT_CARDS[id])
+            }
+            lonePairGroup.visible = Boolean(activeDissectId === 'central')
+          }
+        } else {
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+          lonePairGroup.visible = false
+        }
+      }
+
+      const handleDblClick = (e: MouseEvent) => {
+        triggerDissectionAtPoint(e.clientX, e.clientY)
+      }
+
+      let lastTouchTime = 0
+      const handleTouchEnd = (e: TouchEvent) => {
+        const now = performance.now()
+        if (now - lastTouchTime < 340 && e.changedTouches.length > 0) {
+          const t = e.changedTouches[0]
+          triggerDissectionAtPoint(t.clientX, t.clientY)
+        }
+        lastTouchTime = now
+      }
+
+      renderer.domElement.addEventListener('dblclick', handleDblClick)
+      renderer.domElement.addEventListener('touchend', handleTouchEnd)
+
       function animate() {
         animId = requestAnimationFrame(animate)
         if (isPlaying) {
-          molGroup.rotation.y += 0.012
-          molGroup.rotation.x += 0.006
+          if (!activeDissectId) {
+            molGroup.rotation.y += 0.012
+            molGroup.rotation.x += 0.006
+          } else {
+            // Gentle floating oscillation while inspecting
+            molGroup.rotation.y += 0.003
+          }
         }
         controls.update()
         renderer.render(scene, camera)
@@ -1165,10 +1750,20 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         },
         reset: () => {
           molGroup.rotation.set(0, 0, 0)
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+          lonePairGroup.visible = false
+        },
+        closeDissection: () => {
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+          lonePairGroup.visible = false
         },
         dispose: () => {
           cancelAnimationFrame(animId)
           window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('dblclick', handleDblClick)
+          renderer.domElement.removeEventListener('touchend', handleTouchEnd)
           renderer.dispose()
           if (container.contains(renderer.domElement)) {
             container.removeChild(renderer.domElement)
@@ -1206,7 +1801,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         { label: 'Hydrogen Bonds', value: 'A=T (2 bonds) · G≡C (3 bonds)' },
       ]
     },
-    initScene: (container, initialParams) => {
+    initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
       let animId: number
@@ -1215,7 +1810,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const height = container.clientHeight || 500
 
       const scene = new THREE.Scene()
-      createLabEnvironment(scene, 30, 30)
+      createBioStudioEnvironment(scene)
 
       const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
       camera.position.set(0, 10, 28)
@@ -1229,6 +1824,33 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const controls = new OrbitControls(camera, renderer.domElement)
       controls.enableDamping = true
       controls.dampingFactor = 0.05
+
+      const interactableMeshes: THREE.Object3D[] = []
+
+      // Pedagogical Dissection Metadata Dictionary
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        at: {
+          title: 'Adenine–Thymine Base Pair (A=T)',
+          partName: 'A=T Nucleotide Rung · 2 Hydrogen Bonds Dissected',
+          role: 'Complementary base pairing stabilizing the double helix via 2 electrostatic hydrogen bonds',
+          internalStructures: ['Adenine (Bicyclic Purine Ring: C5H5N5)', 'Thymine (Pyrimidinedione Ring: C5H6N2O2)', '2 Linear Hydrogen Bonds (N-H...O & N...H-N)', 'Major & Minor Groove Contacts'],
+          description: 'The A=T pair is held together by two hydrogen bonds (2.8 Å bond length). Because it has only 2 bonds compared to G≡C\'s 3, A-T rich regions are easier for RNA polymerase and helicase to unwind during replication origin firing.',
+        },
+        gc: {
+          title: 'Guanine–Cytosine Base Pair (G≡C)',
+          partName: 'G≡C Nucleotide Rung · 3 Triple Hydrogen Bonds Dissected',
+          role: 'High-stability base pair conferring thermo-resistance and structural rigidity to the genome',
+          internalStructures: ['Guanine (Purine Ring with Exocyclic Amine)', 'Cytosine (Monocyclic Pyrimidine Ring)', '3 Electrostatic Hydrogen Bonds (O...H-N, N-H...N, N-H...O)', 'GC-Clamp Stabilization'],
+          description: 'The G≡C base pair is linked by three distinct hydrogen bonds, requiring significantly higher thermal denaturation temperature (Tm) to separate. It forms stable GC-clamps throughout genomic coding domains.',
+        },
+        backbone: {
+          title: 'Sugar-Phosphate Antiparallel Backbone',
+          partName: 'Deoxyribose & Phosphodiester Bridge (5\' to 3\')',
+          role: 'Negatively charged structural scaffold providing directional orientation for transcription',
+          internalStructures: ['2-Deoxy-D-ribose 5-Carbon Furanose Ring', 'Phosphodiester Ester Linkages', 'PO4(3-) Polyanionic Surface Charge', 'Antiparallel Polarity (Leading 5\'→3\' / Lagging 3\'→5\')'],
+          description: 'The hydrophilic exterior of DNA consists of alternating deoxyribose sugar rings and phosphate groups. The strong negative charges repel nucleophiles, safeguarding genetic code inside the helical core.',
+        },
+      }
 
       const helixGroup = new THREE.Group()
       scene.add(helixGroup)
@@ -1287,12 +1909,60 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       let strandMesh2: THREE.Mesh | null = null
       let pairGroups: THREE.Group[] = []
 
+      // Raycasting for Double-Tap & Double-Click Dissection
+      let activeDissectId: 'at' | 'gc' | 'backbone' | null = null
+      const raycaster = new THREE.Raycaster()
+      const pointer = new THREE.Vector2()
+
+      function triggerDissectionAtPoint(clientX: number, clientY: number) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(pointer, camera)
+        const intersects = raycaster.intersectObjects(interactableMeshes, false)
+
+        if (intersects.length > 0) {
+          const hit = intersects[0].object as THREE.Mesh
+          const id = hit.userData?.partId as 'at' | 'gc' | 'backbone' | undefined
+          if (id) {
+            if (activeDissectId === id) {
+              activeDissectId = null
+              callbacks.onInspectPart?.(null)
+            } else {
+              activeDissectId = id
+              callbacks.onInspectPart?.(DISSECT_CARDS[id])
+            }
+          }
+        } else {
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+        }
+      }
+
+      const handleDblClick = (e: MouseEvent) => {
+        triggerDissectionAtPoint(e.clientX, e.clientY)
+      }
+
+      let lastTouchTime = 0
+      const handleTouchEnd = (e: TouchEvent) => {
+        const now = performance.now()
+        if (now - lastTouchTime < 340 && e.changedTouches.length > 0) {
+          const t = e.changedTouches[0]
+          triggerDissectionAtPoint(t.clientX, t.clientY)
+        }
+        lastTouchTime = now
+      }
+
+      renderer.domElement.addEventListener('dblclick', handleDblClick)
+      renderer.domElement.addEventListener('touchend', handleTouchEnd)
+
       function buildDNA() {
-        // Clear previous children
         while (helixGroup.children.length > 0) {
           helixGroup.remove(helixGroup.children[0])
         }
         pairGroups = []
+        interactableMeshes.length = 0
 
         const numSteps = 42
         const stepY = 0.65
@@ -1302,15 +1972,12 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
         const pts1: THREE.Vector3[] = []
         const pts2: THREE.Vector3[] = []
-
-        // Major groove angle offset (140 deg)
         const grooveOffset = (140 * Math.PI) / 180
 
         for (let i = 0; i < numSteps; i++) {
           const angle = i * 0.36
           const y = i * stepY - totalH / 2
 
-          // Fork divergence if unzipping
           let forkSpread1 = 1.0
           let forkSpread2 = 1.0
           if (isUnzip && i > numSteps * 0.55) {
@@ -1329,21 +1996,24 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           pts1.push(p1)
           pts2.push(p2)
 
-          // Sugar-phosphate nodes
           const node1 = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 16), nodeMat1)
           node1.position.copy(p1)
+          node1.userData = { partId: 'backbone' }
           helixGroup.add(node1)
+          interactableMeshes.push(node1)
 
           const node2 = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 16), nodeMat2)
           node2.position.copy(p2)
+          node2.userData = { partId: 'backbone' }
           helixGroup.add(node2)
+          interactableMeshes.push(node2)
 
-          // Base Pair Rungs (joined only below the fork if unzipping)
           const pairGroup = new THREE.Group()
           helixGroup.add(pairGroup)
           pairGroups.push(pairGroup)
 
-          const bType = i % 2 === 0 ? 0 : 2 // 0: A-T, 2: G-C
+          const bType = i % 2 === 0 ? 0 : 2
+          const partId = bType === 0 ? 'at' : 'gc'
           const matBase1 = new THREE.MeshStandardMaterial({ color: baseColors[bType], roughness: 0.3 })
           const matBase2 = new THREE.MeshStandardMaterial({ color: baseColors[bType + 1], roughness: 0.3 })
 
@@ -1352,26 +2022,26 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           const fullLen = strandDir.length()
 
           if (!isUnzip || i <= numSteps * 0.55) {
-            // Intact base pair joined by hydrogen bonds
             const halfLen = fullLen * 0.42
 
-            // Base 1 cylinder
             const b1Geo = new THREE.CylinderGeometry(0.2, 0.2, halfLen, 12)
             b1Geo.translate(0, halfLen / 2, 0)
             const b1 = new THREE.Mesh(b1Geo, matBase1)
             b1.position.copy(p1)
             b1.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), strandDir.clone().normalize())
+            b1.userData = { partId }
             pairGroup.add(b1)
+            interactableMeshes.push(b1)
 
-            // Base 2 cylinder
             const b2Geo = new THREE.CylinderGeometry(0.2, 0.2, halfLen, 12)
             b2Geo.translate(0, halfLen / 2, 0)
             const b2 = new THREE.Mesh(b2Geo, matBase2)
             b2.position.copy(p2)
             b2.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), strandDir.clone().negate().normalize())
+            b2.userData = { partId }
             pairGroup.add(b2)
+            interactableMeshes.push(b2)
 
-            // Hydrogen Bonds (2 for A=T, 3 for G≡C)
             const hCount = bType === 0 ? 2 : 3
             const hGap = 0.2
             for (let h = 0; h < hCount; h++) {
@@ -1380,10 +2050,11 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
               const hBridge = new THREE.Mesh(hBridgeGeo, hBondMat)
               hBridge.position.copy(centerPt).add(new THREE.Vector3(0, hOffset, 0))
               hBridge.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), strandDir.clone().normalize())
+              hBridge.userData = { partId }
               pairGroup.add(hBridge)
+              interactableMeshes.push(hBridge)
             }
           } else {
-            // Unzipped individual open nucleotide bases projecting inward
             const stubLen = r * 0.55
             const b1Geo = new THREE.CylinderGeometry(0.2, 0.2, stubLen, 12)
             b1Geo.translate(0, stubLen / 2, 0)
@@ -1391,7 +2062,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
             b1.position.copy(p1)
             const inward1 = new THREE.Vector3(0, y, 0).sub(p1).normalize()
             b1.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), inward1)
+            b1.userData = { partId }
             pairGroup.add(b1)
+            interactableMeshes.push(b1)
 
             const b2Geo = new THREE.CylinderGeometry(0.2, 0.2, stubLen, 12)
             b2Geo.translate(0, stubLen / 2, 0)
@@ -1399,20 +2072,25 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
             b2.position.copy(p2)
             const inward2 = new THREE.Vector3(0, y, 0).sub(p2).normalize()
             b2.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), inward2)
+            b2.userData = { partId }
             pairGroup.add(b2)
+            interactableMeshes.push(b2)
           }
         }
 
-        // Build continuous smooth 3D tube geometries for both sugar-phosphate backbones
         const curve1 = new THREE.CatmullRomCurve3(pts1)
         const tube1Geo = new THREE.TubeGeometry(curve1, 80, 0.26, 12, false)
         strandMesh1 = new THREE.Mesh(tube1Geo, backboneMat1)
+        strandMesh1.userData = { partId: 'backbone' }
         helixGroup.add(strandMesh1)
+        interactableMeshes.push(strandMesh1)
 
         const curve2 = new THREE.CatmullRomCurve3(pts2)
         const tube2Geo = new THREE.TubeGeometry(curve2, 80, 0.26, 12, false)
         strandMesh2 = new THREE.Mesh(tube2Geo, backboneMat2)
+        strandMesh2.userData = { partId: 'backbone' }
         helixGroup.add(strandMesh2)
+        interactableMeshes.push(strandMesh2)
 
         if (isUnzip) {
           const forkY = (numSteps * 0.55 * stepY) - totalH / 2
@@ -1428,7 +2106,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       function animate() {
         animId = requestAnimationFrame(animate)
         if (isPlaying) {
-          helixGroup.rotation.y += 0.016 * params.twistSpeed
+          if (!activeDissectId) {
+            helixGroup.rotation.y += 0.016 * params.twistSpeed
+          }
           if (helicase.visible) {
             helicase.rotation.z += 0.02
           }
@@ -1458,10 +2138,18 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         },
         reset: () => {
           helixGroup.rotation.set(0, 0, 0)
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+        },
+        closeDissection: () => {
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
         },
         dispose: () => {
           cancelAnimationFrame(animId)
           window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('dblclick', handleDblClick)
+          renderer.domElement.removeEventListener('touchend', handleTouchEnd)
           renderer.dispose()
           if (container.contains(renderer.domElement)) {
             container.removeChild(renderer.domElement)
@@ -1479,29 +2167,34 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
     title: '3D Beating Human Heart & Circulation',
     subject: 'Biology · Human Physiology',
     concept: '4-Chambered Double Circulation & Cardiac Cycle',
-    description: '3D anatomical human heart with realistic rhythmic systole and diastole contractions. Observe valve action and flowing red (oxygenated) and blue (deoxygenated) blood streams.',
+    description: '3D anatomical human heart with realistic rhythmic systole and diastole contractions. Double-tap on the Left Atrium, Left Ventricle, or other chambers to dissect and reveal internal valves, heart strings, and lumen.',
     emoji: '🫀',
     difficulty: 'Intermediate',
     presets: [
-      { label: '❤️ Normal Resting Heartbeat (72 BPM)', params: { bpm: 72, strokeVolume: 70, showValves: 1 } },
-      { label: '🏃 Athletic Cardio Workout (130 BPM)', params: { bpm: 130, strokeVolume: 90, showValves: 1 } },
-      { label: '🧘 Deep Meditation (55 BPM)', params: { bpm: 55, strokeVolume: 65, showValves: 1 } },
+      { label: '❤️ Normal Resting Heartbeat (72 BPM)', params: { bpm: 72, strokeVolume: 70, showValves: 1, dissectMode: 0 } },
+      { label: '🔍 Dissect Left Atrium (Inside View)', params: { bpm: 60, strokeVolume: 70, showValves: 1, dissectMode: 1 } },
+      { label: '🔍 Dissect Left Ventricle & Cords', params: { bpm: 60, strokeVolume: 70, showValves: 1, dissectMode: 2 } },
+      { label: '🏃 Athletic Cardio Workout (130 BPM)', params: { bpm: 130, strokeVolume: 90, showValves: 1, dissectMode: 0 } },
     ],
     params: [
       { key: 'bpm', label: 'Heart Rate (BPM)', min: 45, max: 180, step: 1, defaultValue: 72, unit: 'bpm' },
       { key: 'strokeVolume', label: 'Stroke Volume', min: 40, max: 120, step: 2, defaultValue: 70, unit: 'mL' },
-      { key: 'showValves', label: 'Chamber Cross-Section', min: 0, max: 1, step: 1, defaultValue: 1, unit: '' },
+      { key: 'showValves', label: 'Internal Valve Visibility', min: 0, max: 1, step: 1, defaultValue: 1, unit: '' },
+      { key: 'dissectMode', label: 'Dissect Chamber (0:All Closed, 1:Left Atrium, 2:Left Ventricle, 3:Right Atrium, 4:Right Ventricle)', min: 0, max: 4, step: 1, defaultValue: 0, unit: '' },
     ],
     calculateReadouts: (p) => {
       const co = ((p.bpm * p.strokeVolume) / 1000).toFixed(2)
       const cycleTime = (60 / p.bpm).toFixed(2)
+      const dissectNames = ['None (Intact Organ)', 'Left Atrium (Opened)', 'Left Ventricle (Opened)', 'Right Atrium (Opened)', 'Right Ventricle (Opened)']
+      const curDissect = dissectNames[Math.round(p.dissectMode)] || dissectNames[0]
       return [
         { label: 'Cardiac Output (Q)', value: co, unit: 'L/min', formula: 'Q = HR × SV' },
         { label: 'Cardiac Cycle Time', value: cycleTime, unit: 's', formula: 'T = 60 / BPM' },
-        { label: 'Blood Circuit', value: 'Systemic (Red) & Pulmonary (Blue)' },
+        { label: 'Inner Dissection', value: curDissect },
+        { label: 'Circulation Circuit', value: 'Double Circulation (Systemic & Pulmonary)' },
       ]
     },
-    initScene: (container, initialParams) => {
+    initScene: (container, initialParams, callbacks) => {
       let params = { ...initialParams }
       let isPlaying = true
       let animId: number
@@ -1510,10 +2203,11 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const height = container.clientHeight || 500
 
       const scene = new THREE.Scene()
-      createLabEnvironment(scene, 25, 25)
+      // Clean medical studio environment without any harsh graph paper grid floor!
+      createBioStudioEnvironment(scene)
 
       const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
-      camera.position.set(0, 5, 20)
+      camera.position.set(0, 4, 21)
 
       const renderer = new THREE.WebGLRenderer({ antialias: true })
       renderer.setSize(width, height)
@@ -1524,82 +2218,252 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const controls = new OrbitControls(camera, renderer.domElement)
       controls.enableDamping = true
       controls.dampingFactor = 0.05
+      controls.target.set(0, 1.2, 0)
 
       const heartGroup = new THREE.Group()
       scene.add(heartGroup)
 
-      // Anatomical Muscle Materials
+      // High-Fidelity Anatomical Materials
       const myoMatLeft = new THREE.MeshStandardMaterial({
         color: 0x9f1239,
-        roughness: 0.35,
-        metalness: 0.15,
+        roughness: 0.32,
+        metalness: 0.12,
       })
       const myoMatRight = new THREE.MeshStandardMaterial({
-        color: 0xbe123c,
-        roughness: 0.4,
+        color: 0xb91c1c,
+        roughness: 0.36,
         metalness: 0.1,
       })
       const atriumMat = new THREE.MeshStandardMaterial({
         color: 0x881337,
-        roughness: 0.45,
+        roughness: 0.4,
         metalness: 0.1,
       })
-      const valveMat = new THREE.MeshStandardMaterial({
+      const fatMat = new THREE.MeshStandardMaterial({
         color: 0xfef08a,
-        roughness: 0.2,
+        roughness: 0.7,
+        metalness: 0.05,
+      })
+      const lumenMat = new THREE.MeshStandardMaterial({
+        color: 0x4c0519,
+        roughness: 0.5,
+        side: THREE.BackSide,
+      })
+      const valveMat = new THREE.MeshStandardMaterial({
+        color: 0xffedd5,
+        roughness: 0.25,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.85,
+        opacity: 0.9,
+      })
+      const chordaeMat = new THREE.MeshStandardMaterial({
+        color: 0xf8fafc,
+        roughness: 0.3,
+        metalness: 0.1,
       })
       const coronaryMat = new THREE.MeshStandardMaterial({
         color: 0xf43f5e,
         emissive: 0xbe123c,
-        emissiveIntensity: 0.6,
+        emissiveIntensity: 0.7,
         roughness: 0.2,
       })
 
-      // 1. LEFT VENTRICLE (Thick conical muscular chamber forming cardiac apex)
-      const lvGeo = new THREE.SphereGeometry(2.8, 32, 32)
-      lvGeo.scale(0.9, 1.45, 0.95)
-      const lvMesh = new THREE.Mesh(lvGeo, myoMatLeft)
-      lvMesh.position.set(-0.8, -0.6, 0.2)
-      lvMesh.rotation.z = 0.18
-      heartGroup.add(lvMesh)
+      // Interactive Dissection State
+      let activeDissectId: 'la' | 'lv' | 'ra' | 'rv' | 'aorta' | null = null
+      if (params.dissectMode === 1) activeDissectId = 'la'
+      else if (params.dissectMode === 2) activeDissectId = 'lv'
+      else if (params.dissectMode === 3) activeDissectId = 'ra'
+      else if (params.dissectMode === 4) activeDissectId = 'rv'
 
-      // 2. RIGHT VENTRICLE (Anterior crescent-shaped chamber)
-      const rvGeo = new THREE.SphereGeometry(2.5, 32, 32)
-      rvGeo.scale(1.05, 1.3, 0.8)
-      const rvMesh = new THREE.Mesh(rvGeo, myoMatRight)
-      rvMesh.position.set(1.1, -0.4, 0.5)
-      rvMesh.rotation.z = -0.15
-      heartGroup.add(rvMesh)
+      // Opening progress interpolators (0: closed, 1: fully opened)
+      const openProgress = { la: 0, lv: 0, ra: 0, rv: 0, aorta: 0 }
 
-      // 3. LEFT ATRIUM (Posterior-superior receiving auricle)
-      const laGeo = new THREE.SphereGeometry(1.7, 24, 24)
-      laGeo.scale(1.1, 1.0, 1.2)
-      const laMesh = new THREE.Mesh(laGeo, atriumMat)
-      laMesh.position.set(-1.4, 2.2, -0.4)
-      heartGroup.add(laMesh)
+      // Raycast Target Meshes
+      const interactableMeshes: THREE.Mesh[] = []
 
-      // 4. RIGHT ATRIUM (Anterior-superior receiving auricle)
-      const raGeo = new THREE.SphereGeometry(1.8, 24, 24)
-      raGeo.scale(1.1, 1.1, 1.0)
-      const raMesh = new THREE.Mesh(raGeo, atriumMat)
-      raMesh.position.set(1.5, 2.0, 0.3)
-      heartGroup.add(raMesh)
+      // Helper to register interactable chamber mesh
+      function registerChamberMesh(mesh: THREE.Mesh, id: 'la' | 'lv' | 'ra' | 'rv' | 'aorta', name: string) {
+        mesh.userData = { chamberId: id, chamberName: name }
+        interactableMeshes.push(mesh)
+      }
 
-      // 5. INTERVENTRICULAR CORONARY ARTERY NETWORK
-      const coronaryCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0.1, 1.8, 1.4),
-        new THREE.Vector3(0.3, 0.6, 1.6),
-        new THREE.Vector3(0.0, -0.8, 1.4),
-        new THREE.Vector3(-0.4, -2.1, 0.9),
-      ])
-      const coronaryGeo = new THREE.TubeGeometry(coronaryCurve, 20, 0.12, 12, false)
-      const coronaryMesh = new THREE.Mesh(coronaryGeo, coronaryMat)
-      heartGroup.add(coronaryMesh)
+      // ========================================================
+      // 1. LEFT ATRIUM (LA) WITH DOUBLE-TAP DISSECTION
+      // ========================================================
+      const laGroup = new THREE.Group()
+      laGroup.position.set(-1.4, 2.3, -0.4)
+      heartGroup.add(laGroup)
 
-      // 6. ASCENDING AORTA & AORTIC ARCH (Sweeping Red Trunk with 3 Head/Neck Branches)
+      // Inner Lumen Shell (Visible when opened)
+      const laInnerGeo = new THREE.SphereGeometry(1.65, 24, 24)
+      laInnerGeo.scale(1.1, 1.0, 1.2)
+      const laInnerMesh = new THREE.Mesh(laInnerGeo, lumenMat)
+      laGroup.add(laInnerMesh)
+
+      // 4 Pulmonary Vein Intakes into Left Atrium (2 left lung, 2 right lung)
+      const pvPositions = [
+        new THREE.Vector3(-1.1, 0.5, -0.6),
+        new THREE.Vector3(-1.1, -0.4, -0.6),
+        new THREE.Vector3(0.9, 0.5, -0.8),
+        new THREE.Vector3(0.9, -0.4, -0.8),
+      ]
+      pvPositions.forEach((pvPos) => {
+        const pvGeo = new THREE.CylinderGeometry(0.24, 0.26, 1.5, 12)
+        pvGeo.translate(0, 0.75, 0)
+        const pvMesh = new THREE.Mesh(pvGeo, new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 }))
+        pvMesh.position.copy(pvPos)
+        pvMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), pvPos.clone().normalize())
+        laGroup.add(pvMesh)
+
+        // Glowing red intake ring ostium
+        const ostiumGeo = new THREE.TorusGeometry(0.26, 0.05, 8, 16)
+        const ostiumMesh = new THREE.Mesh(ostiumGeo, new THREE.MeshBasicMaterial({ color: 0xfca5a5 }))
+        ostiumMesh.position.copy(pvPos)
+        ostiumMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), pvPos.clone().normalize())
+        laGroup.add(ostiumMesh)
+      })
+
+      // Pectinate Muscle Ridges inside LA
+      for (let p = 0; p < 6; p++) {
+        const ridgeGeo = new THREE.TorusGeometry(0.7 + p * 0.12, 0.04, 6, 16, Math.PI * 0.8)
+        const ridgeMesh = new THREE.Mesh(ridgeGeo, myoMatLeft)
+        ridgeMesh.position.set(-0.2, -0.2 + p * 0.08, 0.1)
+        ridgeMesh.rotation.x = Math.PI / 2
+        laGroup.add(ridgeMesh)
+      }
+
+      // Left Atrium Outer Wall Flap (Hinged to swing open upon double-tap)
+      const laHinge = new THREE.Group()
+      laHinge.position.set(-1.2, 0, 0.6)
+      laGroup.add(laHinge)
+
+      const laFlapGeo = new THREE.SphereGeometry(1.72, 24, 24, 0, Math.PI * 1.1, 0, Math.PI)
+      laFlapGeo.scale(1.1, 1.0, 1.2)
+      const laFlapMesh = new THREE.Mesh(laFlapGeo, atriumMat)
+      laFlapMesh.position.set(1.2, 0, -0.6)
+      registerChamberMesh(laFlapMesh, 'la', 'Left Atrium')
+      laHinge.add(laFlapMesh)
+
+      // ========================================================
+      // 2. LEFT VENTRICLE (LV) WITH DOUBLE-TAP DISSECTION
+      // ========================================================
+      const lvGroup = new THREE.Group()
+      lvGroup.position.set(-0.8, -0.6, 0.2)
+      lvGroup.rotation.z = 0.18
+      heartGroup.add(lvGroup)
+
+      // Inner Ventricular Cavity
+      const lvInnerGeo = new THREE.SphereGeometry(2.7, 32, 32)
+      lvInnerGeo.scale(0.85, 1.4, 0.9)
+      const lvInnerMesh = new THREE.Mesh(lvInnerGeo, lumenMat)
+      lvGroup.add(lvInnerMesh)
+
+      // Muscular Papillary Muscles on LV Floor
+      const papGeo = new THREE.CylinderGeometry(0.35, 0.5, 1.6, 12)
+      const pap1 = new THREE.Mesh(papGeo, myoMatLeft)
+      pap1.position.set(-0.6, -1.2, 0.2)
+      lvGroup.add(pap1)
+
+      const pap2 = new THREE.Mesh(papGeo, myoMatLeft)
+      pap2.position.set(0.6, -1.2, -0.2)
+      lvGroup.add(pap2)
+
+      // Fibrous Chordae Tendineae ("Heart Strings") connecting Papillary Muscles to Mitral Cusps
+      for (let c = 0; c < 8; c++) {
+        const cordGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.2, 6)
+        cordGeo.translate(0, 0.6, 0)
+        const cordMesh = new THREE.Mesh(cordGeo, chordaeMat)
+        const isPap1 = c < 4
+        cordMesh.position.copy(isPap1 ? pap1.position : pap2.position).add(new THREE.Vector3(0, 0.8, 0))
+        const angle = ((c % 4) * Math.PI) / 3
+        cordMesh.quaternion.setFromUnitVectors(
+          new THREE.Vector3(0, 1, 0),
+          new THREE.Vector3(Math.cos(angle) * 0.3, 1.0, Math.sin(angle) * 0.3).normalize()
+        )
+        lvGroup.add(cordMesh)
+      }
+
+      // Left Ventricle Outer Wall Flap
+      const lvHinge = new THREE.Group()
+      lvHinge.position.set(-1.8, 0, 0.5)
+      lvGroup.add(lvHinge)
+
+      const lvFlapGeo = new THREE.SphereGeometry(2.82, 32, 32, 0, Math.PI * 1.15, 0, Math.PI)
+      lvFlapGeo.scale(0.9, 1.45, 0.95)
+      const lvFlapMesh = new THREE.Mesh(lvFlapGeo, myoMatLeft)
+      lvFlapMesh.position.set(1.8, 0, -0.5)
+      registerChamberMesh(lvFlapMesh, 'lv', 'Left Ventricle')
+      lvHinge.add(lvFlapMesh)
+
+      // ========================================================
+      // 3. RIGHT ATRIUM (RA) WITH DOUBLE-TAP DISSECTION
+      // ========================================================
+      const raGroup = new THREE.Group()
+      raGroup.position.set(1.5, 2.0, 0.3)
+      heartGroup.add(raGroup)
+
+      const raInnerGeo = new THREE.SphereGeometry(1.75, 24, 24)
+      raInnerGeo.scale(1.1, 1.1, 1.0)
+      const raInnerMesh = new THREE.Mesh(raInnerGeo, lumenMat)
+      raGroup.add(raInnerMesh)
+
+      // Fossa Ovalis (Oval depression in interatrial septum)
+      const fossaGeo = new THREE.RingGeometry(0.25, 0.55, 16)
+      const fossaMesh = new THREE.Mesh(fossaGeo, new THREE.MeshStandardMaterial({ color: 0x334155, side: THREE.DoubleSide }))
+      fossaMesh.position.set(-0.8, 0, 0)
+      fossaMesh.rotation.y = Math.PI / 2
+      raGroup.add(fossaMesh)
+
+      // Right Atrium Outer Wall Flap
+      const raHinge = new THREE.Group()
+      raHinge.position.set(1.5, 0, 0.6)
+      raGroup.add(raHinge)
+
+      const raFlapGeo = new THREE.SphereGeometry(1.82, 24, 24, 0, Math.PI * 1.15, 0, Math.PI)
+      raFlapGeo.scale(1.1, 1.1, 1.0)
+      const raFlapMesh = new THREE.Mesh(raFlapGeo, atriumMat)
+      raFlapMesh.position.set(-1.5, 0, -0.6)
+      registerChamberMesh(raFlapMesh, 'ra', 'Right Atrium')
+      raHinge.add(raFlapMesh)
+
+      // ========================================================
+      // 4. RIGHT VENTRICLE (RV) WITH DOUBLE-TAP DISSECTION
+      // ========================================================
+      const rvGroup = new THREE.Group()
+      rvGroup.position.set(1.1, -0.4, 0.5)
+      rvGroup.rotation.z = -0.15
+      heartGroup.add(rvGroup)
+
+      const rvInnerGeo = new THREE.SphereGeometry(2.4, 32, 32)
+      rvInnerGeo.scale(1.05, 1.3, 0.8)
+      const rvInnerMesh = new THREE.Mesh(rvInnerGeo, lumenMat)
+      rvGroup.add(rvInnerMesh)
+
+      // Trabeculae Carneae (Muscular ridges in RV)
+      for (let t = 0; t < 5; t++) {
+        const trabGeo = new THREE.TorusGeometry(0.8 + t * 0.15, 0.08, 6, 16, Math.PI * 0.7)
+        const trabMesh = new THREE.Mesh(trabGeo, myoMatRight)
+        trabMesh.position.set(0.1, -1.0 + t * 0.25, -0.1)
+        trabMesh.rotation.x = Math.PI / 2.5
+        rvGroup.add(trabMesh)
+      }
+
+      // Right Ventricle Outer Wall Flap
+      const rvHinge = new THREE.Group()
+      rvHinge.position.set(1.6, 0, 0.6)
+      rvGroup.add(rvHinge)
+
+      const rvFlapGeo = new THREE.SphereGeometry(2.52, 32, 32, 0, Math.PI * 1.15, 0, Math.PI)
+      rvFlapGeo.scale(1.05, 1.3, 0.8)
+      const rvFlapMesh = new THREE.Mesh(rvFlapGeo, myoMatRight)
+      rvFlapMesh.position.set(-1.6, 0, -0.6)
+      registerChamberMesh(rvFlapMesh, 'rv', 'Right Ventricle')
+      rvHinge.add(rvFlapMesh)
+
+      // ========================================================
+      // 5. GREAT VESSELS: AORTA, PULMONARY TRUNK, VENA CAVA
+      // ========================================================
+      // Ascending Aorta & Arch (Sweeping Red Trunk with 3 Head/Neck Branches)
       const aortaCurve = new THREE.CatmullRomCurve3([
         new THREE.Vector3(-0.2, 1.2, 0),
         new THREE.Vector3(-0.1, 3.2, 0.2),
@@ -1611,13 +2475,14 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const aortaGeo = new THREE.TubeGeometry(aortaCurve, 32, 0.65, 16, false)
       const aortaMat = new THREE.MeshStandardMaterial({
         color: 0xef4444,
-        roughness: 0.25,
-        metalness: 0.25,
+        roughness: 0.22,
+        metalness: 0.28,
       })
       const aortaMesh = new THREE.Mesh(aortaGeo, aortaMat)
+      registerChamberMesh(aortaMesh, 'aorta', 'Aorta Arch')
       heartGroup.add(aortaMesh)
 
-      // 3 Aortic Arch Branches: Brachiocephalic trunk, Left common carotid, Left subclavian
+      // 3 Head/Neck Branches: Brachiocephalic trunk, Left common carotid, Left subclavian
       const branchPositions = [
         { start: new THREE.Vector3(0.5, 5.1, -0.1), dir: new THREE.Vector3(0.4, 1.4, 0.2) },
         { start: new THREE.Vector3(0.0, 5.3, -0.4), dir: new THREE.Vector3(0.1, 1.5, 0.1) },
@@ -1632,7 +2497,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         heartGroup.add(bMesh)
       })
 
-      // 7. PULMONARY TRUNK & BIFURCATION (Venous Blue Arch curving across anterior Aorta)
+      // Pulmonary Trunk (Venous Blue Arch curving across anterior Aorta)
       const pulmCurve = new THREE.CatmullRomCurve3([
         new THREE.Vector3(0.6, 1.2, 0.8),
         new THREE.Vector3(0.4, 3.0, 0.9),
@@ -1662,7 +2527,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       rightPulm.rotation.z = -Math.PI / 2.4
       heartGroup.add(rightPulm)
 
-      // 8. SUPERIOR & INFERIOR VENA CAVA (Blue Great Vessels into RA)
+      // Superior & Inferior Vena Cava (Blue Great Vessels into RA)
       const svcGeo = new THREE.CylinderGeometry(0.55, 0.6, 3.0, 16)
       const svcMesh = new THREE.Mesh(svcGeo, venousMat)
       svcMesh.position.set(2.4, 3.4, 0.0)
@@ -1673,12 +2538,39 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       ivcMesh.position.set(2.2, -1.4, -0.3)
       heartGroup.add(ivcMesh)
 
-      // 9. ATRIOVENTRICULAR VALVES (Mitral on Left, Tricuspid on Right)
+      // ========================================================
+      // 6. ADIPOSE FAT PADS & CORONARY ARTERY NETWORK
+      // ========================================================
+      // Subepicardial Adipose Tissue (Fat pads along coronary sulcus)
+      const fatBandCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-1.8, 1.4, 0.4),
+        new THREE.Vector3(0.1, 1.8, 1.4),
+        new THREE.Vector3(1.8, 1.4, 0.6),
+        new THREE.Vector3(0.0, 1.2, -1.2),
+      ])
+      const fatBandGeo = new THREE.TubeGeometry(fatBandCurve, 24, 0.28, 10, true)
+      const fatBandMesh = new THREE.Mesh(fatBandGeo, fatMat)
+      heartGroup.add(fatBandMesh)
+
+      // Anterior Interventricular Coronary Artery
+      const coronaryCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0.1, 1.8, 1.4),
+        new THREE.Vector3(0.3, 0.6, 1.6),
+        new THREE.Vector3(0.0, -0.8, 1.4),
+        new THREE.Vector3(-0.4, -2.1, 0.9),
+      ])
+      const coronaryGeo = new THREE.TubeGeometry(coronaryCurve, 20, 0.12, 12, false)
+      const coronaryMesh = new THREE.Mesh(coronaryGeo, coronaryMat)
+      heartGroup.add(coronaryMesh)
+
+      // ========================================================
+      // 7. INTERNAL ATRIOVENTRICULAR VALVES
+      // ========================================================
       const valveGroup = new THREE.Group()
       heartGroup.add(valveGroup)
       valveGroup.visible = Boolean(params.showValves === 1)
 
-      // Mitral Valve Cusps
+      // Mitral Valve Cusps (Left Heart)
       const mitralCuspGeo = new THREE.PlaneGeometry(1.2, 0.8)
       const mitralCusp1 = new THREE.Mesh(mitralCuspGeo, valveMat)
       mitralCusp1.position.set(-0.9, 0.8, 0.1)
@@ -1690,7 +2582,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       mitralCusp2.rotation.x = -0.5
       valveGroup.add(mitralCusp2)
 
-      // Tricuspid Valve Cusps
+      // Tricuspid Valve Cusps (Right Heart)
       const triCuspGeo = new THREE.PlaneGeometry(1.1, 0.7)
       const triCusp1 = new THREE.Mesh(triCuspGeo, valveMat)
       triCusp1.position.set(1.0, 0.7, 0.4)
@@ -1702,8 +2594,10 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       triCusp2.rotation.x = -0.4
       valveGroup.add(triCusp2)
 
-      // 10. Flowing Oxygenated (Red) & Deoxygenated (Blue) Blood Corpuscles
-      const particleCount = 260
+      // ========================================================
+      // 8. OXYGENATED & DEOXYGENATED BLOOD PARTICLES
+      // ========================================================
+      const particleCount = 280
       const bloodGeo = new THREE.BufferGeometry()
       const bloodPos = new Float32Array(particleCount * 3)
       const bloodColors = new Float32Array(particleCount * 3)
@@ -1711,7 +2605,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       for (let i = 0; i < particleCount; i++) {
         const isOxy = i % 2 === 0
         if (isOxy) {
-          // Oxygenated in Left Ventricle & Aorta
+          // Oxygenated in Left Atrium, LV & Aorta
           bloodPos[i * 3] = -0.8 + (Math.random() - 0.5) * 1.8
           bloodPos[i * 3 + 1] = -1.2 + Math.random() * 5.0
           bloodPos[i * 3 + 2] = 0.1 + (Math.random() - 0.5) * 1.4
@@ -1719,7 +2613,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           bloodColors[i * 3 + 1] = 0.15
           bloodColors[i * 3 + 2] = 0.2
         } else {
-          // Deoxygenated in Right Ventricle, RA & Pulmonary Trunk
+          // Deoxygenated in RA, RV & Pulmonary Trunk
           bloodPos[i * 3] = 1.1 + (Math.random() - 0.5) * 1.8
           bloodPos[i * 3 + 1] = -1.2 + Math.random() * 4.8
           bloodPos[i * 3 + 2] = 0.4 + (Math.random() - 0.5) * 1.4
@@ -1740,10 +2634,129 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const bloodParticles = new THREE.Points(bloodGeo, bloodMat)
       heartGroup.add(bloodParticles)
 
+      // Pedagogical Dissection Metadata Dictionary
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        la: {
+          title: 'Left Atrium (Atrium Sinistrum)',
+          partName: 'Left Atrium · Interior Lumen Dissected',
+          role: 'Receives oxygen-rich blood from lungs via 4 pulmonary veins; pumps into Left Ventricle',
+          bloodType: 'Oxygenated',
+          internalStructures: ['4 Pulmonary Vein Ostia', 'Bicuspid (Mitral) Valve Orifice', 'Pectinate Muscles', 'Interatrial Septum'],
+          description: 'The anterior wall is opened to reveal the interior chamber. You can see the 4 pulmonary vein orifices entering from both lungs, delicate pectinate ridges, and the bicuspid (mitral) valve at the base leading into the thick-walled left ventricle.',
+        },
+        lv: {
+          title: 'Left Ventricle (Ventriculus Sinister)',
+          partName: 'Left Ventricle · Interior Cavity Dissected',
+          role: 'High-pressure muscular pump driving systemic circulation throughout the entire body',
+          bloodType: 'Oxygenated',
+          internalStructures: ['Thick Myocardial Wall (3x thicker)', 'Papillary Muscles', 'Chordae Tendineae (Heart Strings)', 'Mitral Valve Leaflets', 'Aortic Vestibule'],
+          description: 'Notice the prominent papillary muscles and fibrous chordae tendineae anchored to the bicuspid valve leaflets. These strings prevent the valve flaps from prolapsing backwards into the left atrium under massive systolic pressure.',
+        },
+        ra: {
+          title: 'Right Atrium (Atrium Dextrum)',
+          partName: 'Right Atrium · Deoxygenated Receiving Chamber',
+          role: 'Collects oxygen-depleted venous blood from the entire body via Vena Cava',
+          bloodType: 'Deoxygenated',
+          internalStructures: ['Superior & Inferior Vena Cava', 'Fossa Ovalis (Fetal Shunt Remnant)', 'Coronary Sinus Orifice', 'Tricuspid Valve'],
+          description: 'Exposes the entry of the superior and inferior vena cava. The smooth oval depression is the Fossa Ovalis (remnant of the fetal shunt). Blood flows through the tricuspid valve into the right ventricle.',
+        },
+        rv: {
+          title: 'Right Ventricle (Ventriculus Dexter)',
+          partName: 'Right Ventricle · Pulmonary Pump',
+          role: 'Pumps deoxygenated blood under low resistance to the lungs for gas exchange',
+          bloodType: 'Deoxygenated',
+          internalStructures: ['Tricuspid Valve', 'Trabeculae Carneae', 'Papillary Muscles', 'Pulmonary Semilunar Valve'],
+          description: 'The muscular ridges inside are trabeculae carneae. Blood is propelled through the pulmonary semilunar valve into the pulmonary artery heading towards alveolar capillary beds.',
+        },
+        aorta: {
+          title: 'Ascending Aorta & Arch',
+          partName: 'Aorta Root · Aortic Semilunar Valve Dissected',
+          role: 'Main arterial trunk distributing oxygenated blood under systemic systolic pressure (120 mmHg)',
+          bloodType: 'Oxygenated',
+          internalStructures: ['3 Semilunar Pocket Cusps', 'Left & Right Coronary Ostia', 'Brachiocephalic Trunk', 'Left Common Carotid', 'Left Subclavian Artery'],
+          description: 'Exposing the aortic root reveals the 3 pocket-like semilunar cusps that snap shut immediately after ventricular ejection, preventing backflow and directing blood into the coronary ostia.',
+        },
+      }
+
+      // Raycaster for Double-Tap & Double-Click Dissection
+      const raycaster = new THREE.Raycaster()
+      const pointer = new THREE.Vector2()
+
+      function triggerDissectionAtPoint(clientX: number, clientY: number) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(pointer, camera)
+        const intersects = raycaster.intersectObjects(interactableMeshes, false)
+
+        if (intersects.length > 0) {
+          const hit = intersects[0].object as THREE.Mesh
+          const id = hit.userData?.chamberId as 'la' | 'lv' | 'ra' | 'rv' | 'aorta' | undefined
+          if (id) {
+            if (activeDissectId === id) {
+              activeDissectId = null
+              callbacks.onInspectPart?.(null)
+            } else {
+              activeDissectId = id
+              const card = DISSECT_CARDS[id]
+              if (card) callbacks.onInspectPart?.(card)
+            }
+          }
+        } else {
+          // Tapped outside on background: close dissection
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+        }
+      }
+
+      const handleDblClick = (e: MouseEvent) => {
+        triggerDissectionAtPoint(e.clientX, e.clientY)
+      }
+
+      let lastTouchTime = 0
+      const handleTouchEnd = (e: TouchEvent) => {
+        const now = performance.now()
+        if (now - lastTouchTime < 340 && e.changedTouches.length > 0) {
+          const t = e.changedTouches[0]
+          triggerDissectionAtPoint(t.clientX, t.clientY)
+        }
+        lastTouchTime = now
+      }
+
+      renderer.domElement.addEventListener('dblclick', handleDblClick)
+      renderer.domElement.addEventListener('touchend', handleTouchEnd)
+
+      // Notify initial card if dissectMode was preset
+      if (activeDissectId && DISSECT_CARDS[activeDissectId]) {
+        callbacks.onInspectPart?.(DISSECT_CARDS[activeDissectId])
+      }
+
       let pulseTime = 0
 
       function animate() {
         animId = requestAnimationFrame(animate)
+
+        // Smooth Chamber Opening Hinge Interpolation
+        const targetLA = activeDissectId === 'la' ? 1.0 : 0.0
+        openProgress.la += (targetLA - openProgress.la) * 0.1
+        laHinge.rotation.y = -openProgress.la * 1.35
+        laFlapMesh.material.transparent = openProgress.la > 0.05
+        ;(laFlapMesh.material as THREE.MeshStandardMaterial).opacity = 1.0 - openProgress.la * 0.45
+
+        const targetLV = activeDissectId === 'lv' ? 1.0 : 0.0
+        openProgress.lv += (targetLV - openProgress.lv) * 0.1
+        lvHinge.rotation.y = -openProgress.lv * 1.25
+        lvFlapMesh.material.transparent = openProgress.lv > 0.05
+        ;(lvFlapMesh.material as THREE.MeshStandardMaterial).opacity = 1.0 - openProgress.lv * 0.45
+
+        const targetRA = activeDissectId === 'ra' ? 1.0 : 0.0
+        openProgress.ra += (targetRA - openProgress.ra) * 0.1
+        raHinge.rotation.y = openProgress.ra * 1.25
+
+        const targetRV = activeDissectId === 'rv' ? 1.0 : 0.0
+        openProgress.rv += (targetRV - openProgress.rv) * 0.1
+        rvHinge.rotation.y = openProgress.rv * 1.25
 
         if (isPlaying) {
           const freq = (params.bpm / 60) * Math.PI * 2
@@ -1751,22 +2764,22 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           const cyclePhase = (pulseTime * freq) % (Math.PI * 2)
 
           // Wiggers Diagram Cardiac Cycle Approximation:
-          // Phase 1 (0 to 0.25): Atrial Systole (Atria contract first)
-          // Phase 2 (0.25 to 0.70): Ventricular Systole (Ventricles contract strongly, valves close)
-          // Phase 3 (0.70 to 2*PI): Diastole / Relaxation (Valves open, chambers expand)
+          // Phase 1 (0 to 0.25): Atrial Systole
+          // Phase 2 (0.25 to 0.70): Ventricular Systole
+          // Phase 3 (0.70 to 2*PI): Diastole / Relaxation
           const isAtrialBeat = cyclePhase < Math.PI * 0.4
           const isVentBeat = cyclePhase >= Math.PI * 0.4 && cyclePhase < Math.PI * 1.2
 
           const atriaContraction = isAtrialBeat ? 1.0 - Math.sin(cyclePhase * 2.5) * 0.12 : 1.0
-          laMesh.scale.set(1.1 * atriaContraction, 1.0 * atriaContraction, 1.2 * atriaContraction)
-          raMesh.scale.set(1.1 * atriaContraction, 1.1 * atriaContraction, 1.0 * atriaContraction)
+          laGroup.scale.set(1.1 * atriaContraction, 1.0 * atriaContraction, 1.2 * atriaContraction)
+          raGroup.scale.set(1.1 * atriaContraction, 1.1 * atriaContraction, 1.0 * atriaContraction)
 
           const ventScale = isVentBeat
             ? 1.0 - Math.sin((cyclePhase - Math.PI * 0.4) * 1.25) * 0.16
             : 1.0 + Math.sin(cyclePhase) * 0.05
 
-          lvMesh.scale.set(0.9 * ventScale, 1.45 * (2 - ventScale), 0.95 * ventScale)
-          rvMesh.scale.set(1.05 * ventScale, 1.3 * (2 - ventScale), 0.8 * ventScale)
+          lvGroup.scale.set(0.9 * ventScale, 1.45 * (2 - ventScale), 0.95 * ventScale)
+          rvGroup.scale.set(1.05 * ventScale, 1.3 * (2 - ventScale), 0.8 * ventScale)
 
           // Valve flapping: open during filling (diastole), snap closed during systole
           const valveOpenAngle = isVentBeat ? 0.05 : 0.65
@@ -1784,7 +2797,10 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           }
           pos.needsUpdate = true
 
-          heartGroup.rotation.y += 0.006
+          // Slow organic rotation if not actively dissecting
+          if (!activeDissectId) {
+            heartGroup.rotation.y += 0.005
+          }
         }
 
         controls.update()
@@ -1805,16 +2821,35 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       return {
         updateParams: (newParams) => {
           params = { ...newParams }
+          if (params.dissectMode === 1) activeDissectId = 'la'
+          else if (params.dissectMode === 2) activeDissectId = 'lv'
+          else if (params.dissectMode === 3) activeDissectId = 'ra'
+          else if (params.dissectMode === 4) activeDissectId = 'rv'
+          else if (params.dissectMode === 0 && activeDissectId) {
+            activeDissectId = null
+            callbacks.onInspectPart?.(null)
+          }
+          if (activeDissectId && DISSECT_CARDS[activeDissectId]) {
+            callbacks.onInspectPart?.(DISSECT_CARDS[activeDissectId])
+          }
         },
         setPlaying: (playing) => {
           isPlaying = playing
         },
         reset: () => {
           pulseTime = 0
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+        },
+        closeDissection: () => {
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
         },
         dispose: () => {
           cancelAnimationFrame(animId)
           window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('dblclick', handleDblClick)
+          renderer.domElement.removeEventListener('touchend', handleTouchEnd)
           renderer.dispose()
           if (container.contains(renderer.domElement)) {
             container.removeChild(renderer.domElement)
@@ -1901,7 +2936,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         { label: 'Histological Marker', value: cur.marker },
       ]
     },
-    initScene: (container, initialParams) => {
+    initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
       let animId: number
@@ -1910,9 +2945,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const height = container.clientHeight || 500
 
       const scene = new THREE.Scene()
-      // Modern clean scientific studio backdrop
-      scene.background = new THREE.Color(0x0f172a)
-      scene.fog = new THREE.FogExp2(0x0f172a, 0.02)
+      createBioStudioEnvironment(scene)
 
       const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
       camera.position.set(14, 12, 22)
@@ -1925,25 +2958,11 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
       const controls = new OrbitControls(camera, renderer.domElement)
       controls.enableDamping = true
-      controls.dampingFactor = 0.06
-      controls.target.set(0, 2.5, 0)
-
-      // Soft laboratory studio lighting
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.85)
-      scene.add(ambientLight)
-
-      const keyLight = new THREE.DirectionalLight(0xfff5ea, 1.2)
-      keyLight.position.set(15, 25, 20)
-      scene.add(keyLight)
-
-      const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.7)
-      fillLight.position.set(-15, 12, -10)
-      scene.add(fillLight)
+      controls.dampingFactor = 0.05
 
       const skinGroup = new THREE.Group()
       scene.add(skinGroup)
 
-      // Define 6 distinct anatomical layers (5 epidermis + dermis base)
       const layerConfigs = [
         { id: 1, name: 'Stratum Corneum', thickness: 0.9, color: 0xd4a373, baseElevation: 5.6 },
         { id: 2, name: 'Stratum Lucidum', thickness: 0.45, color: 0xfefae0, baseElevation: 4.85 },
@@ -1952,6 +2971,51 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         { id: 5, name: 'Stratum Basale', thickness: 0.85, color: 0xb45309, baseElevation: 1.4 },
         { id: 6, name: 'Dermis', thickness: 2.4, color: 0xbe185d, baseElevation: -0.4 },
       ]
+
+      const DISSECT_CARDS: Record<number, DissectInfo> = {
+        1: {
+          title: 'Stratum Corneum (Horny Barrier Layer)',
+          partName: 'Corneocyte Brick & Mortar Lipid Matrix',
+          role: 'Primary physical and waterproof barrier safeguarding internal homeostasis',
+          internalStructures: ['Anucleate Corneocyte Bricks', 'Extracellular Lipid Mortar (Ceramides, Cholesterol)', 'Filaggrin Crosslinks', 'Desquamation Surface Enzymes'],
+          description: 'The outermost layer comprises 20–30 sublayers of dead corneocytes tightly bound in a hydrophobic lipid bilayer matrix. Prevents pathogen penetration and transepidermal water loss (TEWL).',
+        },
+        2: {
+          title: 'Stratum Lucidum (Clear Transition Layer)',
+          partName: 'Eleidin-Packed Translucent Zone',
+          role: 'Extra mechanical cushioning found in thick skin (palms & soles)',
+          internalStructures: ['Translucent Eleidin Protein Granules', 'Flattened Keratinocyte Boundaries', 'Densely Packed Intermediate Tonofibrils'],
+          description: 'A thin, clear band of flat dead cells present only in hairless thick skin surfaces subjected to high frictional shear forces.',
+        },
+        3: {
+          title: 'Stratum Granulosum (Granular Layer)',
+          partName: 'Keratohyalin & Lamellar Body Secretory Zone',
+          role: 'Active biochemical site of cellular death and lipid barrier synthesis',
+          internalStructures: ['Keratohyalin Granules (Pro-Filaggrin)', 'Lamellar Bodies (Odland Bodies)', 'Deteriorating Cell Nuclei', 'Apoptotic Programmed Envelopes'],
+          description: 'Keratinocytes begin programmed cell death here. They discharge lipid-rich lamellar bodies into intercellular spaces to forge the epidermal water barrier.',
+        },
+        4: {
+          title: 'Stratum Spinosum (Prickle Cell Layer)',
+          partName: 'Polyhedral Desmosomal Network & Langerhans Cells',
+          role: 'Provides tensile structural resilience against shear tension and houses immune sentinels',
+          internalStructures: ['Intercellular Desmosome Spines', 'Keratin Intermediate Filaments', 'Intraepidermal Langerhans (Antigen Presenting) Cells'],
+          description: 'Named for its spiny appearance caused by prominent desmosomal cell-to-cell bridges. Langerhans dendritic cells patrol this layer for microbial invaders.',
+        },
+        5: {
+          title: 'Stratum Basale (Germinativum)',
+          partName: 'Mitotic Stem Cells & Melanocyte Pigment Factories',
+          role: 'Continuous cell renewal and UV-protective melanin production',
+          internalStructures: ['Actively Mitotic Basal Stem Cells', 'Melanocytes with Dendritic Melanosomes', 'Merkel Sensory Disc Cells', 'Hemidesmosomes & Basement Membrane'],
+          description: 'A single layer of proliferating stem cells anchored to the dermal basement membrane. Melanocytes transfer protective melanin granules into rising keratinocytes to shield DNA from UV damage.',
+        },
+        6: {
+          title: 'Dermis (Papillary & Reticular Base)',
+          partName: 'Vascularized Collagen-Elastin Foundation',
+          role: 'Nourishes the avascular epidermis and hosts tactile receptors, hair roots, and sweat glands',
+          internalStructures: ['Dermal Papillae Arteriovenous Capillary Loops', 'Type I & III Collagen Bundles', 'Meissner Tactile Corpuscles', 'Sensory Nerve Endings'],
+          description: 'Richly vascularized matrix providing high tensile elasticity. The dermal ridges interlock with epidermal pegs to supply vital nutrients across the basement membrane.',
+        },
+      }
 
       const blockWidth = 9.0
       const blockDepth = 7.0
@@ -1965,13 +3029,13 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       }
 
       const layerObjects: LayerMeshObj[] = []
+      const interactableMeshes: THREE.Object3D[] = []
 
       layerConfigs.forEach((cfg) => {
         const layerGrp = new THREE.Group()
         layerGrp.position.y = cfg.baseElevation
         skinGroup.add(layerGrp)
 
-        // Main tissue slab with rounded beveled edges
         const geo = new THREE.BoxGeometry(blockWidth, cfg.thickness, blockDepth)
         const mat = new THREE.MeshStandardMaterial({
           color: cfg.color,
@@ -1981,13 +3045,13 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           opacity: 0.94,
         })
         const slabMesh = new THREE.Mesh(geo, mat)
+        slabMesh.userData = { layerId: cfg.id }
         layerGrp.add(slabMesh)
+        interactableMeshes.push(slabMesh)
 
-        // Microscopic Cellular Elements
         const cellMeshes: THREE.Object3D[] = []
 
         if (cfg.id === 1) {
-          // Corneum: Flakes / flattened polygonal scales on top
           const flakeGeo = new THREE.CircleGeometry(0.35, 6)
           flakeGeo.rotateX(-Math.PI / 2)
           const flakeMat = new THREE.MeshStandardMaterial({ color: 0xfaedcd, roughness: 0.8, side: THREE.DoubleSide })
@@ -2003,7 +3067,6 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
             cellMeshes.push(flake)
           }
         } else if (cfg.id === 3) {
-          // Granulosum: Keratohyalin dark granule clusters
           const granGeo = new THREE.SphereGeometry(0.1, 8, 8)
           const granMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.3 })
           for (let i = 0; i < 35; i++) {
@@ -2017,7 +3080,6 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
             cellMeshes.push(gran)
           }
         } else if (cfg.id === 4) {
-          // Spinosum: Polyhedral cells with desmosome prickly bridges
           const spinGeo = new THREE.DodecahedronGeometry(0.24, 0)
           const spinMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.4 })
           for (let i = 0; i < 24; i++) {
@@ -2031,7 +3093,6 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
             cellMeshes.push(spin)
           }
         } else if (cfg.id === 5) {
-          // Basale: Cuboidal cells + Melanocytes (dark star cells)
           const basalGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.5, 12)
           const basalMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.3 })
           const melanMat = new THREE.MeshStandardMaterial({ color: 0x3f1a07, roughness: 0.2 })
@@ -2047,7 +3108,6 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
             cellMeshes.push(cMesh)
           }
         } else if (cfg.id === 6) {
-          // Dermis: Capillary Loops (Arterial Red & Venous Blue arches)
           const loopGeo = new THREE.TorusGeometry(0.65, 0.08, 8, 16, Math.PI)
           const redLoopMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 })
           const blueLoopMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.3 })
@@ -2073,14 +3133,14 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         })
       })
 
-      // Update positions based on explode separation slider and active layer highlight
+      let activeDissectId: number | null = null
+
       const applyLayerTransforms = () => {
-        const sepFactor = (params.layerSeparation / 100) * 2.8
-        const activeLyr = Math.round(params.activeLayer)
+        const sepFactor = (params.layerSeparation / 100) * 2.8 + (activeDissectId ? 1.4 : 0)
+        const activeLyr = activeDissectId !== null ? activeDissectId : Math.round(params.activeLayer)
         const showCellDetails = params.showCells >= 0.5
 
         layerObjects.forEach((obj, idx) => {
-          // Expand outward from center along Y axis
           const explodeY = (2.5 - idx) * sepFactor
           obj.group.position.y = obj.baseElevation + explodeY
 
@@ -2103,13 +3163,63 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
       applyLayerTransforms()
 
+      // Raycasting for Double-Tap & Double-Click Dissection
+      const raycaster = new THREE.Raycaster()
+      const pointer = new THREE.Vector2()
+
+      function triggerDissectionAtPoint(clientX: number, clientY: number) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(pointer, camera)
+        const intersects = raycaster.intersectObjects(interactableMeshes, false)
+
+        if (intersects.length > 0) {
+          const hit = intersects[0].object as THREE.Mesh
+          const id = hit.userData?.layerId as number | undefined
+          if (id) {
+            if (activeDissectId === id) {
+              activeDissectId = null
+              callbacks.onInspectPart?.(null)
+            } else {
+              activeDissectId = id
+              callbacks.onInspectPart?.(DISSECT_CARDS[id])
+            }
+            applyLayerTransforms()
+          }
+        } else {
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+          applyLayerTransforms()
+        }
+      }
+
+      const handleDblClick = (e: MouseEvent) => {
+        triggerDissectionAtPoint(e.clientX, e.clientY)
+      }
+
+      let lastTouchTime = 0
+      const handleTouchEnd = (e: TouchEvent) => {
+        const now = performance.now()
+        if (now - lastTouchTime < 340 && e.changedTouches.length > 0) {
+          const t = e.changedTouches[0]
+          triggerDissectionAtPoint(t.clientX, t.clientY)
+        }
+        lastTouchTime = now
+      }
+
+      renderer.domElement.addEventListener('dblclick', handleDblClick)
+      renderer.domElement.addEventListener('touchend', handleTouchEnd)
+
       let time = 0
       const animate = () => {
         animId = requestAnimationFrame(animate)
         if (isPlaying) {
           time += 0.01
-          // Subtle gentle breathing/rotation of skin block
-          skinGroup.rotation.y += 0.002
+          if (!activeDissectId) {
+            skinGroup.rotation.y += 0.002
+          }
         }
         controls.update()
         renderer.render(scene, camera)
@@ -2136,11 +3246,21 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         },
         reset: () => {
           skinGroup.rotation.set(0, 0, 0)
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
           controls.reset()
+          applyLayerTransforms()
+        },
+        closeDissection: () => {
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+          applyLayerTransforms()
         },
         dispose: () => {
           cancelAnimationFrame(animId)
           window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('dblclick', handleDblClick)
+          renderer.domElement.removeEventListener('touchend', handleTouchEnd)
           renderer.dispose()
           if (container.contains(renderer.domElement)) {
             container.removeChild(renderer.domElement)
@@ -2178,7 +3298,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         { label: 'Fixed Points C+ / C-', value: `(±${Math.sqrt(p.beta * (p.rho - 1)).toFixed(1)}, ±${Math.sqrt(p.beta * (p.rho - 1)).toFixed(1)}, ${p.rho - 1})` },
       ]
     },
-    initScene: (container, initialParams) => {
+    initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
       let animId: number
@@ -2203,11 +3323,35 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       controls.dampingFactor = 0.05
       controls.target.set(0, 25, 0)
 
-      // Lighting
+      const interactableMeshes: THREE.Object3D[] = []
+
+      // Pedagogical Dissection Metadata Dictionary
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        attractor: {
+          title: 'Lorenz Strange Attractor · Butterfly Phase Space',
+          partName: 'Chaotic Manifold & Dual Fixed Points (C+ / C-)',
+          role: 'Deterministic non-periodic flow in ℝ³ demonstrating sensitive dependence on initial conditions (The Butterfly Effect)',
+          internalStructures: ['Twin Equilibrium Fixed Points C± = (±√(β(ρ-1)), ±√(β(ρ-1)), ρ-1)', 'Maximal Lyapunov Exponent (λ ≈ 0.9056 nats/s)', 'Kaplan-Yorke Fractal Dimension (DF ≈ 2.06)', 'Poincaré Section Z = 27 Phase Return Map'],
+          description: 'Double-tapping the chaotic attractor dissects the phase space. Two trajectories beginning with a 10⁻⁸ difference diverge exponentially as e^(λt). The system never repeats, yet stays confined forever inside this fractional-dimensional manifold.',
+        },
+      }
+
       const ambLight = new THREE.AmbientLight(0xffffff, 0.9)
       scene.add(ambLight)
 
-      // Pre-compute Lorenz Attractor Trajectory Ribbon
+      // Fixed Point Markers (C+ and C-)
+      const fixedPointGroup = new THREE.Group()
+      scene.add(fixedPointGroup)
+
+      const fpGeo = new THREE.SphereGeometry(1.2, 16, 16)
+      const fpMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, wireframe: true })
+      const fp1 = new THREE.Mesh(fpGeo, fpMat)
+      const fp2 = new THREE.Mesh(fpGeo, fpMat)
+      fp1.userData = { partId: 'attractor' }
+      fp2.userData = { partId: 'attractor' }
+      fixedPointGroup.add(fp1, fp2)
+      interactableMeshes.push(fp1, fp2)
+
       const maxPts = 4000
       const positions = new Float32Array(maxPts * 3)
       const colors = new Float32Array(maxPts * 3)
@@ -2227,39 +3371,129 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         z += dz * dt
 
         positions[i * 3] = x
-        positions[i * 3 + 1] = z // Swap Y and Z for visual vertical orientation
+        positions[i * 3 + 1] = z
         positions[i * 3 + 2] = y
 
-        // Spectral coloring gradient along trajectory
         const t = i / maxPts
-        colors[i * 3] = Math.sin(t * Math.PI) * 0.9 + 0.1
-        colors[i * 3 + 1] = Math.sin(t * Math.PI + 2) * 0.8 + 0.2
-        colors[i * 3 + 2] = Math.cos(t * Math.PI) * 0.9 + 0.1
+        colors[i * 3] = 0.02 + t * 0.9
+        colors[i * 3 + 1] = 0.7 - t * 0.4
+        colors[i * 3 + 2] = 0.95 - t * 0.2
       }
 
-      const lorenzGeo = new THREE.BufferGeometry()
-      lorenzGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-      lorenzGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+      const lineGeo = new THREE.BufferGeometry()
+      lineGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+      lineGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
 
-      const lorenzMat = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 2 })
-      const lorenzLine = new THREE.Line(lorenzGeo, lorenzMat)
-      scene.add(lorenzLine)
+      const lineMat = new THREE.LineBasicMaterial({
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.85,
+        linewidth: 1.5,
+      })
+      const ribbon = new THREE.Line(lineGeo, lineMat)
+      ribbon.userData = { partId: 'attractor' }
+      scene.add(ribbon)
+      interactableMeshes.push(ribbon)
 
-      // Traveling Glowing Head
-      const headGeo = new THREE.SphereGeometry(0.8, 16, 16)
-      const headMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
-      const headMesh = new THREE.Mesh(headGeo, headMat)
-      scene.add(headMesh)
+      // Dual Orbits Simulation
+      const orb1Geo = new THREE.SphereGeometry(0.8, 16, 16)
+      const orb1Mat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+      const orb1 = new THREE.Mesh(orb1Geo, orb1Mat)
+      orb1.userData = { partId: 'attractor' }
+      scene.add(orb1)
+      interactableMeshes.push(orb1)
 
-      let headIdx = 0
+      const orb2Geo = new THREE.SphereGeometry(0.8, 16, 16)
+      const orb2Mat = new THREE.MeshBasicMaterial({ color: 0xf43f5e })
+      const orb2 = new THREE.Mesh(orb2Geo, orb2Mat)
+      orb2.userData = { partId: 'attractor' }
+      scene.add(orb2)
+      interactableMeshes.push(orb2)
+
+      let x1 = 0.1, y1 = 0.0, z1 = 0.0
+      let x2 = 0.1001, y2 = 0.0, z2 = 0.0
+
+      function updateFixedPoints() {
+        if (params.rho > 1) {
+          const cVal = Math.sqrt(params.beta * (params.rho - 1))
+          fp1.position.set(cVal, params.rho - 1, cVal)
+          fp2.position.set(-cVal, params.rho - 1, -cVal)
+          fixedPointGroup.visible = true
+        } else {
+          fixedPointGroup.visible = false
+        }
+      }
+      updateFixedPoints()
+
+      let activeDissectId: 'attractor' | null = null
+      const raycaster = new THREE.Raycaster()
+      const pointer = new THREE.Vector2()
+
+      function triggerDissectionAtPoint(clientX: number, clientY: number) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(pointer, camera)
+        const intersects = raycaster.intersectObjects(interactableMeshes, false)
+
+        if (intersects.length > 0) {
+          if (activeDissectId) {
+            activeDissectId = null
+            callbacks.onInspectPart?.(null)
+          } else {
+            activeDissectId = 'attractor'
+            callbacks.onInspectPart?.(DISSECT_CARDS.attractor)
+          }
+        } else {
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+        }
+      }
+
+      const handleDblClick = (e: MouseEvent) => {
+        triggerDissectionAtPoint(e.clientX, e.clientY)
+      }
+
+      let lastTouchTime = 0
+      const handleTouchEnd = (e: TouchEvent) => {
+        const now = performance.now()
+        if (now - lastTouchTime < 340 && e.changedTouches.length > 0) {
+          const t = e.changedTouches[0]
+          triggerDissectionAtPoint(t.clientX, t.clientY)
+        }
+        lastTouchTime = now
+      }
+
+      renderer.domElement.addEventListener('dblclick', handleDblClick)
+      renderer.domElement.addEventListener('touchend', handleTouchEnd)
 
       function animate() {
         animId = requestAnimationFrame(animate)
 
         if (isPlaying) {
-          headIdx = (headIdx + 3) % maxPts
-          headMesh.position.set(positions[headIdx * 3], positions[headIdx * 3 + 1], positions[headIdx * 3 + 2])
-          lorenzLine.rotation.y += 0.006
+          for (let step = 0; step < 3; step++) {
+            const dx1 = params.sigma * (y1 - x1)
+            const dy1 = x1 * (params.rho - z1) - y1
+            const dz1 = x1 * y1 - params.beta * z1
+            x1 += dx1 * dt
+            y1 += dy1 * dt
+            z1 += dz1 * dt
+
+            const dx2 = params.sigma * (y2 - x2)
+            const dy2 = x2 * (params.rho - z2) - y2
+            const dz2 = x2 * y2 - params.beta * z2
+            x2 += dx2 * dt
+            y2 += dy2 * dt
+            z2 += dz2 * dt
+          }
+
+          orb1.position.set(x1, z1, y1)
+          orb2.position.set(x2, z2, y2)
+
+          if (!activeDissectId) {
+            scene.rotation.y += 0.003
+          }
         }
 
         controls.update()
@@ -2280,31 +3514,26 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       return {
         updateParams: (newParams) => {
           params = { ...newParams }
-          let lx = 0.1
-          let ly = 0
-          let lz = 0
-          for (let i = 0; i < maxPts; i++) {
-            const dx = params.sigma * (ly - lx)
-            const dy = lx * (params.rho - lz) - ly
-            const dz = lx * ly - params.beta * lz
-            lx += dx * dt
-            ly += dy * dt
-            lz += dz * dt
-            positions[i * 3] = lx
-            positions[i * 3 + 1] = lz
-            positions[i * 3 + 2] = ly
-          }
-          ;(lorenzGeo.attributes.position as THREE.BufferAttribute).needsUpdate = true
+          updateFixedPoints()
         },
         setPlaying: (playing) => {
           isPlaying = playing
         },
         reset: () => {
-          headIdx = 0
+          x1 = 0.1; y1 = 0.0; z1 = 0.0
+          x2 = 0.1001; y2 = 0.0; z2 = 0.0
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+        },
+        closeDissection: () => {
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
         },
         dispose: () => {
           cancelAnimationFrame(animId)
           window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('dblclick', handleDblClick)
+          renderer.domElement.removeEventListener('touchend', handleTouchEnd)
           renderer.dispose()
           if (container.contains(renderer.domElement)) {
             container.removeChild(renderer.domElement)
@@ -2358,7 +3587,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         { label: 'Dispersion Spectrum', value: 'Red (Least Bent) → Violet (Most Bent)' },
       ]
     },
-    initScene: (container, initialParams) => {
+    initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
       let animId: number
@@ -2382,10 +3611,22 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       controls.enableDamping = true
       controls.dampingFactor = 0.05
 
+      const interactableMeshes: THREE.Object3D[] = []
+
+      // Pedagogical Dissection Metadata Dictionary
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        prism: {
+          title: 'Triangular Glass Prism & Wavefront Interior',
+          partName: 'Optical Dispersive Medium · Cauchy Refraction Interior',
+          role: 'Splits polychromatic white light into spectral constituent wavelengths via frequency-dependent phase velocities',
+          internalStructures: ['Snell-Descartes Normal Vectors (n1 sin θ1 = n2 sin θ2)', 'Cauchy Dispersion Curve: n(λ) = A + B/λ²', 'Angle of Minimum Deviation (Dm)', 'Critical Angle for Total Internal Reflection (θc = arcsin(1/n))'],
+          description: 'Double-tapping the crystal prism exposes the internal chromatic ray geometry. Because blue/violet light has a shorter wavelength, it encounters higher refractive index n(λ) and bends more sharply than longer red wavelengths.',
+        },
+      }
+
       const opticsGroup = new THREE.Group()
       scene.add(opticsGroup)
 
-      // 1. Triangular Glass Prism Mesh
       const prismMat = new THREE.MeshPhysicalMaterial({
         color: 0xffffff,
         transparent: true,
@@ -2400,88 +3641,131 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
       let prismMesh: THREE.Mesh | null = null
 
-      function createPrismGeometry(apexDeg: number): THREE.BufferGeometry {
-        const apexRad = (apexDeg * Math.PI) / 180
-        const sideLen = 9.0
-        const halfBase = sideLen * Math.sin(apexRad / 2)
-        const height = sideLen * Math.cos(apexRad / 2)
+      function createPrismGeometry(apexAngleDeg: number) {
+        const halfAngle = (apexAngleDeg / 2) * (Math.PI / 180)
+        const prismHeight = 6.0
+        const sideLen = 6.0
 
         const shape = new THREE.Shape()
-        shape.moveTo(0, height * 0.5)
-        shape.lineTo(halfBase, -height * 0.5)
-        shape.lineTo(-halfBase, -height * 0.5)
+        shape.moveTo(0, sideLen * Math.cos(halfAngle))
+        shape.lineTo(-sideLen * Math.sin(halfAngle), 0)
+        shape.lineTo(sideLen * Math.sin(halfAngle), 0)
         shape.closePath()
 
         const extrudeSettings = {
           steps: 1,
-          depth: 5.5,
+          depth: prismHeight,
           bevelEnabled: true,
-          bevelThickness: 0.1,
-          bevelSize: 0.1,
+          bevelThickness: 0.15,
+          bevelSize: 0.15,
           bevelSegments: 4,
         }
+
         const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings)
         geo.center()
         return geo
       }
 
       prismMesh = new THREE.Mesh(createPrismGeometry(params.prismAngle), prismMat)
+      prismMesh.position.set(0, 3.2, 0)
+      prismMesh.rotation.x = Math.PI / 2
+      prismMesh.userData = { partId: 'prism' }
       opticsGroup.add(prismMesh)
+      interactableMeshes.push(prismMesh)
 
-      // 2. Collimated Laser Housing (Incident Source)
-      const emitterGroup = new THREE.Group()
-      opticsGroup.add(emitterGroup)
+      // Light Collimator Source Box
+      const boxGeo = new THREE.BoxGeometry(2.2, 2.2, 3.8)
+      const boxMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4, metalness: 0.8 })
+      const collimator = new THREE.Mesh(boxGeo, boxMat)
+      collimator.position.set(-14, 3.2, 0)
+      opticsGroup.add(collimator)
 
-      const emitterBody = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.5, 0.6, 3.2, 16),
-        new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.2 })
+      const lensRing = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.8, 0.8, 0.4, 24),
+        new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.8 })
       )
-      emitterBody.rotation.z = Math.PI / 2
-      emitterGroup.add(emitterBody)
+      lensRing.rotation.z = Math.PI / 2
+      lensRing.position.set(-12.8, 3.2, 0)
+      opticsGroup.add(lensRing)
 
-      const emitterLens = new THREE.Mesh(
-        new THREE.SphereGeometry(0.48, 16, 16),
-        new THREE.MeshBasicMaterial({ color: 0xffffff })
-      )
-      emitterLens.position.x = 1.6
-      emitterGroup.add(emitterLens)
-
-      // 3. Frosted Glass Projection Screen (To capture the rainbow spectrum)
-      const screenGeo = new THREE.PlaneGeometry(8, 6)
-      const screenMat = new THREE.MeshStandardMaterial({
-        color: 0x1e293b,
-        roughness: 0.8,
-        metalness: 0.1,
-        side: THREE.DoubleSide,
-      })
+      // Spectral Observation Screen
+      const screenGeo = new THREE.PlaneGeometry(1.2, 10)
+      const screenMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9, side: THREE.DoubleSide })
       const screenMesh = new THREE.Mesh(screenGeo, screenMat)
-      screenMesh.position.set(12, 0, -3)
-      screenMesh.rotation.y = -Math.PI / 3.5
+      screenMesh.position.set(13, 3.2, -2)
+      screenMesh.rotation.y = -Math.PI / 3
       opticsGroup.add(screenMesh)
 
-      // Rainbow Spectral Wavelengths & Colors: VIBGYOR
+      // VIBGYOR Spectrum colors
       const spectrumColors = [
-        { name: 'Red', hex: 0xef4444, dn: -0.012 },
-        { name: 'Orange', hex: 0xf97316, dn: -0.007 },
-        { name: 'Yellow', hex: 0xfacc15, dn: -0.002 },
-        { name: 'Green', hex: 0x22c55e, dn: 0.004 },
-        { name: 'Blue', hex: 0x06b6d4, dn: 0.011 },
-        { name: 'Indigo', hex: 0x3b82f6, dn: 0.018 },
-        { name: 'Violet', hex: 0x8b5cf6, dn: 0.026 },
+        { name: 'Red', hex: 0xef4444, lambda: 700, deltaN: -0.018 },
+        { name: 'Orange', hex: 0xf97316, lambda: 620, deltaN: -0.01 },
+        { name: 'Yellow', hex: 0xeab308, lambda: 580, deltaN: -0.004 },
+        { name: 'Green', hex: 0x22c55e, lambda: 530, deltaN: 0.002 },
+        { name: 'Blue', hex: 0x3b82f6, lambda: 470, deltaN: 0.01 },
+        { name: 'Indigo', hex: 0x6366f1, lambda: 430, deltaN: 0.018 },
+        { name: 'Violet', hex: 0xa855f7, lambda: 400, deltaN: 0.026 },
       ]
 
-      // Ray lines containers
-      let incidentLine: THREE.Line | null = null
+      let incidentBeam: THREE.Line | null = null
       let internalLines: THREE.Line[] = []
       let exitLines: THREE.Line[] = []
       let spectralDots: THREE.Mesh[] = []
 
+      // Raycaster for Double-Tap & Double-Click Dissection
+      let activeDissectId: 'prism' | null = null
+      const raycaster = new THREE.Raycaster()
+      const pointer = new THREE.Vector2()
+
+      function triggerDissectionAtPoint(clientX: number, clientY: number) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(pointer, camera)
+        const intersects = raycaster.intersectObjects(interactableMeshes, false)
+
+        if (intersects.length > 0) {
+          const hit = intersects[0].object as THREE.Mesh
+          const id = hit.userData?.partId as 'prism' | undefined
+          if (id) {
+            if (activeDissectId === id) {
+              activeDissectId = null
+              callbacks.onInspectPart?.(null)
+            } else {
+              activeDissectId = id
+              callbacks.onInspectPart?.(DISSECT_CARDS[id])
+            }
+          }
+        } else {
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+        }
+      }
+
+      const handleDblClick = (e: MouseEvent) => {
+        triggerDissectionAtPoint(e.clientX, e.clientY)
+      }
+
+      let lastTouchTime = 0
+      const handleTouchEnd = (e: TouchEvent) => {
+        const now = performance.now()
+        if (now - lastTouchTime < 340 && e.changedTouches.length > 0) {
+          const t = e.changedTouches[0]
+          triggerDissectionAtPoint(t.clientX, t.clientY)
+        }
+        lastTouchTime = now
+      }
+
+      renderer.domElement.addEventListener('dblclick', handleDblClick)
+      renderer.domElement.addEventListener('touchend', handleTouchEnd)
+
       function updateOpticsPaths() {
-        // Clear previous lines
-        if (incidentLine) opticsGroup.remove(incidentLine)
+        if (incidentBeam) opticsGroup.remove(incidentBeam)
         internalLines.forEach((l) => opticsGroup.remove(l))
         exitLines.forEach((l) => opticsGroup.remove(l))
         spectralDots.forEach((d) => opticsGroup.remove(d))
+
         internalLines = []
         exitLines = []
         spectralDots = []
@@ -2491,60 +3775,42 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         const halfA = aRad / 2
         const nBase = params.glassIndex
 
-        // Face 1 entry point and normal
-        const entryPt = new THREE.Vector3(-2.8, -0.2, 0)
-        const face1Normal = new THREE.Vector3(-Math.cos(halfA), Math.sin(halfA), 0).normalize()
+        const entryPt = new THREE.Vector3(-2.6 * Math.sin(halfA), 3.2, 0)
+        const sourcePt = new THREE.Vector3(-12.8, 3.2, 0)
 
-        // Incident ray vector (striking face 1 at angle iRad relative to normal)
-        const inDir = new THREE.Vector3(
-          face1Normal.x * Math.cos(iRad) + face1Normal.y * Math.sin(iRad),
-          face1Normal.y * Math.cos(iRad) - face1Normal.x * Math.sin(iRad),
-          0
-        ).normalize()
-
-        const laserSource = entryPt.clone().sub(inDir.clone().multiplyScalar(10.0))
-        emitterGroup.position.copy(laserSource)
-        emitterGroup.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), inDir)
-
-        // Draw incident white beam
-        const incGeo = new THREE.BufferGeometry().setFromPoints([laserSource, entryPt])
+        const incGeo = new THREE.BufferGeometry().setFromPoints([sourcePt, entryPt])
         const incMat = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 3 })
-        incidentLine = new THREE.Line(incGeo, incMat)
-        opticsGroup.add(incidentLine)
+        incidentBeam = new THREE.Line(incGeo, incMat)
+        opticsGroup.add(incidentBeam)
 
-        // Face 2 normal (pointing right-up)
+        const face1Normal = new THREE.Vector3(-Math.cos(halfA), Math.sin(halfA), 0).normalize()
         const face2Normal = new THREE.Vector3(Math.cos(halfA), Math.sin(halfA), 0).normalize()
 
         spectrumColors.forEach((colorData, idx) => {
-          const nColor = nBase + colorData.dn
-          // Snell's Law face 1: sin(i) = n * sin(r1)
+          const nColor = nBase + colorData.deltaN
+
           const sinR1 = Math.sin(iRad) / nColor
           const r1 = Math.asin(Math.min(0.999, sinR1))
 
-          // Direction inside prism
           const intDir = new THREE.Vector3(
             face1Normal.x * Math.cos(r1) + face1Normal.y * Math.sin(r1),
             face1Normal.y * Math.cos(r1) - face1Normal.x * Math.sin(r1),
             0
           ).normalize()
 
-          // Trace to exit face 2
           const exitDist = 5.2 - idx * 0.15
           const exitPt = entryPt.clone().add(intDir.clone().multiplyScalar(exitDist))
 
-          // Internal ray
           const intGeo = new THREE.BufferGeometry().setFromPoints([entryPt, exitPt])
           const intMat = new THREE.LineBasicMaterial({ color: colorData.hex, transparent: true, opacity: 0.85 })
           const intLine = new THREE.Line(intGeo, intMat)
           opticsGroup.add(intLine)
           internalLines.push(intLine)
 
-          // Refraction at face 2: r2 = A - r1, sin(e) = n * sin(r2)
           const r2 = aRad - r1
           const sinE = nColor * Math.sin(r2)
           const e = sinE <= 1.0 ? Math.asin(sinE) : Math.PI / 2
 
-          // Exit ray direction
           const exitDir = new THREE.Vector3(
             face2Normal.x * Math.cos(e) - face2Normal.y * Math.sin(e),
             face2Normal.y * Math.cos(e) + face2Normal.x * Math.sin(e),
@@ -2559,7 +3825,6 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           opticsGroup.add(exitLine)
           exitLines.push(exitLine)
 
-          // Glowing spectral spot on projection screen
           const dotMesh = new THREE.Mesh(
             new THREE.SphereGeometry(0.22, 16, 16),
             new THREE.MeshBasicMaterial({ color: colorData.hex })
@@ -2569,6 +3834,8 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           spectralDots.push(dotMesh)
         })
       }
+
+      updateOpticsPaths()
 
       let pulseAngle = 0
       function animate() {
@@ -2609,11 +3876,18 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           isPlaying = playing
         },
         reset: () => {
-          // Defaults handled by canvas
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+        },
+        closeDissection: () => {
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
         },
         dispose: () => {
           cancelAnimationFrame(animId)
           window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('dblclick', handleDblClick)
+          renderer.domElement.removeEventListener('touchend', handleTouchEnd)
           renderer.dispose()
           if (container.contains(renderer.domElement)) {
             container.removeChild(renderer.domElement)
@@ -2660,7 +3934,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         { label: 'Fleming’s Force Couple', value: 'Left: Upward (↑) · Right: Downward (↓)' },
       ]
     },
-    initScene: (container, initialParams) => {
+    initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
       let animId: number
@@ -2684,10 +3958,36 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       controls.enableDamping = true
       controls.dampingFactor = 0.05
 
+      const interactableMeshes: THREE.Object3D[] = []
+
+      // Pedagogical Dissection Metadata Dictionary
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        commutator: {
+          title: 'Split-Ring Commutator & Carbon Brushes',
+          partName: 'Current Inversion Assembly Dissected',
+          role: 'Reverses DC current through the armature coil every half-rotation (180°) to maintain continuous unidirectional torque',
+          internalStructures: ['Dual Semi-Cylindrical Copper Segments', 'Mica Insulation Gap', 'Spring-Loaded Carbon Brushes', 'Brush Spark Arc Discharges'],
+          description: 'Double-tapping reveals the commutator cross-section. Without current reversal every half-turn, torque would reverse and the rotor would merely oscillate back and forth around the neutral plane instead of spinning continuously.',
+        },
+        armature: {
+          title: 'Armature Coil & Rotor Core',
+          partName: 'Lorentz Force Generator Core',
+          role: 'Electromagnetic coil converting electrical power into mechanical torque via Fleming\'s Left-Hand Rule',
+          internalStructures: ['Multi-turn Enamelled Copper Windings (N turns)', 'Laminated Soft-Iron Core (Eddy Current Supression)', 'Steel Drive Shaft & Bearings', 'Lorentz Torque Couple: τ = NIAB sin(θ)'],
+          description: 'Inspecting the rotating armature reveals the laminated silicon-steel core designed to minimize parasitic eddy current losses, and copper windings experiencing equal and opposite magnetic forces.',
+        },
+        magnets: {
+          title: 'Stator Field Magnets (N-S Poles)',
+          partName: 'Uniform Transverse Magnetic Field Medium',
+          role: 'Generates horizontal magnetic flux lines (B-field) crossing the air gap',
+          internalStructures: ['North (Red) & South (Blue) Sintered NdFeB Poles', 'Cyan Magnetic Flux Streamlines', 'Soft Iron Return Yoke'],
+          description: 'The stator produces a uniform magnetic field across the air gap. The magnetic flux vectors cross perpendicular to the armature wire, maximizing the vector cross product F = I(L × B).',
+        },
+      }
+
       const motorGroup = new THREE.Group()
       scene.add(motorGroup)
 
-      // 1. Permanent Stator Magnets (North Red on Left, South Blue on Right)
       const magnetGeo = new THREE.BoxGeometry(3.5, 5.0, 9.0)
       const northMat = new THREE.MeshStandardMaterial({
         color: 0xef4444,
@@ -2702,108 +4002,124 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
       const northPole = new THREE.Mesh(magnetGeo, northMat)
       northPole.position.set(-8.5, 0, 0)
+      northPole.userData = { partId: 'magnets' }
       motorGroup.add(northPole)
+      interactableMeshes.push(northPole)
 
       const southPole = new THREE.Mesh(magnetGeo, southMat)
       southPole.position.set(8.5, 0, 0)
+      southPole.userData = { partId: 'magnets' }
       motorGroup.add(southPole)
+      interactableMeshes.push(southPole)
 
-      // 2. Magnetic Flux Lines (Cyan arrows pointing N -> S)
-      const fieldLinesGroup = new THREE.Group()
-      motorGroup.add(fieldLinesGroup)
-      for (let y = -1.8; y <= 1.8; y += 1.2) {
-        for (let z = -3.0; z <= 3.0; z += 1.5) {
-          const arrow = new THREE.ArrowHelper(
-            new THREE.Vector3(1, 0, 0),
-            new THREE.Vector3(-6.5, y, z),
-            13.0,
-            0x06b6d4,
-            0.8,
-            0.4
-          )
-          fieldLinesGroup.add(arrow)
-        }
+      // Magnetic Flux Lines
+      const fluxLinesCount = 8
+      for (let i = 0; i < fluxLinesCount; i++) {
+        const fy = -1.8 + (i % 3) * 1.8
+        const fz = -3.2 + Math.floor(i / 3) * 3.2
+        const arrow = new THREE.ArrowHelper(
+          new THREE.Vector3(1, 0, 0),
+          new THREE.Vector3(-6.7, fy, fz),
+          13.4,
+          0x06b6d4,
+          0.8,
+          0.4
+        )
+        motorGroup.add(arrow)
       }
 
-      // 3. Central Steel Axle
-      const axleGeo = new THREE.CylinderGeometry(0.35, 0.35, 18.0, 20)
-      const axleMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.15 })
-      const axle = new THREE.Mesh(axleGeo, axleMat)
-      axle.rotation.x = Math.PI / 2
-
-      // 4. Rotating Armature Rotor Group
+      // Rotor Group
       const rotorGroup = new THREE.Group()
-      rotorGroup.add(axle)
       motorGroup.add(rotorGroup)
 
-      // Copper Rectangular Coil
+      const shaftGeo = new THREE.CylinderGeometry(0.35, 0.35, 14, 16)
+      const shaftMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.2 })
+      const shaft = new THREE.Mesh(shaftGeo, shaftMat)
+      shaft.rotation.x = Math.PI / 2
+      rotorGroup.add(shaft)
+
+      const coilWidth = 6.8
+      const coilLength = 8.5
       const copperMat = new THREE.MeshStandardMaterial({
-        color: 0xd97706,
+        color: 0xf59e0b,
         metalness: 0.85,
-        roughness: 0.2,
+        roughness: 0.25,
       })
 
-      const coilWidth = 7.5
-      const coilLength = 10.0
-      const wireRadius = 0.22
+      const coilLeft = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, coilLength, 12), copperMat)
+      coilLeft.position.x = -coilWidth / 2
+      coilLeft.rotation.x = Math.PI / 2
+      coilLeft.userData = { partId: 'armature' }
+      rotorGroup.add(coilLeft)
+      interactableMeshes.push(coilLeft)
 
-      // Left wire arm (along Z)
-      const leftWireGeo = new THREE.CylinderGeometry(wireRadius, wireRadius, coilLength, 12)
-      const leftWire = new THREE.Mesh(leftWireGeo, copperMat)
-      leftWire.rotation.x = Math.PI / 2
-      leftWire.position.x = -coilWidth / 2
-      rotorGroup.add(leftWire)
+      const coilRight = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, coilLength, 12), copperMat)
+      coilRight.position.x = coilWidth / 2
+      coilRight.rotation.x = Math.PI / 2
+      coilRight.userData = { partId: 'armature' }
+      rotorGroup.add(coilRight)
+      interactableMeshes.push(coilRight)
 
-      // Right wire arm (along Z)
-      const rightWire = new THREE.Mesh(leftWireGeo, copperMat)
-      rightWire.rotation.x = Math.PI / 2
-      rightWire.position.x = coilWidth / 2
-      rotorGroup.add(rightWire)
+      const coilFront = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, coilWidth, 12), copperMat)
+      coilFront.position.z = coilLength / 2
+      coilFront.rotation.z = Math.PI / 2
+      coilFront.userData = { partId: 'armature' }
+      rotorGroup.add(coilFront)
+      interactableMeshes.push(coilFront)
 
-      // Front cross wire
-      const frontWireGeo = new THREE.CylinderGeometry(wireRadius, wireRadius, coilWidth, 12)
-      const frontWire = new THREE.Mesh(frontWireGeo, copperMat)
-      frontWire.rotation.z = Math.PI / 2
-      frontWire.position.z = coilLength / 2
-      rotorGroup.add(frontWire)
+      const coilBack = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, coilWidth, 12), copperMat)
+      coilBack.position.z = -coilLength / 2
+      coilBack.rotation.z = Math.PI / 2
+      coilBack.userData = { partId: 'armature' }
+      rotorGroup.add(coilBack)
+      interactableMeshes.push(coilBack)
 
-      // Back cross wire
-      const backWire = new THREE.Mesh(frontWireGeo, copperMat)
-      backWire.rotation.z = Math.PI / 2
-      backWire.position.z = -coilLength / 2
-      rotorGroup.add(backWire)
+      const coreGeo = new THREE.CylinderGeometry(coilWidth * 0.44, coilWidth * 0.44, coilLength * 0.85, 20)
+      const coreMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.7, roughness: 0.4 })
+      const ironCore = new THREE.Mesh(coreGeo, coreMat)
+      ironCore.rotation.x = Math.PI / 2
+      ironCore.userData = { partId: 'armature' }
+      rotorGroup.add(ironCore)
+      interactableMeshes.push(ironCore)
 
-      // 5. Split-Ring Commutator (Two split brass half-cylinders)
+      // Split-Ring Commutator Segments
       const commMat = new THREE.MeshStandardMaterial({
-        color: 0xf59e0b,
+        color: 0xd97706,
         metalness: 0.9,
-        roughness: 0.25,
+        roughness: 0.2,
       })
       const comm1Geo = new THREE.CylinderGeometry(0.85, 0.85, 1.8, 16, 1, false, 0.15, Math.PI - 0.3)
       const commRing1 = new THREE.Mesh(comm1Geo, commMat)
       commRing1.rotation.x = Math.PI / 2
       commRing1.position.z = coilLength / 2 + 1.8
+      commRing1.userData = { partId: 'commutator' }
       rotorGroup.add(commRing1)
+      interactableMeshes.push(commRing1)
 
       const comm2Geo = new THREE.CylinderGeometry(0.85, 0.85, 1.8, 16, 1, false, Math.PI + 0.15, Math.PI - 0.3)
       const commRing2 = new THREE.Mesh(comm2Geo, commMat)
       commRing2.rotation.x = Math.PI / 2
       commRing2.position.z = coilLength / 2 + 1.8
+      commRing2.userData = { partId: 'commutator' }
       rotorGroup.add(commRing2)
+      interactableMeshes.push(commRing2)
 
-      // 6. Stationary Carbon Brushes & Terminals
+      // Carbon Brushes
       const brushMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 })
       const brushGeo = new THREE.BoxGeometry(0.5, 0.7, 1.4)
 
       const brushPositive = new THREE.Mesh(brushGeo, brushMat)
       brushPositive.position.set(-1.15, 0, coilLength / 2 + 1.8)
+      brushPositive.userData = { partId: 'commutator' }
       motorGroup.add(brushPositive)
+      interactableMeshes.push(brushPositive)
 
       const brushNegative = new THREE.Mesh(brushGeo, brushMat)
       brushNegative.position.set(1.15, 0, coilLength / 2 + 1.8)
+      brushNegative.userData = { partId: 'commutator' }
       motorGroup.add(brushNegative)
+      interactableMeshes.push(brushNegative)
 
-      // Red (+) and Blue (-) Supply Terminals
       const redLead = new THREE.Mesh(
         new THREE.CylinderGeometry(0.15, 0.15, 3.5, 12),
         new THREE.MeshStandardMaterial({ color: 0xef4444 })
@@ -2820,7 +4136,6 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       blueLead.rotation.z = -Math.PI / 4
       motorGroup.add(blueLead)
 
-      // 7. Dynamic Fleming's Left Hand Force Arrows (Attached to Rotor)
       const forceArrowLeft = new THREE.ArrowHelper(
         new THREE.Vector3(0, 1, 0),
         new THREE.Vector3(-coilWidth / 2, 0, 0),
@@ -2841,28 +4156,54 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       )
       rotorGroup.add(forceArrowRight)
 
-      // Current Arrows (Green)
-      const currentArrowLeft = new THREE.ArrowHelper(
-        new THREE.Vector3(0, 0, 1),
-        new THREE.Vector3(-coilWidth / 2, 0, -coilLength / 3),
-        2.5,
-        0x10b981,
-        0.7,
-        0.35
-      )
-      rotorGroup.add(currentArrowLeft)
-
-      const currentArrowRight = new THREE.ArrowHelper(
-        new THREE.Vector3(0, 0, -1),
-        new THREE.Vector3(coilWidth / 2, 0, coilLength / 3),
-        2.5,
-        0x10b981,
-        0.7,
-        0.35
-      )
-      rotorGroup.add(currentArrowRight)
-
       let angle = 0
+      let activeDissectId: 'commutator' | 'armature' | 'magnets' | null = null
+
+      const raycaster = new THREE.Raycaster()
+      const pointer = new THREE.Vector2()
+
+      function triggerDissectionAtPoint(clientX: number, clientY: number) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(pointer, camera)
+        const intersects = raycaster.intersectObjects(interactableMeshes, false)
+
+        if (intersects.length > 0) {
+          const hit = intersects[0].object as THREE.Mesh
+          const id = hit.userData?.partId as 'commutator' | 'armature' | 'magnets' | undefined
+          if (id) {
+            if (activeDissectId === id) {
+              activeDissectId = null
+              callbacks.onInspectPart?.(null)
+            } else {
+              activeDissectId = id
+              callbacks.onInspectPart?.(DISSECT_CARDS[id])
+            }
+          }
+        } else {
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+        }
+      }
+
+      const handleDblClick = (e: MouseEvent) => {
+        triggerDissectionAtPoint(e.clientX, e.clientY)
+      }
+
+      let lastTouchTime = 0
+      const handleTouchEnd = (e: TouchEvent) => {
+        const now = performance.now()
+        if (now - lastTouchTime < 340 && e.changedTouches.length > 0) {
+          const t = e.changedTouches[0]
+          triggerDissectionAtPoint(t.clientX, t.clientY)
+        }
+        lastTouchTime = now
+      }
+
+      renderer.domElement.addEventListener('dblclick', handleDblClick)
+      renderer.domElement.addEventListener('touchend', handleTouchEnd)
 
       function animate() {
         animId = requestAnimationFrame(animate)
@@ -2872,7 +4213,6 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           angle += speed
           rotorGroup.rotation.z = angle
 
-          // Lorentz force magnitude depends on sin(theta + pi/2)
           const torqueMagnitude = Math.abs(Math.cos(angle))
           const forceLen = Math.max(0.5, 3.5 * torqueMagnitude * (params.voltage / 12))
 
@@ -2905,10 +4245,18 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         reset: () => {
           angle = 0
           rotorGroup.rotation.z = 0
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
+        },
+        closeDissection: () => {
+          activeDissectId = null
+          callbacks.onInspectPart?.(null)
         },
         dispose: () => {
           cancelAnimationFrame(animId)
           window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('dblclick', handleDblClick)
+          renderer.domElement.removeEventListener('touchend', handleTouchEnd)
           renderer.dispose()
           if (container.contains(renderer.domElement)) {
             container.removeChild(renderer.domElement)
