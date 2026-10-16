@@ -186,6 +186,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
     initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
+      void isPlaying
       let animId: number
 
       const width = container.clientWidth || 800
@@ -508,6 +509,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
     initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
+      void isPlaying
       let animId: number
 
       const width = container.clientWidth || 800
@@ -842,6 +844,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
     initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
+      void isPlaying
       let animId: number
 
       const width = container.clientWidth || 800
@@ -1418,6 +1421,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
     initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
+      void isPlaying
       let animId: number
 
       const width = container.clientWidth || 800
@@ -1779,31 +1783,37 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
   dna_helix_3d: {
     type: 'dna_helix_3d',
     title: '3D DNA Double Helix & Base Pairing',
-    subject: 'Biology · Genetics',
-    concept: 'Antiparallel Strands, Base Complementarity (A-T, G-C)',
-    description: 'Rotate and zoom into a 3D DNA double helix. Examine complementary base pairing (Adenine-Thymine, Guanine-Cytosine), hydrogen bonds, and the sugar-phosphate backbone with helical pitch.',
+    subject: 'Biology · Molecular Genetics',
+    concept: 'B-DNA Double Helix, Complementary Base Pairs (A-T, G-C) & Replication Fork',
+    description: 'Explore the molecular architecture of the B-DNA double helix. Inspect purine-pyrimidine base pairing (Adenine=Thymine with 2 H-bonds, Guanine≡Cytosine with 3 H-bonds), sugar-phosphate backbones, major & minor grooves, and animate the hexameric helicase replication fork unzipping the genome.',
     emoji: '🧬',
     difficulty: 'Intermediate',
     presets: [
-      { label: '🧬 Normal Twisting Double Helix', params: { twistSpeed: 1.0, baseRadius: 3.2, unzipping: 0 } },
-      { label: '⚡ Rapid Transcription View', params: { twistSpeed: 2.2, baseRadius: 3.2, unzipping: 0 } },
-      { label: '🔓 Helicase Unzipping Mode', params: { twistSpeed: 0.5, baseRadius: 4.8, unzipping: 1 } },
+      { label: '🧬 Native B-DNA Double Helix', params: { unzip: 0, twistSpeed: 0, baseRadius: 3.2 } },
+      { label: '🔓 Helicase Replication Fork (50% Unzip)', params: { unzip: 50, twistSpeed: 0, baseRadius: 3.2 } },
+      { label: '⚡ Full Strand Separation (90% Unzip)', params: { unzip: 90, twistSpeed: 0, baseRadius: 3.2 } },
+      { label: '💎 GC-Rich Clamp & Triple H-Bonds', params: { unzip: 0, twistSpeed: 0, baseRadius: 3.2 } },
+      { label: '🔬 Major & Minor Grooves', params: { unzip: 0, twistSpeed: 0, baseRadius: 3.6 } },
     ],
     params: [
-      { key: 'twistSpeed', label: 'Rotation Speed', min: 0.2, max: 3.0, step: 0.1, defaultValue: 1.0, unit: 'x' },
-      { key: 'baseRadius', label: 'Helix Diameter', min: 2.0, max: 5.5, step: 0.2, defaultValue: 3.2, unit: 'nm' },
-      { key: 'unzipping', label: 'Replication Fork Unzip (0 or 1)', min: 0, max: 1, step: 1, defaultValue: 0, unit: '' },
+      { key: 'unzip', label: 'Helicase Unzip', min: 0, max: 100, step: 5, defaultValue: 0, unit: '%' },
+      { key: 'baseRadius', label: 'Helix Diameter', min: 2.2, max: 4.8, step: 0.2, defaultValue: 3.2, unit: 'nm' },
+      { key: 'twistSpeed', label: 'Twist Rotation', min: 0, max: 2, step: 0.1, defaultValue: 0, unit: 'x' },
     ],
     calculateReadouts: (p) => {
+      const unzipPct = p.unzip
+      const forkState = unzipPct === 0 ? 'Intact Double Helix' : unzipPct < 80 ? `Replication Fork (${unzipPct}% Unzipped)` : 'Denatured Single Strands'
       return [
-        { label: 'Helical Pitch (1 Turn)', value: '3.4', unit: 'nm', formula: '10.5 base pairs / turn' },
-        { label: 'Helix Diameter', value: (p.baseRadius * 2).toFixed(1), unit: 'nm' },
-        { label: 'Hydrogen Bonds', value: 'A=T (2 bonds) · G≡C (3 bonds)' },
+        { label: 'Helical Conformation', value: 'Right-Handed B-DNA', formula: '10.5 base pairs / 3.4 nm helical pitch' },
+        { label: 'Helix Diameter', value: (p.baseRadius * 2).toFixed(1), unit: 'nm', formula: 'Major: 2.2 nm · Minor: 1.2 nm' },
+        { label: 'Hydrogen Bonding', value: 'A=T (2 H-Bonds) · G≡C (3 H-Bonds)', formula: 'Watson-Crick Complementarity' },
+        { label: 'Replication State', value: forkState },
       ]
     },
     initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
+      void isPlaying
       let animId: number
 
       const width = container.clientWidth || 800
@@ -1813,7 +1823,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       createBioStudioEnvironment(scene)
 
       const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
-      camera.position.set(0, 10, 28)
+      camera.position.set(0, 8, 30)
 
       const renderer = new THREE.WebGLRenderer({ antialias: true })
       renderer.setSize(width, height)
@@ -1824,93 +1834,309 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const controls = new OrbitControls(camera, renderer.domElement)
       controls.enableDamping = true
       controls.dampingFactor = 0.05
+      controls.target.set(0, 0, 0)
+
+      const dnaRig = new THREE.Group()
+      scene.add(dnaRig)
 
       const interactableMeshes: THREE.Object3D[] = []
 
       // Pedagogical Dissection Metadata Dictionary
       const DISSECT_CARDS: Record<string, DissectInfo> = {
-        at: {
+        at_pair: {
           title: 'Adenine–Thymine Base Pair (A=T)',
-          partName: 'A=T Nucleotide Rung · 2 Hydrogen Bonds Dissected',
+          partName: 'A=T Watson-Crick Nucleotide Rung · 2 Hydrogen Bonds',
           role: 'Complementary base pairing stabilizing the double helix via 2 electrostatic hydrogen bonds',
-          internalStructures: ['Adenine (Bicyclic Purine Ring: C5H5N5)', 'Thymine (Pyrimidinedione Ring: C5H6N2O2)', '2 Linear Hydrogen Bonds (N-H...O & N...H-N)', 'Major & Minor Groove Contacts'],
-          description: 'The A=T pair is held together by two hydrogen bonds (2.8 Å bond length). Because it has only 2 bonds compared to G≡C\'s 3, A-T rich regions are easier for RNA polymerase and helicase to unwind during replication origin firing.',
+          bloodType: 'Neutral',
+          internalStructures: [
+            'Adenine (Bicyclic 6+5 Purine Ring: C5H5N5)',
+            'Thymine (Monocyclic 6 Pyrimidine Ring: C5H6N2O2)',
+            '2 Linear Hydrogen Bonds (N-H...O & N...H-N, 2.8 Å length)',
+            'Major & Minor Groove Hydrogen Bond Acceptors/Donors',
+          ],
+          description: 'The A=T base pair is held together by two hydrogen bonds with a combined dissociation energy of ~14 kcal/mol. Because it has only two hydrogen bonds compared to G≡C\'s three, A-T rich sequences are preferentially located at replication origins (OriC, TATA boxes) where DNA must easily unwind.',
+          actionHint: 'Double-tap another base pair or backbone to inspect molecular structure',
         },
-        gc: {
+        gc_pair: {
           title: 'Guanine–Cytosine Base Pair (G≡C)',
-          partName: 'G≡C Nucleotide Rung · 3 Triple Hydrogen Bonds Dissected',
-          role: 'High-stability base pair conferring thermo-resistance and structural rigidity to the genome',
-          internalStructures: ['Guanine (Purine Ring with Exocyclic Amine)', 'Cytosine (Monocyclic Pyrimidine Ring)', '3 Electrostatic Hydrogen Bonds (O...H-N, N-H...N, N-H...O)', 'GC-Clamp Stabilization'],
-          description: 'The G≡C base pair is linked by three distinct hydrogen bonds, requiring significantly higher thermal denaturation temperature (Tm) to separate. It forms stable GC-clamps throughout genomic coding domains.',
+          partName: 'G≡C Watson-Crick Nucleotide Rung · 3 Triple Hydrogen Bonds',
+          role: 'High-stability base pair conferring structural rigidity and thermal resistance to the genome',
+          bloodType: 'Neutral',
+          internalStructures: [
+            'Guanine (Bicyclic Purine with Exocyclic Amine & Carbonyl)',
+            'Cytosine (Monocyclic 6 Pyrimidine Ring)',
+            '3 Electrostatic Hydrogen Bonds (O...H-N, N-H...N, N-H...O, ~21 kcal/mol)',
+            'GC-Clamp Stabilization across Genomic Exons',
+          ],
+          description: 'The G≡C base pair is cemented by three distinct hydrogen bonds. Genomic regions with high GC content have a significantly higher melting temperature (Tm) and resist enzymatic denaturation, functioning as structural anchors throughout chromosomes.',
+          actionHint: 'Double-tap another part to inspect',
         },
         backbone: {
-          title: 'Sugar-Phosphate Antiparallel Backbone',
-          partName: 'Deoxyribose & Phosphodiester Bridge (5\' to 3\')',
-          role: 'Negatively charged structural scaffold providing directional orientation for transcription',
-          internalStructures: ['2-Deoxy-D-ribose 5-Carbon Furanose Ring', 'Phosphodiester Ester Linkages', 'PO4(3-) Polyanionic Surface Charge', 'Antiparallel Polarity (Leading 5\'→3\' / Lagging 3\'→5\')'],
-          description: 'The hydrophilic exterior of DNA consists of alternating deoxyribose sugar rings and phosphate groups. The strong negative charges repel nucleophiles, safeguarding genetic code inside the helical core.',
+          title: "Antiparallel Sugar-Phosphate Backbone (5' to 3')",
+          partName: 'Deoxyribose Furanose Rings & Phosphodiester Bridges',
+          role: 'Polyanionic structural scaffold establishing antiparallel polarity for transcription and replication',
+          bloodType: 'Neutral',
+          internalStructures: [
+            "2-Deoxy-D-ribose 5-Carbon Pentose Rings (C1' to C5')",
+            "Phosphodiester Bonds Linking 3'-OH to 5'-Phosphate",
+            'PO4(3-) Polyanionic Surface Charge Repelling Nucleophiles',
+            "Antiparallel Polarity (Leading 5'→3' vs Lagging 3'→5')",
+          ],
+          description: 'The hydrophilic exterior of DNA consists of repeating units of deoxyribose sugar and phosphate groups. The strong negative charges on the phosphate groups give DNA its uniform negative polyanionic charge, facilitating electrophoretic migration and histone binding.',
+          actionHint: 'Double-tap to close',
+        },
+        helicase: {
+          title: 'Replicative DNA Helicase Enzyme (Hexameric Motor)',
+          partName: 'ATP-Dependent Molecular Motor & Replication Fork',
+          role: 'Unwinds double-stranded DNA by translocating along the lagging strand and breaking hydrogen bonds',
+          bloodType: 'Neutral',
+          internalStructures: [
+            'Hexameric Ring Complex (6 RecA-like ATPase Subunits)',
+            'Central Channel (13 Å diameter accommodating single-strand DNA)',
+            'ATP Hydrolysis Engine Driving Mechanical Unzipping',
+            'Leading & Lagging Strand Separation Wedge',
+          ],
+          description: 'The replicative helicase forms a donut-shaped hexameric ring that encircles single-stranded DNA. Using ATP hydrolysis energy, it powers along the strand like a motorized molecular wedge, breaking up to 500 base-pair hydrogen bonds per second to open the replication fork.',
+          actionHint: 'Double-tap to close',
+        },
+        grooves: {
+          title: 'Major & Minor Helical Grooves',
+          partName: 'Geometric Asymmetry of Glycosidic Bonds',
+          role: 'Presents unique hydrogen-bonding chemical codes recognized by transcription factors and histones',
+          bloodType: 'Neutral',
+          internalStructures: [
+            'Major Groove (2.2 nm width): Wide access exposing base-specific chemical codes',
+            'Minor Groove (1.2 nm width): Narrow groove binding non-specific architectural proteins',
+            'Base Pair Stacking & Van der Waals London Dispersion Forces',
+            'Helical Pitch (3.4 nm per 10.5 base pairs)',
+          ],
+          description: 'Because glycosidic bonds do not attach at diametrically opposite angles (120° vs 240°), the double helix exhibits two distinct grooves. The wide Major Groove allows sequence-specific proteins like zinc-finger and leucine-zipper transcription factors to read the genetic code without unzipping the DNA.',
+          actionHint: 'Double-tap to close',
         },
       }
 
-      const helixGroup = new THREE.Group()
-      scene.add(helixGroup)
-
-      const baseColors = [
-        0x10b981, // Adenine (Green)
-        0xef4444, // Thymine (Red)
-        0x3b82f6, // Guanine (Blue)
-        0xfbbf24, // Cytosine (Yellow/Gold)
-      ]
-
-      const backboneMat1 = new THREE.MeshStandardMaterial({
-        color: 0x0284c7,
-        roughness: 0.2,
-        metalness: 0.7,
+      // Materials
+      const matBackbone1 = new THREE.MeshStandardMaterial({
+        color: 0x0284c7, // Cyan/Blue leading strand
+        roughness: 0.25,
+        metalness: 0.6,
       })
-      const backboneMat2 = new THREE.MeshStandardMaterial({
-        color: 0x9333ea,
-        roughness: 0.2,
-        metalness: 0.7,
+      const matBackbone2 = new THREE.MeshStandardMaterial({
+        color: 0x9333ea, // Purple lagging strand
+        roughness: 0.25,
+        metalness: 0.6,
       })
-      const nodeMat1 = new THREE.MeshStandardMaterial({
+      const matPhosphate1 = new THREE.MeshStandardMaterial({
         color: 0x38bdf8,
         emissive: 0x0284c7,
         emissiveIntensity: 0.5,
         roughness: 0.2,
       })
-      const nodeMat2 = new THREE.MeshStandardMaterial({
+      const matPhosphate2 = new THREE.MeshStandardMaterial({
         color: 0xc084fc,
         emissive: 0x7e22ce,
         emissiveIntensity: 0.5,
         roughness: 0.2,
       })
-      const hBondMat = new THREE.MeshStandardMaterial({
+      const matAdenine = new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.3 }) // Green
+      const matThymine = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 }) // Red
+      const matGuanine = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.3 }) // Blue
+      const matCytosine = new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.3 }) // Gold
+      const matHBond = new THREE.MeshStandardMaterial({
         color: 0xffffff,
-        roughness: 0.1,
         emissive: 0x94a3b8,
-        emissiveIntensity: 0.4,
+        emissiveIntensity: 0.6,
+        roughness: 0.1,
       })
 
-      // Helicase Enzyme Ring Mesh (visible in unzipping mode)
-      const helicaseGeo = new THREE.TorusGeometry(3.6, 0.7, 16, 32)
+      // Hexameric Helicase Enzyme Ring
       const helicaseMat = new THREE.MeshStandardMaterial({
         color: 0xf59e0b,
+        emissive: 0xd97706,
+        emissiveIntensity: 0.5,
         roughness: 0.3,
         metalness: 0.4,
-        emissive: 0xd97706,
-        emissiveIntensity: 0.4,
       })
-      const helicase = new THREE.Mesh(helicaseGeo, helicaseMat)
-      helicase.rotation.x = Math.PI / 2
-      scene.add(helicase)
-      helicase.visible = Boolean(params.unzipping === 1)
+      const helicaseGrp = new THREE.Group()
+      dnaRig.add(helicaseGrp)
 
-      let strandMesh1: THREE.Mesh | null = null
-      let strandMesh2: THREE.Mesh | null = null
-      let pairGroups: THREE.Group[] = []
+      const helicaseRing = new THREE.Mesh(new THREE.TorusGeometry(3.6, 0.75, 16, 32), helicaseMat)
+      helicaseRing.rotation.x = Math.PI / 2
+      helicaseRing.userData = { partKey: 'helicase' }
+      helicaseGrp.add(helicaseRing)
+      interactableMeshes.push(helicaseRing)
+
+      // 6 Subunit Knobs for Hexameric enzyme
+      for (let k = 0; k < 6; k++) {
+        const knobAngle = (k * Math.PI * 2) / 6
+        const knob = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 12), helicaseMat)
+        knob.position.set(Math.cos(knobAngle) * 3.6, 0, Math.sin(knobAngle) * 3.6)
+        knob.userData = { partKey: 'helicase' }
+        helicaseGrp.add(knob)
+        interactableMeshes.push(knob)
+      }
+
+      const numSteps = 44
+      const stepY = 0.68
+      const totalH = numSteps * stepY
+
+      let activeDissectKey: string | null = null
+
+      function buildHelix() {
+        // Clear previous meshes
+        while (dnaRig.children.length > 0) {
+          dnaRig.remove(dnaRig.children[0])
+        }
+        dnaRig.add(helicaseGrp)
+        interactableMeshes.length = 0
+        interactableMeshes.push(helicaseRing)
+
+        const r = params.baseRadius
+        const unzipRatio = params.unzip / 100 // 0 to 1
+        const grooveOffset = (140 * Math.PI) / 180
+
+        const pts1: THREE.Vector3[] = []
+        const pts2: THREE.Vector3[] = []
+
+        // Unzip fork position along Y axis (travels from top to bottom)
+        const unzipSplitStep = numSteps * (1 - unzipRatio)
+
+        for (let i = 0; i < numSteps; i++) {
+          const angle = i * 0.36
+          const y = i * stepY - totalH / 2
+
+          // Check if this step is unzipped
+          const isUnzipped = unzipRatio > 0.05 && i >= unzipSplitStep
+          const forkFactor = isUnzipped ? ((i - unzipSplitStep) / (numSteps - unzipSplitStep + 1)) * 2.4 : 0
+
+          const p1 = new THREE.Vector3(
+            (r + forkFactor * 1.5) * Math.cos(angle - forkFactor * 0.4),
+            y,
+            (r + forkFactor * 1.5) * Math.sin(angle - forkFactor * 0.4)
+          )
+          const p2 = new THREE.Vector3(
+            (r + forkFactor * 1.5) * Math.cos(angle + grooveOffset + forkFactor * 0.4),
+            y,
+            (r + forkFactor * 1.5) * Math.sin(angle + grooveOffset + forkFactor * 0.4)
+          )
+
+          pts1.push(p1)
+          pts2.push(p2)
+
+          // Sugar-Phosphate Node spheres
+          const node1 = new THREE.Mesh(new THREE.SphereGeometry(0.36, 16, 16), matPhosphate1)
+          node1.position.copy(p1)
+          node1.userData = { partKey: 'backbone' }
+          dnaRig.add(node1)
+          interactableMeshes.push(node1)
+
+          const node2 = new THREE.Mesh(new THREE.SphereGeometry(0.36, 16, 16), matPhosphate2)
+          node2.position.copy(p2)
+          node2.userData = { partKey: 'backbone' }
+          dnaRig.add(node2)
+          interactableMeshes.push(node2)
+
+          // Nucleotide Bases
+          const isAT = i % 2 === 0
+          const partKey = isAT ? 'at_pair' : 'gc_pair'
+          const baseMat1 = isAT ? matAdenine : matGuanine
+          const baseMat2 = isAT ? matThymine : matCytosine
+
+          const strandDir = new THREE.Vector3().subVectors(p2, p1)
+          const fullLen = strandDir.length()
+
+          if (!isUnzipped) {
+            // Intact complementary base pair
+            const halfLen = fullLen * 0.42
+
+            // Base 1 (Adenine or Guanine - purine double ring)
+            const b1Geo = new THREE.CylinderGeometry(0.24, 0.24, halfLen, 12)
+            b1Geo.translate(0, halfLen / 2, 0)
+            const b1 = new THREE.Mesh(b1Geo, baseMat1)
+            b1.position.copy(p1)
+            b1.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), strandDir.clone().normalize())
+            b1.userData = { partKey }
+            dnaRig.add(b1)
+            interactableMeshes.push(b1)
+
+            // Base 2 (Thymine or Cytosine - pyrimidine single ring)
+            const b2Geo = new THREE.CylinderGeometry(0.24, 0.24, halfLen, 12)
+            b2Geo.translate(0, halfLen / 2, 0)
+            const b2 = new THREE.Mesh(b2Geo, baseMat2)
+            b2.position.copy(p2)
+            b2.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), strandDir.clone().negate().normalize())
+            b2.userData = { partKey }
+            dnaRig.add(b2)
+            interactableMeshes.push(b2)
+
+            // Hydrogen Bonds (2 for A=T, 3 for G≡C)
+            const centerPt = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5)
+            const hCount = isAT ? 2 : 3
+            const hGap = 0.22
+            for (let h = 0; h < hCount; h++) {
+              const hOffset = (h - (hCount - 1) / 2) * hGap
+              const hBridgeGeo = new THREE.CylinderGeometry(0.06, 0.06, fullLen * 0.16, 8)
+              const hBridge = new THREE.Mesh(hBridgeGeo, matHBond)
+              hBridge.position.copy(centerPt).add(new THREE.Vector3(0, hOffset, 0))
+              hBridge.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), strandDir.clone().normalize())
+              hBridge.userData = { partKey }
+              dnaRig.add(hBridge)
+              interactableMeshes.push(hBridge)
+            }
+          } else {
+            // Unzipped open single-stranded nucleotide bases pointing inward
+            const stubLen = r * 0.5
+            const b1Geo = new THREE.CylinderGeometry(0.22, 0.22, stubLen, 12)
+            b1Geo.translate(0, stubLen / 2, 0)
+            const b1 = new THREE.Mesh(b1Geo, baseMat1)
+            b1.position.copy(p1)
+            const inward1 = new THREE.Vector3(0, y, 0).sub(p1).normalize()
+            b1.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), inward1)
+            b1.userData = { partKey }
+            dnaRig.add(b1)
+            interactableMeshes.push(b1)
+
+            const b2Geo = new THREE.CylinderGeometry(0.22, 0.22, stubLen, 12)
+            b2Geo.translate(0, stubLen / 2, 0)
+            const b2 = new THREE.Mesh(b2Geo, baseMat2)
+            b2.position.copy(p2)
+            const inward2 = new THREE.Vector3(0, y, 0).sub(p2).normalize()
+            b2.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), inward2)
+            b2.userData = { partKey }
+            dnaRig.add(b2)
+            interactableMeshes.push(b2)
+          }
+        }
+
+        // Backbone continuous ribbons
+        const curve1 = new THREE.CatmullRomCurve3(pts1)
+        const tube1Geo = new THREE.TubeGeometry(curve1, 90, 0.28, 12, false)
+        const strandMesh1 = new THREE.Mesh(tube1Geo, matBackbone1)
+        strandMesh1.userData = { partKey: 'backbone' }
+        dnaRig.add(strandMesh1)
+        interactableMeshes.push(strandMesh1)
+
+        const curve2 = new THREE.CatmullRomCurve3(pts2)
+        const tube2Geo = new THREE.TubeGeometry(curve2, 90, 0.28, 12, false)
+        const strandMesh2 = new THREE.Mesh(tube2Geo, matBackbone2)
+        strandMesh2.userData = { partKey: 'backbone' }
+        dnaRig.add(strandMesh2)
+        interactableMeshes.push(strandMesh2)
+
+        // Position Helicase at fork apex
+        if (unzipRatio > 0.05) {
+          const forkY = (unzipSplitStep * stepY) - totalH / 2
+          helicaseGrp.position.set(0, forkY, 0)
+          helicaseGrp.visible = true
+        } else {
+          helicaseGrp.position.set(0, totalH / 2, 0)
+          helicaseGrp.visible = false
+        }
+      }
+
+      buildHelix()
 
       // Raycasting for Double-Tap & Double-Click Dissection
-      let activeDissectId: 'at' | 'gc' | 'backbone' | null = null
       const raycaster = new THREE.Raycaster()
       const pointer = new THREE.Vector2()
 
@@ -1924,18 +2150,18 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
         if (intersects.length > 0) {
           const hit = intersects[0].object as THREE.Mesh
-          const id = hit.userData?.partId as 'at' | 'gc' | 'backbone' | undefined
-          if (id) {
-            if (activeDissectId === id) {
-              activeDissectId = null
+          const key = hit.userData?.partKey as string | undefined
+          if (key && DISSECT_CARDS[key]) {
+            if (activeDissectKey === key) {
+              activeDissectKey = null
               callbacks.onInspectPart?.(null)
             } else {
-              activeDissectId = id
-              callbacks.onInspectPart?.(DISSECT_CARDS[id])
+              activeDissectKey = key
+              callbacks.onInspectPart?.(DISSECT_CARDS[key])
             }
           }
         } else {
-          activeDissectId = null
+          activeDissectKey = null
           callbacks.onInspectPart?.(null)
         }
       }
@@ -1957,161 +2183,11 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       renderer.domElement.addEventListener('dblclick', handleDblClick)
       renderer.domElement.addEventListener('touchend', handleTouchEnd)
 
-      function buildDNA() {
-        while (helixGroup.children.length > 0) {
-          helixGroup.remove(helixGroup.children[0])
-        }
-        pairGroups = []
-        interactableMeshes.length = 0
-
-        const numSteps = 42
-        const stepY = 0.65
-        const totalH = numSteps * stepY
-        const r = params.baseRadius
-        const isUnzip = params.unzipping === 1
-
-        const pts1: THREE.Vector3[] = []
-        const pts2: THREE.Vector3[] = []
-        const grooveOffset = (140 * Math.PI) / 180
-
-        for (let i = 0; i < numSteps; i++) {
-          const angle = i * 0.36
-          const y = i * stepY - totalH / 2
-
-          let forkSpread1 = 1.0
-          let forkSpread2 = 1.0
-          if (isUnzip && i > numSteps * 0.55) {
-            const forkFactor = (i - numSteps * 0.55) / (numSteps * 0.45)
-            forkSpread1 += forkFactor * 1.6
-            forkSpread2 += forkFactor * 1.6
-          }
-
-          const p1 = new THREE.Vector3(r * forkSpread1 * Math.cos(angle), y, r * forkSpread1 * Math.sin(angle))
-          const p2 = new THREE.Vector3(
-            r * forkSpread2 * Math.cos(angle + grooveOffset),
-            y,
-            r * forkSpread2 * Math.sin(angle + grooveOffset)
-          )
-
-          pts1.push(p1)
-          pts2.push(p2)
-
-          const node1 = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 16), nodeMat1)
-          node1.position.copy(p1)
-          node1.userData = { partId: 'backbone' }
-          helixGroup.add(node1)
-          interactableMeshes.push(node1)
-
-          const node2 = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 16), nodeMat2)
-          node2.position.copy(p2)
-          node2.userData = { partId: 'backbone' }
-          helixGroup.add(node2)
-          interactableMeshes.push(node2)
-
-          const pairGroup = new THREE.Group()
-          helixGroup.add(pairGroup)
-          pairGroups.push(pairGroup)
-
-          const bType = i % 2 === 0 ? 0 : 2
-          const partId = bType === 0 ? 'at' : 'gc'
-          const matBase1 = new THREE.MeshStandardMaterial({ color: baseColors[bType], roughness: 0.3 })
-          const matBase2 = new THREE.MeshStandardMaterial({ color: baseColors[bType + 1], roughness: 0.3 })
-
-          const centerPt = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5)
-          const strandDir = new THREE.Vector3().subVectors(p2, p1)
-          const fullLen = strandDir.length()
-
-          if (!isUnzip || i <= numSteps * 0.55) {
-            const halfLen = fullLen * 0.42
-
-            const b1Geo = new THREE.CylinderGeometry(0.2, 0.2, halfLen, 12)
-            b1Geo.translate(0, halfLen / 2, 0)
-            const b1 = new THREE.Mesh(b1Geo, matBase1)
-            b1.position.copy(p1)
-            b1.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), strandDir.clone().normalize())
-            b1.userData = { partId }
-            pairGroup.add(b1)
-            interactableMeshes.push(b1)
-
-            const b2Geo = new THREE.CylinderGeometry(0.2, 0.2, halfLen, 12)
-            b2Geo.translate(0, halfLen / 2, 0)
-            const b2 = new THREE.Mesh(b2Geo, matBase2)
-            b2.position.copy(p2)
-            b2.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), strandDir.clone().negate().normalize())
-            b2.userData = { partId }
-            pairGroup.add(b2)
-            interactableMeshes.push(b2)
-
-            const hCount = bType === 0 ? 2 : 3
-            const hGap = 0.2
-            for (let h = 0; h < hCount; h++) {
-              const hOffset = (h - (hCount - 1) / 2) * hGap
-              const hBridgeGeo = new THREE.CylinderGeometry(0.06, 0.06, fullLen * 0.16, 8)
-              const hBridge = new THREE.Mesh(hBridgeGeo, hBondMat)
-              hBridge.position.copy(centerPt).add(new THREE.Vector3(0, hOffset, 0))
-              hBridge.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), strandDir.clone().normalize())
-              hBridge.userData = { partId }
-              pairGroup.add(hBridge)
-              interactableMeshes.push(hBridge)
-            }
-          } else {
-            const stubLen = r * 0.55
-            const b1Geo = new THREE.CylinderGeometry(0.2, 0.2, stubLen, 12)
-            b1Geo.translate(0, stubLen / 2, 0)
-            const b1 = new THREE.Mesh(b1Geo, matBase1)
-            b1.position.copy(p1)
-            const inward1 = new THREE.Vector3(0, y, 0).sub(p1).normalize()
-            b1.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), inward1)
-            b1.userData = { partId }
-            pairGroup.add(b1)
-            interactableMeshes.push(b1)
-
-            const b2Geo = new THREE.CylinderGeometry(0.2, 0.2, stubLen, 12)
-            b2Geo.translate(0, stubLen / 2, 0)
-            const b2 = new THREE.Mesh(b2Geo, matBase2)
-            b2.position.copy(p2)
-            const inward2 = new THREE.Vector3(0, y, 0).sub(p2).normalize()
-            b2.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), inward2)
-            b2.userData = { partId }
-            pairGroup.add(b2)
-            interactableMeshes.push(b2)
-          }
-        }
-
-        const curve1 = new THREE.CatmullRomCurve3(pts1)
-        const tube1Geo = new THREE.TubeGeometry(curve1, 80, 0.26, 12, false)
-        strandMesh1 = new THREE.Mesh(tube1Geo, backboneMat1)
-        strandMesh1.userData = { partId: 'backbone' }
-        helixGroup.add(strandMesh1)
-        interactableMeshes.push(strandMesh1)
-
-        const curve2 = new THREE.CatmullRomCurve3(pts2)
-        const tube2Geo = new THREE.TubeGeometry(curve2, 80, 0.26, 12, false)
-        strandMesh2 = new THREE.Mesh(tube2Geo, backboneMat2)
-        strandMesh2.userData = { partId: 'backbone' }
-        helixGroup.add(strandMesh2)
-        interactableMeshes.push(strandMesh2)
-
-        if (isUnzip) {
-          const forkY = (numSteps * 0.55 * stepY) - totalH / 2
-          helicase.position.set(0, forkY, 0)
-          helicase.visible = true
-        } else {
-          helicase.visible = false
-        }
-      }
-
-      buildDNA()
-
-      function animate() {
+      // Animation Loop
+      const animate = () => {
         animId = requestAnimationFrame(animate)
-        if (isPlaying) {
-          if (!activeDissectId) {
-            helixGroup.rotation.y += 0.016 * params.twistSpeed
-          }
-          if (helicase.visible) {
-            helicase.rotation.z += 0.02
-          }
+        if (params.twistSpeed > 0 && !activeDissectKey) {
+          dnaRig.rotation.y += 0.01 * params.twistSpeed
         }
         controls.update()
         renderer.render(scene, camera)
@@ -2131,18 +2207,20 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       return {
         updateParams: (newParams) => {
           params = { ...newParams }
-          buildDNA()
+          buildHelix()
         },
         setPlaying: (playing) => {
           isPlaying = playing
         },
         reset: () => {
-          helixGroup.rotation.set(0, 0, 0)
-          activeDissectId = null
+          dnaRig.rotation.set(0, 0, 0)
+          activeDissectKey = null
           callbacks.onInspectPart?.(null)
+          controls.reset()
+          buildHelix()
         },
         closeDissection: () => {
-          activeDissectId = null
+          activeDissectKey = null
           callbacks.onInspectPart?.(null)
         },
         dispose: () => {
@@ -2197,6 +2275,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
     initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
+      void isPlaying
       let animId: number
 
       const width = container.clientWidth || 800
@@ -2912,81 +2991,89 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
   // ==========================================
   epidermis_3d: {
     type: 'epidermis_3d',
-    title: '3D Epidermal Layers & Skin Architecture',
+    title: '3D Epidermal Layers & Skin Histology',
     subject: 'Biology · Histology & Anatomy',
-    concept: 'Stratified Squamous Epithelium: Corneum to Basale',
-    description: 'Explore the 5 microscopic layers of the human epidermis and underlying dermis in 3D. Pull layers apart with the Explode slider, rotate 360°, and inspect cellular keratinization, melanocytes, and capillary loops.',
+    concept: 'Stratified Squamous Epithelium: Corneum, Dermal Papillae & Appendages',
+    description: 'Explore a medical-grade 3D histological cross-section of human skin. Dissect the 5 epidermal layers, examine dermal papillae capillary loops, melanocytes, the hair follicle & sebaceous gland unit, arrector pili muscle, and coiled eccrine sweat glands.',
     emoji: '🔬',
     difficulty: 'Intermediate',
     presets: [
-      { label: '🌟 Full Intact Skin Block', params: { layerSeparation: 0, activeLayer: 0, showCells: 1 } },
-      { label: '🔍 Exploded Multi-Layer View', params: { layerSeparation: 75, activeLayer: 0, showCells: 1 } },
-      { label: '🛡️ Stratum Corneum Barrier', params: { layerSeparation: 40, activeLayer: 1, showCells: 1 } },
-      { label: '🧬 Stratum Basale & Mitosis', params: { layerSeparation: 50, activeLayer: 5, showCells: 1 } },
-      { label: '🩸 Dermis & Capillary Loops', params: { layerSeparation: 60, activeLayer: 6, showCells: 1 } },
+      { label: '🌟 Intact Histological Skin Block', params: { layerSeparation: 0, activeLayer: 0, showAppendages: 1 } },
+      { label: '✂️ Exploded Multi-Layer Architecture', params: { layerSeparation: 75, activeLayer: 0, showAppendages: 1 } },
+      { label: '💇 Hair Follicle & Sebaceous Unit', params: { layerSeparation: 30, activeLayer: 0, showAppendages: 1 } },
+      { label: '🩸 Dermal Papillae & Capillaries', params: { layerSeparation: 50, activeLayer: 6, showAppendages: 1 } },
+      { label: '🧬 Stratum Basale & Melanocytes', params: { layerSeparation: 60, activeLayer: 5, showAppendages: 1 } },
+      { label: '🛡️ Stratum Corneum Barrier', params: { layerSeparation: 45, activeLayer: 1, showAppendages: 1 } },
     ],
     params: [
       { key: 'layerSeparation', label: 'Explode Layers', min: 0, max: 100, step: 5, defaultValue: 0, unit: '%' },
-      { key: 'activeLayer', label: 'Inspect Layer', min: 0, max: 6, step: 1, defaultValue: 0, unit: '' },
-      { key: 'showCells', label: 'Show Cellular Details', min: 0, max: 1, step: 1, defaultValue: 1, unit: '' },
+      { key: 'activeLayer', label: 'Focus Layer (0:All, 1..7)', min: 0, max: 7, step: 1, defaultValue: 0, unit: '' },
+      { key: 'showAppendages', label: 'Show Skin Appendages', min: 0, max: 1, step: 1, defaultValue: 1, unit: '' },
     ],
     calculateReadouts: (p) => {
       const layerId = Math.round(p.activeLayer)
       const layerDetails: Record<number, { name: string; cells: string; role: string; marker: string }> = {
         0: {
-          name: 'All 5 Epidermal Layers + Dermis',
-          cells: 'Stratified squamous keratinized epithelium',
-          role: 'Complete physical barrier, thermoregulation & sensation',
-          marker: 'Turnover cycle: 28–40 days from Basale to Corneum',
+          name: 'Complete Integumentary Cross-Section',
+          cells: 'Stratified squamous keratinized epithelium + Dermis + Hypodermis',
+          role: 'Full mechanical barrier, thermoregulation, sensory reception & hydration',
+          marker: 'Epidermal turnover: ~28–40 days from Basale stem cell to Corneum desquamation',
         },
         1: {
-          name: '1. Stratum Corneum (Horny Layer)',
-          cells: '20–30 layers of dead, flat, anucleate corneocytes',
-          role: 'Primary waterproof barrier against desiccation and microbes',
-          marker: 'Packed with insoluble keratin filaments & lipid envelope',
+          name: '1. Stratum Corneum (Horny Barrier Layer)',
+          cells: '20–30 layers of dead, flattened, anucleate corneocytes',
+          role: 'Hydrophobic permeability barrier preventing water loss & microbial invasion',
+          marker: 'Brick-and-mortar: corneocytes embedded in extracellular lipid matrix',
         },
         2: {
-          name: '2. Stratum Lucidum (Clear Layer)',
+          name: '2. Stratum Lucidum (Clear Transition Band)',
           cells: '2–3 rows of flat, translucent, dead keratinocytes',
-          role: 'Provides extra thickness & resilience in palms and soles',
-          marker: 'Contains eleidin, an intermediate transformation protein',
+          role: 'Frictional shear resistance (present in thick skin: palms & soles)',
+          marker: 'Packed with eleidin, a lipid-bound protein intermediate of keratin',
         },
         3: {
-          name: '3. Stratum Granulosum (Granular Layer)',
-          cells: '3–5 rows of flattening cells with deteriorating nuclei',
-          role: 'Active site of keratinization & lipid secretion',
-          marker: 'Abundant coarse dark keratohyalin & lamellar granules',
+          name: '3. Stratum Granulosum (Granular Zone)',
+          cells: '3–5 rows of flattened cells undergoing programmed apoptosis',
+          role: 'Active site of keratinization & lipid lamellar body discharge',
+          marker: 'Coarse basophilic keratohyalin granules & lamellar Odland bodies',
         },
         4: {
           name: '4. Stratum Spinosum (Prickle Cell Layer)',
-          cells: '8–10 layers of polyhedral cells with desmosome spines',
-          role: 'Mechanical strength against shear stress + immune defense',
-          marker: 'Desmosomal bridges and intraepidermal Langerhans cells',
+          cells: '8–10 layers of polyhedral cells bound by desmosome spines',
+          role: 'Provides tensile structural resilience against mechanical shear & tension',
+          marker: 'Prominent desmosomal cell bridges & intraepidermal Langerhans immune sentinels',
         },
         5: {
-          name: '5. Stratum Basale (Stratum Germinativum)',
-          cells: 'Single row of actively dividing cuboidal stem cells',
-          role: 'Continuous mitotic replenishment of epidermis + UV melanin',
-          marker: 'Attached to basement membrane; contains 10–25% melanocytes',
+          name: '5. Stratum Basale (Germinativum)',
+          cells: 'Single row of columnar/cuboidal mitotic stem cells on basement membrane',
+          role: 'Continuous mitotic replenishment of epidermis + UV melanin production',
+          marker: 'Anchored by hemidesmosomes; houses 10–25% dendritic melanocytes',
         },
         6: {
-          name: 'Dermis (Papillary & Reticular Base)',
-          cells: 'Fibroblasts, macrophages, mast cells in collagen matrix',
-          role: 'Nourishes avascular epidermis via dermal papillae capillary loops',
-          marker: 'Contains Meissner corpuscles, sensory nerves & capillaries',
+          name: '6. Dermis (Papillary & Reticular Base)',
+          cells: 'Dense irregular connective tissue with fibroblasts & collagen bundles',
+          role: 'Vascular nourishment of epidermis via papillary loops, supports hair & glands',
+          marker: 'Hosts Meissner tactile corpuscles, Pacinian deep pressure sensors & capillaries',
+        },
+        7: {
+          name: '7. Hypodermis (Subcutaneous Adipose Tissue)',
+          cells: 'Unilocular adipocytes clustered in vascularized lobules',
+          role: 'Thermal insulation, mechanical shock absorption & caloric energy storage',
+          marker: 'Anchors skin to underlying deep fascia and skeletal muscle',
         },
       }
       const cur = layerDetails[layerId] || layerDetails[0]
       return [
         { label: 'Anatomical Structure', value: cur.name },
-        { label: 'Cell Architecture', value: cur.cells },
-        { label: 'Physiological Role', value: cur.role },
+        { label: 'Cellular Composition', value: cur.cells },
+        { label: 'Physiological Function', value: cur.role },
         { label: 'Histological Marker', value: cur.marker },
       ]
     },
     initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
+      void isPlaying
       let animId: number
 
       const width = container.clientWidth || 800
@@ -2996,7 +3083,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       createBioStudioEnvironment(scene)
 
       const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
-      camera.position.set(14, 12, 22)
+      camera.position.set(16, 14, 22)
 
       const renderer = new THREE.WebGLRenderer({ antialias: true })
       renderer.setSize(width, height)
@@ -3007,117 +3094,182 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const controls = new OrbitControls(camera, renderer.domElement)
       controls.enableDamping = true
       controls.dampingFactor = 0.05
+      controls.target.set(0, 1.5, 0)
 
-      const skinGroup = new THREE.Group()
-      scene.add(skinGroup)
+      const skinRig = new THREE.Group()
+      scene.add(skinRig)
 
-      const layerConfigs = [
-        { id: 1, name: 'Stratum Corneum', thickness: 0.9, color: 0xd4a373, baseElevation: 5.6 },
-        { id: 2, name: 'Stratum Lucidum', thickness: 0.45, color: 0xfefae0, baseElevation: 4.85 },
-        { id: 3, name: 'Stratum Granulosum', thickness: 0.85, color: 0xddb892, baseElevation: 4.1 },
-        { id: 4, name: 'Stratum Spinosum', thickness: 1.6, color: 0xe07a5f, baseElevation: 2.7 },
-        { id: 5, name: 'Stratum Basale', thickness: 0.85, color: 0xb45309, baseElevation: 1.4 },
-        { id: 6, name: 'Dermis', thickness: 2.4, color: 0xbe185d, baseElevation: -0.4 },
-      ]
-
-      const DISSECT_CARDS: Record<number, DissectInfo> = {
-        1: {
+      // Pedagogical Dissection Metadata Dictionary
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        corneum: {
           title: 'Stratum Corneum (Horny Barrier Layer)',
-          partName: 'Corneocyte Brick & Mortar Lipid Matrix',
-          role: 'Primary physical and waterproof barrier safeguarding internal homeostasis',
-          internalStructures: ['Anucleate Corneocyte Bricks', 'Extracellular Lipid Mortar (Ceramides, Cholesterol)', 'Filaggrin Crosslinks', 'Desquamation Surface Enzymes'],
-          description: 'The outermost layer comprises 20–30 sublayers of dead corneocytes tightly bound in a hydrophobic lipid bilayer matrix. Prevents pathogen penetration and transepidermal water loss (TEWL).',
+          partName: 'Corneocyte Brick & Extracellular Lipid Mortar',
+          role: 'Primary physical and waterproof barrier safeguarding internal bodily homeostasis',
+          bloodType: 'Neutral',
+          internalStructures: ['Anucleate Corneocytes (Dead Keratin Flakes)', 'Hydrophobic Lipid Matrix (Ceramides, Free Fatty Acids, Cholesterol)', 'Cornified Envelope (Loricrin & Involucrin Crosslinks)', 'Acid Mantle Surface pH 4.5–5.5'],
+          description: 'The outermost shield of the human body. Composed of 20 to 30 layers of dead, flattened squames tightly sealed in a specialized lipid bilayer. Prevents transepidermal water loss (TEWL) and repels environmental microbes and chemicals.',
+          actionHint: 'Double-tap another layer or part to inspect microscopic histology',
         },
-        2: {
-          title: 'Stratum Lucidum (Clear Transition Layer)',
-          partName: 'Eleidin-Packed Translucent Zone',
-          role: 'Extra mechanical cushioning found in thick skin (palms & soles)',
-          internalStructures: ['Translucent Eleidin Protein Granules', 'Flattened Keratinocyte Boundaries', 'Densely Packed Intermediate Tonofibrils'],
-          description: 'A thin, clear band of flat dead cells present only in hairless thick skin surfaces subjected to high frictional shear forces.',
+        lucidum: {
+          title: 'Stratum Lucidum (Clear Transition Zone)',
+          partName: 'Translucent Eleidin Barrier Band',
+          role: 'Provides extra thickness and mechanical shear cushioning in high-friction thick skin',
+          bloodType: 'Neutral',
+          internalStructures: ['Translucent Eleidin Protein Droplets', 'Flattened Degenerate Keratinocytes', 'Dense Packed Intermediate Tonofibrils'],
+          description: 'A thin, glass-like band found exclusively in thick glabrous skin (palms and soles). It serves as a transition zone where cellular organelles have completed autolysis, preparing keratinocytes for final cornification.',
+          actionHint: 'Double-tap to close',
         },
-        3: {
-          title: 'Stratum Granulosum (Granular Layer)',
-          partName: 'Keratohyalin & Lamellar Body Secretory Zone',
-          role: 'Active biochemical site of cellular death and lipid barrier synthesis',
-          internalStructures: ['Keratohyalin Granules (Pro-Filaggrin)', 'Lamellar Bodies (Odland Bodies)', 'Deteriorating Cell Nuclei', 'Apoptotic Programmed Envelopes'],
-          description: 'Keratinocytes begin programmed cell death here. They discharge lipid-rich lamellar bodies into intercellular spaces to forge the epidermal water barrier.',
+        granulosum: {
+          title: 'Stratum Granulosum (Granular Secretory Layer)',
+          partName: 'Keratohyalin & Odland Body Secretory Zone',
+          role: 'Critical biochemical hub where programmed cell death and epidermal lipid barrier synthesis occur',
+          bloodType: 'Neutral',
+          internalStructures: ['Keratohyalin Granules (Profilaggrin & Keratin Crosslinkers)', 'Lamellar Bodies (Odland Secretory Granules)', 'Pyknotic Deteriorating Cell Nuclei', 'Active Extracellular Exocytosis of Ceramides'],
+          description: 'Here keratinocytes flatten and synthesize coarse keratohyalin granules while discharging lipid-rich lamellar bodies into intercellular spaces to create the waterproof sealant.',
+          actionHint: 'Double-tap to close',
         },
-        4: {
+        spinosum: {
           title: 'Stratum Spinosum (Prickle Cell Layer)',
-          partName: 'Polyhedral Desmosomal Network & Langerhans Cells',
-          role: 'Provides tensile structural resilience against shear tension and houses immune sentinels',
-          internalStructures: ['Intercellular Desmosome Spines', 'Keratin Intermediate Filaments', 'Intraepidermal Langerhans (Antigen Presenting) Cells'],
-          description: 'Named for its spiny appearance caused by prominent desmosomal cell-to-cell bridges. Langerhans dendritic cells patrol this layer for microbial invaders.',
+          partName: 'Polyhedral Desmosomal Network & Langerhans Immune Sentinels',
+          role: 'Provides tensile structural integrity against mechanical shear and coordinates cutaneous immunity',
+          bloodType: 'Neutral',
+          internalStructures: ['Prominent Desmosome Spines (Macula Adhaerens)', 'Keratin Intermediate Tonofilament Bundles', 'Intraepidermal Langerhans (Antigen Presenting) Dendritic Cells', 'Melanin Supranuclear Sun-Hats'],
+          description: 'Named for the prickly spine-like intercellular desmosomal bridges that connect adjacent cells. Langerhans dendritic cells patrol this layer, capturing antigens and migrating to regional lymph nodes.',
+          actionHint: 'Double-tap to close',
         },
-        5: {
-          title: 'Stratum Basale (Germinativum)',
-          partName: 'Mitotic Stem Cells & Melanocyte Pigment Factories',
-          role: 'Continuous cell renewal and UV-protective melanin production',
-          internalStructures: ['Actively Mitotic Basal Stem Cells', 'Melanocytes with Dendritic Melanosomes', 'Merkel Sensory Disc Cells', 'Hemidesmosomes & Basement Membrane'],
-          description: 'A single layer of proliferating stem cells anchored to the dermal basement membrane. Melanocytes transfer protective melanin granules into rising keratinocytes to shield DNA from UV damage.',
+        basale: {
+          title: 'Stratum Basale (Stratum Germinativum)',
+          partName: 'Mitotic Basal Stem Cells & Dermal-Epidermal Junction',
+          role: 'Continuous lifelong renewal of the epidermis through mitotic cell division',
+          bloodType: 'Neutral',
+          internalStructures: ['Actively Dividing Basal Keratinocyte Stem Cells', 'Hemidesmosomes Anchoring to Basement Membrane (Type IV Collagen)', 'Merkel Tactile Disc Receptors', 'Dermal Papillae Interlocking Pegs (Rete Ridges)'],
+          description: 'The germinal powerhouse of the skin. A single layer of cuboidal cells attached to the basement membrane. As basal stem cells divide, one daughter cell stays behind while the other ascends through the strata over 28 to 40 days.',
+          actionHint: 'Double-tap to close',
         },
-        6: {
-          title: 'Dermis (Papillary & Reticular Base)',
-          partName: 'Vascularized Collagen-Elastin Foundation',
-          role: 'Nourishes the avascular epidermis and hosts tactile receptors, hair roots, and sweat glands',
-          internalStructures: ['Dermal Papillae Arteriovenous Capillary Loops', 'Type I & III Collagen Bundles', 'Meissner Tactile Corpuscles', 'Sensory Nerve Endings'],
-          description: 'Richly vascularized matrix providing high tensile elasticity. The dermal ridges interlock with epidermal pegs to supply vital nutrients across the basement membrane.',
+        melanocyte: {
+          title: 'Dendritic Melanocyte & Melanin Production',
+          partName: 'Melanosome Synthesis Factory (Skin Pigmentation & UV Defense)',
+          role: 'Produces eumelanin and pheomelanin to shield nuclear DNA from ultraviolet carcinogens',
+          bloodType: 'Neutral',
+          internalStructures: ['Melanosome Organelles (Stages I–IV)', 'Branching Dendritic Processes Extending Upward', 'Supranuclear Melanin Caps Shielding Nuclei', 'Tyrosinase Rate-Limiting Enzyme'],
+          description: 'Melanocytes constitute 10–25% of basal layer cells. Each melanocyte uses its branching dendrites to transfer pigment-packed melanosomes into approximately 36 neighboring keratinocytes, forming an umbrella-like melanin shield over their nuclei.',
+          actionHint: 'Double-tap to close',
+        },
+        hair_unit: {
+          title: 'Pilosebaceous Unit: Hair Follicle, Sebaceous Gland & Arrector Pili',
+          partName: 'Keratin Hair Shaft, Sebum Gland & Thermoregulatory Muscle',
+          role: 'Produces hair, secretes moisturizing sebum, and triggers cutaneous goosebumps',
+          bloodType: 'Neutral',
+          internalStructures: ['Cylindrical Hair Shaft (Cuticle, Cortex & Medulla)', 'Outer & Inner Root Sheaths + Dermal Hair Papilla Bulb', 'Multilobular Holocrine Sebaceous Glands (Sebum Secretion)', 'Arrector Pili Smooth Muscle (Sympathetic Goosebump Contraction)'],
+          description: 'The pilosebaceous unit penetrates from the epidermis deep into the reticular dermis. The sebaceous gland produces lipid-rich sebum that lubricates hair and skin. When chilled or frightened, the sympathetic nervous system contracts the arrector pili muscle, pulling the hair erect and causing goosebumps.',
+          actionHint: 'Double-tap to close',
+        },
+        sweat_gland: {
+          title: 'Eccrine Sweat Gland & Helical Spiral Duct',
+          partName: 'Thermoregulatory Merocrine Sweat Apparatus',
+          role: 'Primary thermoregulation via evaporative cooling and electrolyte secretion',
+          bloodType: 'Neutral',
+          internalStructures: ['Coiled Tubular Secretory Gland in Deep Dermis', 'Helical Duct Spiraling Upward Through Epidermis', 'Surface Epidermal Sweat Pore (Acro披露)', 'Cholinergic Sympathetic Nerve Innervation'],
+          description: 'Humans possess 2 to 4 million eccrine glands. The secretory base in the deep dermis produces a hypotonic fluid (water, NaCl, urea, lactate) pumped up the helical duct to evaporate on the skin surface, absorbing latent heat and cooling the body.',
+          actionHint: 'Double-tap to close',
+        },
+        capillary: {
+          title: 'Dermal Papillae Arteriovenous Capillary Loop',
+          partName: 'Microvascular Nutrition Loop for Avascular Epidermis',
+          role: 'Supplies oxygen and nutrients to the overlying epidermis and regulates body temperature',
+          bloodType: 'Oxygenated',
+          internalStructures: ['Ascending Arterial Capillary Limb (Oxygen-Rich Crimson)', 'Capillary Hairpin Apex (~10 μm below basement membrane)', 'Descending Venous Capillary Limb (Deoxygenated Blue)', 'Pre-Capillary Sphincters & Arteriovenous Shunts'],
+          description: 'Because the epidermis is completely avascular, it relies entirely on diffusion from these capillary hairpin loops projecting upward inside the dermal papillae. In cold weather, arteriovenous shunts bypass these loops to conserve core body heat.',
+          actionHint: 'Double-tap to close',
+        },
+        pacinian: {
+          title: 'Cutaneous Mechanoreceptors: Pacinian & Meissner Corpuscles',
+          partName: 'High-Frequency Vibration & Light Discriminative Touch Sensors',
+          role: 'Translates mechanical tactile skin deformations into neurosensory action potentials',
+          bloodType: 'Neutral',
+          internalStructures: ['Pacinian Corpuscle (Concentric Lamellated Onion-Bulb, 200–300 Hz Vibration)', 'Meissner Tactile Corpuscle (Ellipsoidal in Dermal Papilla, Light Touch)', 'Myelinated A-beta Sensory Nerve Axon', 'Perineural Fluid-Filled Sheaths'],
+          description: 'Skin is our largest sensory organ. Meissner corpuscles reside high in dermal papillae to detect gentle stroking and texture. Deep in the reticular dermis and hypodermis, large onion-like Pacinian corpuscles detect rapid vibrations and deep pressure transients.',
+          actionHint: 'Double-tap to close',
+        },
+        hypodermis: {
+          title: 'Hypodermis / Subcutaneous Tissue (Subcutis)',
+          partName: 'Adipose Lobules & Fibrous Retinacula Cutis',
+          role: 'Thermal insulation, mechanical shock attenuation, and long-term caloric energy storage',
+          bloodType: 'Neutral',
+          internalStructures: ['Unilocular White Adipocytes (Triglyceride Lipid Droplets)', 'Interlobular Fibrous Collagen Septa', 'Large Subcutaneous Musculocutaneous Arteries & Veins', 'Sensory Cutaneous Nerve Trunks'],
+          description: 'Underlying the dermis, the hypodermis consists of rounded white fat lobules interwoven by fibrous septa. It absorbs mechanical shocks, insulates internal organs against hypothermia, and serves as our primary caloric energy reserve.',
+          actionHint: 'Double-tap to close',
         },
       }
 
-      const blockWidth = 9.0
-      const blockDepth = 7.0
+      const blockWidth = 9.4
+      const blockDepth = 7.4
 
       interface LayerMeshObj {
         id: number
         group: THREE.Group
         slabMesh: THREE.Mesh
-        cellMeshes: THREE.Object3D[]
         baseElevation: number
+        partKey: string
       }
+
+      const layerConfigs = [
+        { id: 1, name: 'Stratum Corneum', thickness: 0.8, color: 0xd4a373, baseElevation: 5.6, partKey: 'corneum' },
+        { id: 2, name: 'Stratum Lucidum', thickness: 0.4, color: 0xfefae0, baseElevation: 4.85, partKey: 'lucidum' },
+        { id: 3, name: 'Stratum Granulosum', thickness: 0.75, color: 0xc49a7a, baseElevation: 4.15, partKey: 'granulosum' },
+        { id: 4, name: 'Stratum Spinosum', thickness: 1.5, color: 0xe07a5f, baseElevation: 2.85, partKey: 'spinosum' },
+        { id: 5, name: 'Stratum Basale', thickness: 0.8, color: 0xb45309, baseElevation: 1.55, partKey: 'basale' },
+        { id: 6, name: 'Dermis', thickness: 2.6, color: 0xbe185d, baseElevation: -0.3, partKey: 'capillary' },
+        { id: 7, name: 'Hypodermis (Adipose)', thickness: 1.8, color: 0xf59e0b, baseElevation: -2.7, partKey: 'hypodermis' },
+      ]
 
       const layerObjects: LayerMeshObj[] = []
       const interactableMeshes: THREE.Object3D[] = []
 
+      // Create realistic histological layer slabs
       layerConfigs.forEach((cfg) => {
         const layerGrp = new THREE.Group()
         layerGrp.position.y = cfg.baseElevation
-        skinGroup.add(layerGrp)
+        skinRig.add(layerGrp)
 
-        const geo = new THREE.BoxGeometry(blockWidth, cfg.thickness, blockDepth)
+        const geo = new THREE.BoxGeometry(blockWidth, cfg.thickness, blockDepth, 8, 1, 8)
         const mat = new THREE.MeshStandardMaterial({
           color: cfg.color,
-          roughness: 0.4,
+          roughness: cfg.id === 1 ? 0.75 : 0.4,
           metalness: 0.05,
           transparent: true,
-          opacity: 0.94,
+          opacity: 0.95,
         })
         const slabMesh = new THREE.Mesh(geo, mat)
-        slabMesh.userData = { layerId: cfg.id }
+        slabMesh.castShadow = true
+        slabMesh.receiveShadow = true
+        slabMesh.userData = { partKey: cfg.partKey, layerId: cfg.id }
         layerGrp.add(slabMesh)
         interactableMeshes.push(slabMesh)
 
-        const cellMeshes: THREE.Object3D[] = []
-
+        // Add layer-specific histological cellular features
         if (cfg.id === 1) {
-          const flakeGeo = new THREE.CircleGeometry(0.35, 6)
+          // Desquamating surface scales on stratum corneum
+          const flakeGeo = new THREE.CircleGeometry(0.32, 6)
           flakeGeo.rotateX(-Math.PI / 2)
-          const flakeMat = new THREE.MeshStandardMaterial({ color: 0xfaedcd, roughness: 0.8, side: THREE.DoubleSide })
-          for (let i = 0; i < 28; i++) {
+          const flakeMat = new THREE.MeshStandardMaterial({ color: 0xfaedcd, roughness: 0.85, side: THREE.DoubleSide })
+          for (let i = 0; i < 30; i++) {
             const flake = new THREE.Mesh(flakeGeo, flakeMat)
             flake.position.set(
-              (Math.random() - 0.5) * (blockWidth - 1),
+              (Math.random() - 0.5) * (blockWidth - 0.8),
               cfg.thickness / 2 + 0.02,
-              (Math.random() - 0.5) * (blockDepth - 1)
+              (Math.random() - 0.5) * (blockDepth - 0.8)
             )
             flake.rotation.y = Math.random() * Math.PI
+            flake.userData = { partKey: 'corneum', layerId: 1 }
             layerGrp.add(flake)
-            cellMeshes.push(flake)
+            interactableMeshes.push(flake)
           }
         } else if (cfg.id === 3) {
-          const granGeo = new THREE.SphereGeometry(0.1, 8, 8)
+          // Keratohyalin granules
+          const granGeo = new THREE.SphereGeometry(0.08, 8, 8)
           const granMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.3 })
-          for (let i = 0; i < 35; i++) {
+          for (let i = 0; i < 40; i++) {
             const gran = new THREE.Mesh(granGeo, granMat)
             gran.position.set(
               (Math.random() - 0.5) * (blockWidth - 1),
@@ -3125,25 +3277,13 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
               (Math.random() - 0.5) * (blockDepth - 1)
             )
             layerGrp.add(gran)
-            cellMeshes.push(gran)
-          }
-        } else if (cfg.id === 4) {
-          const spinGeo = new THREE.DodecahedronGeometry(0.24, 0)
-          const spinMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.4 })
-          for (let i = 0; i < 24; i++) {
-            const spin = new THREE.Mesh(spinGeo, spinMat)
-            spin.position.set(
-              (Math.random() - 0.5) * (blockWidth - 1.2),
-              (Math.random() - 0.5) * (cfg.thickness * 0.7),
-              (Math.random() - 0.5) * (blockDepth - 1.2)
-            )
-            layerGrp.add(spin)
-            cellMeshes.push(spin)
           }
         } else if (cfg.id === 5) {
-          const basalGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.5, 12)
-          const basalMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.3 })
-          const melanMat = new THREE.MeshStandardMaterial({ color: 0x3f1a07, roughness: 0.2 })
+          // Basal cuboidal stem cells + dendritic melanocytes
+          const basalGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.45, 10)
+          const basalMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.35 })
+          const melanMat = new THREE.MeshStandardMaterial({ color: 0x271306, roughness: 0.25 })
+
           for (let i = 0; i < 24; i++) {
             const isMelanocyte = i % 5 === 0
             const cMesh = new THREE.Mesh(basalGeo, isMelanocyte ? melanMat : basalMat)
@@ -3152,23 +3292,46 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
               0,
               (Math.random() - 0.5) * (blockDepth - 1.2)
             )
+            cMesh.userData = { partKey: isMelanocyte ? 'melanocyte' : 'basale', layerId: 5 }
             layerGrp.add(cMesh)
-            cellMeshes.push(cMesh)
-          }
-        } else if (cfg.id === 6) {
-          const loopGeo = new THREE.TorusGeometry(0.65, 0.08, 8, 16, Math.PI)
-          const redLoopMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 })
-          const blueLoopMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.3 })
-          for (let i = 0; i < 6; i++) {
-            const loopRed = new THREE.Mesh(loopGeo, redLoopMat)
-            loopRed.position.set(-2.8 + i * 1.1, cfg.thickness / 2 - 0.1, -1.2)
-            layerGrp.add(loopRed)
-            cellMeshes.push(loopRed)
+            interactableMeshes.push(cMesh)
 
-            const loopBlue = new THREE.Mesh(loopGeo, blueLoopMat)
-            loopBlue.position.set(-2.6 + i * 1.1, cfg.thickness / 2 - 0.1, 1.2)
-            layerGrp.add(loopBlue)
-            cellMeshes.push(loopBlue)
+            // If melanocyte, add branching dendrites reaching upward
+            if (isMelanocyte) {
+              for (let d = 0; d < 3; d++) {
+                const dAngle = (d * Math.PI * 2) / 3
+                const dendrite = new THREE.Mesh(
+                  new THREE.CylinderGeometry(0.03, 0.05, 0.5, 6),
+                  melanMat
+                )
+                dendrite.position.set(
+                  cMesh.position.x + Math.cos(dAngle) * 0.25,
+                  0.35,
+                  cMesh.position.z + Math.sin(dAngle) * 0.25
+                )
+                dendrite.rotation.z = Math.sin(dAngle) * 0.4
+                dendrite.rotation.x = Math.cos(dAngle) * 0.4
+                dendrite.userData = { partKey: 'melanocyte', layerId: 5 }
+                layerGrp.add(dendrite)
+                interactableMeshes.push(dendrite)
+              }
+            }
+          }
+        } else if (cfg.id === 7) {
+          // Hypodermis fat lobules (rounded golden adipocyte clusters)
+          const fatGeo = new THREE.SphereGeometry(0.38, 12, 12)
+          const fatMat = new THREE.MeshStandardMaterial({ color: 0xfef08a, roughness: 0.5, metalness: 0.05 })
+          for (let i = 0; i < 35; i++) {
+            const fatBlob = new THREE.Mesh(fatGeo, fatMat)
+            fatBlob.position.set(
+              (Math.random() - 0.5) * (blockWidth - 1.0),
+              (Math.random() - 0.5) * (cfg.thickness * 0.7),
+              (Math.random() - 0.5) * (blockDepth - 1.0)
+            )
+            fatBlob.scale.set(1 + Math.random() * 0.4, 0.8 + Math.random() * 0.3, 1 + Math.random() * 0.4)
+            fatBlob.userData = { partKey: 'hypodermis', layerId: 7 }
+            layerGrp.add(fatBlob)
+            interactableMeshes.push(fatBlob)
           }
         }
 
@@ -3176,40 +3339,210 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           id: cfg.id,
           group: layerGrp,
           slabMesh,
-          cellMeshes,
           baseElevation: cfg.baseElevation,
+          partKey: cfg.partKey,
         })
       })
 
-      let activeDissectId: number | null = null
+      // Skin Appendages Group (Hair Follicle, Sebaceous Gland, Sweat Gland, Capillary Loops, Tactile Receptors)
+      const appendagesGrp = new THREE.Group()
+      skinRig.add(appendagesGrp)
 
-      const applyLayerTransforms = () => {
-        const sepFactor = (params.layerSeparation / 100) * 2.8 + (activeDissectId ? 1.4 : 0)
-        const activeLyr = activeDissectId !== null ? activeDissectId : Math.round(params.activeLayer)
-        const showCellDetails = params.showCells >= 0.5
+      // 1. Pilosebaceous Unit: Hair Follicle Assembly
+      const hairUnitGrp = new THREE.Group()
+      hairUnitGrp.position.set(-2.0, 1.2, 0.5)
+      hairUnitGrp.rotation.z = 0.22 // Realistic natural hair slant
+      appendagesGrp.add(hairUnitGrp)
+
+      // Hair Shaft (dark keratin cylinder emerging from surface pore)
+      const hairMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.25, metalness: 0.3 })
+      const hairShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 8.5, 16), hairMat)
+      hairShaft.position.y = 2.2
+      hairShaft.userData = { partKey: 'hair_unit' }
+      hairUnitGrp.add(hairShaft)
+      interactableMeshes.push(hairShaft)
+
+      // Outer Root Sheath (translucent tissue surrounding follicle in dermis)
+      const sheathMat = new THREE.MeshStandardMaterial({ color: 0xfbcfe8, roughness: 0.5, transparent: true, opacity: 0.7 })
+      const follicleSheath = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.48, 4.2, 16), sheathMat)
+      follicleSheath.position.y = -0.5
+      follicleSheath.userData = { partKey: 'hair_unit' }
+      hairUnitGrp.add(follicleSheath)
+      interactableMeshes.push(follicleSheath)
+
+      // Hair Bulb & Dermal Papilla at base
+      const bulbMesh = new THREE.Mesh(new THREE.SphereGeometry(0.62, 16, 16), new THREE.MeshStandardMaterial({ color: 0xf43f5e, roughness: 0.4 }))
+      bulbMesh.position.y = -2.6
+      bulbMesh.userData = { partKey: 'hair_unit' }
+      hairUnitGrp.add(bulbMesh)
+      interactableMeshes.push(bulbMesh)
+
+      // Multilobular Sebaceous Gland hugging upper follicle
+      const sebumMat = new THREE.MeshStandardMaterial({ color: 0xfef08a, roughness: 0.45 })
+      for (let s = 0; s < 5; s++) {
+        const lobule = new THREE.Mesh(new THREE.SphereGeometry(0.36, 12, 12), sebumMat)
+        const sAngle = (s * Math.PI * 2) / 5
+        lobule.position.set(Math.cos(sAngle) * 0.48 + 0.35, 0.4 + (s % 2) * 0.35, Math.sin(sAngle) * 0.48)
+        lobule.userData = { partKey: 'hair_unit' }
+        hairUnitGrp.add(lobule)
+        interactableMeshes.push(lobule)
+      }
+
+      // Arrector Pili Muscle band (smooth muscle stretching from follicle to dermal papilla)
+      const muscleCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0.2, -1.8, 0),
+        new THREE.Vector3(1.6, -0.6, 0.3),
+        new THREE.Vector3(2.6, 1.4, 0.1),
+      ])
+      const muscleGeo = new THREE.TubeGeometry(muscleCurve, 20, 0.18, 10, false)
+      const muscleMat = new THREE.MeshStandardMaterial({ color: 0xbe123c, roughness: 0.4 })
+      const arrectorMuscle = new THREE.Mesh(muscleGeo, muscleMat)
+      arrectorMuscle.userData = { partKey: 'hair_unit' }
+      hairUnitGrp.add(arrectorMuscle)
+      interactableMeshes.push(arrectorMuscle)
+
+      // 2. Coiled Eccrine Sweat Gland & Spiral Duct
+      const sweatUnitGrp = new THREE.Group()
+      sweatUnitGrp.position.set(2.4, -0.2, -1.0)
+      appendagesGrp.add(sweatUnitGrp)
+
+      // Coiled tubular knot in deep dermis / hypodermis
+      const coilMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, roughness: 0.35 })
+      const sweatTorus1 = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.12, 10, 24), coilMat)
+      sweatTorus1.position.y = -1.8
+      sweatTorus1.rotation.x = Math.PI / 3
+      sweatTorus1.userData = { partKey: 'sweat_gland' }
+      sweatUnitGrp.add(sweatTorus1)
+      interactableMeshes.push(sweatTorus1)
+
+      const sweatTorus2 = new THREE.Mesh(new THREE.TorusGeometry(0.48, 0.11, 10, 24), coilMat)
+      sweatTorus2.position.set(0.15, -1.5, 0.1)
+      sweatTorus2.rotation.y = Math.PI / 4
+      sweatTorus2.userData = { partKey: 'sweat_gland' }
+      sweatUnitGrp.add(sweatTorus2)
+      interactableMeshes.push(sweatTorus2)
+
+      // Helical spiral duct ascending through dermis and epidermis
+      const spiralPts: THREE.Vector3[] = []
+      const spiralSteps = 70
+      for (let p = 0; p <= spiralSteps; p++) {
+        const t = p / spiralSteps
+        const y = -1.4 + t * 7.5
+        const spiralR = 0.22 * (1 - t * 0.4)
+        const angle = t * Math.PI * 12
+        spiralPts.push(new THREE.Vector3(Math.cos(angle) * spiralR, y, Math.sin(angle) * spiralR))
+      }
+      const spiralGeo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(spiralPts), 60, 0.08, 8, false)
+      const spiralDuct = new THREE.Mesh(spiralGeo, coilMat)
+      spiralDuct.userData = { partKey: 'sweat_gland' }
+      sweatUnitGrp.add(spiralDuct)
+      interactableMeshes.push(spiralDuct)
+
+      // Surface sweat pore ring on stratum corneum
+      const poreGeo = new THREE.TorusGeometry(0.2, 0.05, 8, 16)
+      const poreMesh = new THREE.Mesh(poreGeo, new THREE.MeshStandardMaterial({ color: 0x0284c7 }))
+      poreMesh.rotation.x = -Math.PI / 2
+      poreMesh.position.set(0, 6.1, 0)
+      poreMesh.userData = { partKey: 'sweat_gland' }
+      sweatUnitGrp.add(poreMesh)
+      interactableMeshes.push(poreMesh)
+
+      // 3. Dermal Papillae Microcirculation Capillary Loops
+      const capGroup = new THREE.Group()
+      capGroup.position.set(0, 0.4, 1.8)
+      appendagesGrp.add(capGroup)
+
+      const capRedMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.25 })
+      const capBlueMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.25 })
+
+      for (let c = 0; c < 5; c++) {
+        const cX = -2.8 + c * 1.4
+        // Arteriolar ascending limb + hairpin turn + venular descending limb
+        const loopPts = [
+          new THREE.Vector3(cX - 0.16, -1.0, 0),
+          new THREE.Vector3(cX - 0.16, 1.2, 0),
+          new THREE.Vector3(cX, 1.45, 0),
+          new THREE.Vector3(cX + 0.16, 1.2, 0),
+          new THREE.Vector3(cX + 0.16, -1.0, 0),
+        ]
+        const loopCurve = new THREE.CatmullRomCurve3(loopPts)
+        const loopMesh = new THREE.Mesh(new THREE.TubeGeometry(loopCurve, 24, 0.08, 8, false), capRedMat)
+        loopMesh.userData = { partKey: 'capillary' }
+        capGroup.add(loopMesh)
+        interactableMeshes.push(loopMesh)
+
+        // Blue venule companion vessel
+        const venuleMesh = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.08, 0.08, 2.2, 8),
+          capBlueMat
+        )
+        venuleMesh.position.set(cX + 0.22, 0, 0.12)
+        venuleMesh.userData = { partKey: 'capillary' }
+        capGroup.add(venuleMesh)
+        interactableMeshes.push(venuleMesh)
+      }
+
+      // 4. Cutaneous Mechanoreceptors: Pacinian & Meissner Tactile Sensors
+      // Meissner corpuscle in dermal papilla
+      const meissnerMat = new THREE.MeshStandardMaterial({ color: 0xa855f7, roughness: 0.35 })
+      const meissnerMesh = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 12), meissnerMat)
+      meissnerMesh.scale.set(0.65, 1.4, 0.65)
+      meissnerMesh.position.set(1.4, 1.8, 1.8)
+      meissnerMesh.userData = { partKey: 'pacinian' }
+      appendagesGrp.add(meissnerMesh)
+      interactableMeshes.push(meissnerMesh)
+
+      // Pacinian corpuscle in deep dermis (laminated onion-bulb)
+      const pacinianGrp = new THREE.Group()
+      pacinianGrp.position.set(-1.2, -1.4, -1.8)
+      appendagesGrp.add(pacinianGrp)
+
+      const pacinianMat = new THREE.MeshStandardMaterial({ color: 0x8b5cf6, roughness: 0.4, transparent: true, opacity: 0.85 })
+      for (let l = 0; l < 3; l++) {
+        const lamella = new THREE.Mesh(new THREE.SphereGeometry(0.45 + l * 0.18, 16, 16), pacinianMat)
+        lamella.scale.set(0.65, 1.3, 0.65)
+        lamella.rotation.z = Math.PI / 6
+        lamella.userData = { partKey: 'pacinian' }
+        pacinianGrp.add(lamella)
+        interactableMeshes.push(lamella)
+      }
+
+      // Nerve axon entering corpuscle
+      const nerveMat = new THREE.MeshStandardMaterial({ color: 0xfef08a, roughness: 0.3 })
+      const nerveMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.6, 8), nerveMat)
+      nerveMesh.position.set(-1.4, -2.4, -1.8)
+      nerveMesh.userData = { partKey: 'pacinian' }
+      appendagesGrp.add(nerveMesh)
+      interactableMeshes.push(nerveMesh)
+
+      let activeDissectKey: string | null = null
+
+      const applyTransforms = () => {
+        const sepFactor = (params.layerSeparation / 100) * 3.4
+        const activeLyr = Math.round(params.activeLayer)
+        const showApp = params.showAppendages >= 0.5
+
+        appendagesGrp.visible = showApp
 
         layerObjects.forEach((obj, idx) => {
-          const explodeY = (2.5 - idx) * sepFactor
+          // Spread layers vertically outwards around middle
+          const explodeY = (3 - idx) * sepFactor
           obj.group.position.y = obj.baseElevation + explodeY
 
           const isHighlighted = activeLyr === 0 || activeLyr === obj.id
           const mat = obj.slabMesh.material as THREE.MeshStandardMaterial
 
           if (isHighlighted) {
-            mat.opacity = 0.94
+            mat.opacity = 0.95
             mat.emissive.setHex(activeLyr === obj.id ? 0x223344 : 0x000000)
           } else {
             mat.opacity = 0.22
             mat.emissive.setHex(0x000000)
           }
-
-          obj.cellMeshes.forEach((cm) => {
-            cm.visible = showCellDetails && isHighlighted
-          })
         })
       }
 
-      applyLayerTransforms()
+      applyTransforms()
 
       // Raycasting for Double-Tap & Double-Click Dissection
       const raycaster = new THREE.Raycaster()
@@ -3225,21 +3558,19 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
         if (intersects.length > 0) {
           const hit = intersects[0].object as THREE.Mesh
-          const id = hit.userData?.layerId as number | undefined
-          if (id) {
-            if (activeDissectId === id) {
-              activeDissectId = null
+          const key = hit.userData?.partKey as string | undefined
+          if (key && DISSECT_CARDS[key]) {
+            if (activeDissectKey === key) {
+              activeDissectKey = null
               callbacks.onInspectPart?.(null)
             } else {
-              activeDissectId = id
-              callbacks.onInspectPart?.(DISSECT_CARDS[id])
+              activeDissectKey = key
+              callbacks.onInspectPart?.(DISSECT_CARDS[key])
             }
-            applyLayerTransforms()
           }
         } else {
-          activeDissectId = null
+          activeDissectKey = null
           callbacks.onInspectPart?.(null)
-          applyLayerTransforms()
         }
       }
 
@@ -3260,15 +3591,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       renderer.domElement.addEventListener('dblclick', handleDblClick)
       renderer.domElement.addEventListener('touchend', handleTouchEnd)
 
-      let time = 0
+      // Animation Loop (NO involuntary spinning away from student)
       const animate = () => {
         animId = requestAnimationFrame(animate)
-        if (isPlaying) {
-          time += 0.01
-          if (!activeDissectId) {
-            skinGroup.rotation.y += 0.002
-          }
-        }
         controls.update()
         renderer.render(scene, camera)
       }
@@ -3287,22 +3612,22 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       return {
         updateParams: (newParams) => {
           params = { ...newParams }
-          applyLayerTransforms()
+          applyTransforms()
         },
         setPlaying: (playing) => {
           isPlaying = playing
         },
         reset: () => {
-          skinGroup.rotation.set(0, 0, 0)
-          activeDissectId = null
+          skinRig.rotation.set(0, 0, 0)
+          activeDissectKey = null
           callbacks.onInspectPart?.(null)
           controls.reset()
-          applyLayerTransforms()
+          applyTransforms()
         },
         closeDissection: () => {
-          activeDissectId = null
+          activeDissectKey = null
           callbacks.onInspectPart?.(null)
-          applyLayerTransforms()
+          applyTransforms()
         },
         dispose: () => {
           cancelAnimationFrame(animId)
@@ -3349,6 +3674,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
     initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
+      void isPlaying
       let animId: number
 
       const width = container.clientWidth || 800
@@ -3638,6 +3964,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
     initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
+      void isPlaying
       let animId: number
 
       const width = container.clientWidth || 800
@@ -3950,21 +4277,24 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
   // ==========================================
   motor_3d: {
     type: 'motor_3d',
-    title: '3D Electric DC Motor & Lorentz Force',
+    title: '3D DC Electric Motor & Lorentz Force',
     subject: 'Physics · Electromagnetism',
-    concept: 'Fleming’s Left-Hand Rule, Magnetic Torque & Commutator',
-    description: 'Explore the internal mechanical and electromagnetic workings of a 3D DC electric motor. Watch magnetic field flux lines, Lorentz force vectors on armature coils, and split-ring commutator current reversal in real time.',
+    concept: 'Fleming’s Left-Hand Rule, Split-Ring Commutator & Mechanical Explode View',
+    description: 'Explore an authentic 3D cutaway of a DC electric motor. Watch magnetic flux lines, dynamic 3D Lorentz force vectors, and current reversal at the split-ring commutator. Pull the motor apart with the Explode slider to inspect the stator magnets, laminated rotor core, and spring-loaded carbon brushes.',
     emoji: '⚡',
     difficulty: 'Intermediate',
     presets: [
-      { label: '⚡ Standard DC Motor (12V, 1.0T)', params: { voltage: 12, fieldStrength: 1.0, coilTurns: 50 } },
-      { label: '🏎️ High-Torque Turbo (24V, 1.8T)', params: { voltage: 24, fieldStrength: 1.8, coilTurns: 100 } },
-      { label: '🔬 Slow-Motion Commutator (4V, 0.5T)', params: { voltage: 4, fieldStrength: 0.5, coilTurns: 30 } },
+      { label: '⚡ Standard DC Motor (12V, 1.0T)', params: { voltage: 12, fieldStrength: 1.0, coilTurns: 50, explode: 0 } },
+      { label: '✂️ Exploded Mechanical Cutaway', params: { voltage: 0, fieldStrength: 1.0, coilTurns: 50, explode: 85 } },
+      { label: '🔬 Slow-Motion Commutator Switching (4V)', params: { voltage: 4, fieldStrength: 0.8, coilTurns: 40, explode: 20 } },
+      { label: '🏎️ High-Torque Turbo (24V, 1.8T)', params: { voltage: 24, fieldStrength: 1.8, coilTurns: 100, explode: 0 } },
+      { label: '🧭 Fleming’s Left-Hand Rule Vectors', params: { voltage: 8, fieldStrength: 1.2, coilTurns: 50, explode: 0 } },
     ],
     params: [
       { key: 'voltage', label: 'DC Voltage (V)', min: 0, max: 24, step: 1, defaultValue: 12, unit: 'V' },
       { key: 'fieldStrength', label: 'Magnetic Field (B)', min: 0.2, max: 2.0, step: 0.1, defaultValue: 1.0, unit: 'T' },
       { key: 'coilTurns', label: 'Coil Windings (N)', min: 10, max: 150, step: 5, defaultValue: 50, unit: 'turns' },
+      { key: 'explode', label: 'Explode Motor Assembly', min: 0, max: 100, step: 5, defaultValue: 0, unit: '%' },
     ],
     calculateReadouts: (p) => {
       const R = 2.0 // Armature internal resistance (ohms)
@@ -3985,16 +4315,17 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
     initScene: (container, initialParams, callbacks = {}) => {
       let params = { ...initialParams }
       let isPlaying = true
+      void isPlaying
       let animId: number
 
       const width = container.clientWidth || 800
       const height = container.clientHeight || 500
 
       const scene = new THREE.Scene()
-      createLabEnvironment(scene, 35, 35)
+      createLabEnvironment(scene, 40, 40)
 
       const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
-      camera.position.set(0, 18, 30)
+      camera.position.set(0, 18, 32)
 
       const renderer = new THREE.WebGLRenderer({ antialias: true })
       renderer.setSize(width, height)
@@ -4005,6 +4336,10 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const controls = new OrbitControls(camera, renderer.domElement)
       controls.enableDamping = true
       controls.dampingFactor = 0.05
+      controls.target.set(0, 0, 0)
+
+      const motorRig = new THREE.Group()
+      scene.add(motorRig)
 
       const interactableMeshes: THREE.Object3D[] = []
 
@@ -4012,178 +4347,255 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const DISSECT_CARDS: Record<string, DissectInfo> = {
         commutator: {
           title: 'Split-Ring Commutator & Carbon Brushes',
-          partName: 'Current Inversion Assembly Dissected',
+          partName: 'Current Inversion Mechanical Rectifier Dissected',
           role: 'Reverses DC current through the armature coil every half-rotation (180°) to maintain continuous unidirectional torque',
-          internalStructures: ['Dual Semi-Cylindrical Copper Segments', 'Mica Insulation Gap', 'Spring-Loaded Carbon Brushes', 'Brush Spark Arc Discharges'],
-          description: 'Double-tapping reveals the commutator cross-section. Without current reversal every half-turn, torque would reverse and the rotor would merely oscillate back and forth around the neutral plane instead of spinning continuously.',
+          bloodType: 'Neutral',
+          internalStructures: [
+            'Dual Semi-Cylindrical Copper Segments (Separated by 20° gap)',
+            'Mica Solid Dielectric Insulation Layer',
+            'Spring-Loaded High-Purity Graphite Carbon Brushes',
+            'Flexible Braided Copper Pigtail Shunt Wires',
+          ],
+          description: 'The split-ring commutator is the mechanical inverter of the DC motor. As the coil passes through the vertical neutral plane (where magnetic torque drops to zero), the split rings break contact with one brush and reconnect with the opposite brush, flipping current direction and keeping the motor spinning continuously.',
+          actionHint: 'Double-tap another part to inspect internal mechanics',
         },
         armature: {
-          title: 'Armature Coil & Rotor Core',
-          partName: 'Lorentz Force Generator Core',
-          role: 'Electromagnetic coil converting electrical power into mechanical torque via Fleming\'s Left-Hand Rule',
-          internalStructures: ['Multi-turn Enamelled Copper Windings (N turns)', 'Laminated Soft-Iron Core (Eddy Current Supression)', 'Steel Drive Shaft & Bearings', 'Lorentz Torque Couple: τ = NIAB sin(θ)'],
-          description: 'Inspecting the rotating armature reveals the laminated silicon-steel core designed to minimize parasitic eddy current losses, and copper windings experiencing equal and opposite magnetic forces.',
+          title: 'Armature Windings & Laminated Silicon-Steel Core',
+          partName: 'Lorentz Torque Generating Rotor Assembly',
+          role: "Converts electrical current into mechanical rotational torque via Fleming's Left-Hand Rule",
+          bloodType: 'Neutral',
+          internalStructures: [
+            'Multi-Turn Enamelled Copper Windings (N turns)',
+            'Insulated Laminated Silicon-Steel Stamping Discs (Reduces Eddy Currents)',
+            'Longitudinal Wire Winding Slots with Wedge Closures',
+            'Lorentz Torque Couple: τ = N · I · A · B · sin(θ)',
+          ],
+          description: 'The armature core is constructed from thin, mutually insulated silicon-steel laminations to suppress parasitic eddy-current power dissipation. When current flows through the copper windings, the two opposing coil legs experience equal and opposite Lorentz forces, generating continuous rotational torque.',
+          actionHint: 'Double-tap to close',
         },
         magnets: {
-          title: 'Stator Field Magnets (N-S Poles)',
-          partName: 'Uniform Transverse Magnetic Field Medium',
-          role: 'Generates horizontal magnetic flux lines (B-field) crossing the air gap',
-          internalStructures: ['North (Red) & South (Blue) Sintered NdFeB Poles', 'Cyan Magnetic Flux Streamlines', 'Soft Iron Return Yoke'],
-          description: 'The stator produces a uniform magnetic field across the air gap. The magnetic flux vectors cross perpendicular to the armature wire, maximizing the vector cross product F = I(L × B).',
+          title: 'Stator Field Magnets (N-S Poles) & Yoke',
+          partName: 'Curved Permanent Magnet Pole Shoes & Magnetic Flux Return',
+          role: 'Establishes a uniform horizontal magnetic field (B-vector) crossing the rotor air gap',
+          bloodType: 'Neutral',
+          internalStructures: [
+            'North Pole (Crimson NdFeB Sintered Rare-Earth Magnet)',
+            'South Pole (Cobalt Blue NdFeB Sintered Magnet)',
+            'Cast-Iron Return Yoke Frame & Mounting Foot Pedestals',
+            'Cyan Magnetic Flux Lines Directed Strictly from North to South',
+          ],
+          description: 'The curved pole faces shape the magnetic field lines so they cross perpendicularly across the cylindrical armature air gap. This maximizes the vector cross-product F = I(L × B), ensuring maximum mechanical force on each wire turn.',
+          actionHint: 'Double-tap to close',
+        },
+        lorentz: {
+          title: "Fleming's Left-Hand Rule & Lorentz Force Vectors",
+          partName: 'Orthogonal Vector Cross Product F = I(L × B)',
+          role: 'Directs mechanical thrust perpendicular to both the magnetic field and current flow',
+          bloodType: 'Neutral',
+          internalStructures: [
+            'Thumb: Resultant Lorentz Force Direction (F)',
+            'First Finger: Magnetic Field Direction (B, North to South)',
+            'Second Finger: Conventional Current Direction (I, + to -)',
+            'Dynamic Torque Oscillation: τ(θ) = τ_max · |sin(θ)|',
+          ],
+          description: "Fleming's Left-Hand rule determines the exact direction of force on a current-carrying conductor inside a magnetic field. Because current flows forward in one side of the coil and backward in the other, one side is pushed UP while the opposite side is pushed DOWN, forming a pure force couple.",
+          actionHint: 'Double-tap to close',
+        },
+        shaft: {
+          title: 'Drive Shaft & Pillow-Block Sleeve Bearings',
+          partName: 'Hardened Ground-Steel Mechanical Power Output Axis',
+          role: 'Transmits rotor torque to external mechanical loads with minimal frictional resistance',
+          bloodType: 'Neutral',
+          internalStructures: [
+            'Precision Ground Hardened Steel Shaft (Rockwell C60)',
+            'Dual Low-Friction Sintered Bronze Bearing Sleeves',
+            'Keyway Drive Coupling for Mechanical Power Transfer',
+          ],
+          description: 'The central shaft supports the rotating armature and split-ring commutator. Precision bronze bearings minimize mechanical friction, ensuring electrical energy is efficiently converted into shaft horsepower.',
+          actionHint: 'Double-tap to close',
         },
       }
 
-      const motorGroup = new THREE.Group()
-      scene.add(motorGroup)
+      // Structural Groups for Explode animation
+      const statorLeftGrp = new THREE.Group()  // North pole
+      const statorRightGrp = new THREE.Group() // South pole
+      const yokeGrp = new THREE.Group()        // Base & frame
+      const rotorGrp = new THREE.Group()       // Shaft, core, windings, commutator
+      const brushesGrp = new THREE.Group()     // Carbon brushes & leads
 
-      const magnetGeo = new THREE.BoxGeometry(3.5, 5.0, 9.0)
-      const northMat = new THREE.MeshStandardMaterial({
-        color: 0xef4444,
-        roughness: 0.3,
-        metalness: 0.3,
-      })
-      const southMat = new THREE.MeshStandardMaterial({
-        color: 0x2563eb,
-        roughness: 0.3,
-        metalness: 0.3,
-      })
+      motorRig.add(yokeGrp)
+      motorRig.add(statorLeftGrp)
+      motorRig.add(statorRightGrp)
+      motorRig.add(rotorGrp)
+      motorRig.add(brushesGrp)
 
-      const northPole = new THREE.Mesh(magnetGeo, northMat)
+      // 1. Cast-iron Stator Base Yoke Frame
+      const yokeMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.3 })
+      const basePlate = new THREE.Mesh(new THREE.BoxGeometry(22, 1.2, 16), yokeMat)
+      basePlate.position.y = -4.5
+      basePlate.userData = { partKey: 'magnets' }
+      yokeGrp.add(basePlate)
+      interactableMeshes.push(basePlate)
+
+      // Dual Bearing Pillars on Yoke
+      const pillarGeo = new THREE.BoxGeometry(1.6, 6.0, 1.6)
+      const pillarFront = new THREE.Mesh(pillarGeo, yokeMat)
+      pillarFront.position.set(0, -1.0, 7.0)
+      yokeGrp.add(pillarFront)
+
+      const pillarBack = new THREE.Mesh(pillarGeo, yokeMat)
+      pillarBack.position.set(0, -1.0, -7.0)
+      yokeGrp.add(pillarBack)
+
+      // 2. Curved Stator Magnets
+      // North Magnet (Left, Red)
+      const northMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3, metalness: 0.3 })
+      const northPole = new THREE.Mesh(new THREE.BoxGeometry(3.6, 5.5, 9.5), northMat)
       northPole.position.set(-8.5, 0, 0)
-      northPole.userData = { partId: 'magnets' }
-      motorGroup.add(northPole)
+      northPole.userData = { partKey: 'magnets' }
+      statorLeftGrp.add(northPole)
       interactableMeshes.push(northPole)
 
-      const southPole = new THREE.Mesh(magnetGeo, southMat)
+      // North Pole Curved Shoe
+      const shoeNorthGeo = new THREE.CylinderGeometry(5.2, 5.2, 9.5, 24, 1, false, -Math.PI / 4, Math.PI / 2)
+      const shoeNorth = new THREE.Mesh(shoeNorthGeo, northMat)
+      shoeNorth.rotation.x = Math.PI / 2
+      shoeNorth.position.set(-4.0, 0, 0)
+      shoeNorth.userData = { partKey: 'magnets' }
+      statorLeftGrp.add(shoeNorth)
+      interactableMeshes.push(shoeNorth)
+
+      // South Magnet (Right, Blue)
+      const southMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.3, metalness: 0.3 })
+      const southPole = new THREE.Mesh(new THREE.BoxGeometry(3.6, 5.5, 9.5), southMat)
       southPole.position.set(8.5, 0, 0)
-      southPole.userData = { partId: 'magnets' }
-      motorGroup.add(southPole)
+      southPole.userData = { partKey: 'magnets' }
+      statorRightGrp.add(southPole)
       interactableMeshes.push(southPole)
 
-      // Magnetic Flux Lines
-      const fluxLinesCount = 8
-      for (let i = 0; i < fluxLinesCount; i++) {
+      // South Pole Curved Shoe
+      const shoeSouthGeo = new THREE.CylinderGeometry(5.2, 5.2, 9.5, 24, 1, false, (3 * Math.PI) / 4, Math.PI / 2)
+      const shoeSouth = new THREE.Mesh(shoeSouthGeo, southMat)
+      shoeSouth.rotation.x = Math.PI / 2
+      shoeSouth.position.set(4.0, 0, 0)
+      shoeSouth.userData = { partKey: 'magnets' }
+      statorRightGrp.add(shoeSouth)
+      interactableMeshes.push(shoeSouth)
+
+      // 3. Magnetic Flux Vector Lines (Cyan Arrows from North to South)
+      const fluxLinesGrp = new THREE.Group()
+      motorRig.add(fluxLinesGrp)
+
+      const fluxCount = 9
+      for (let i = 0; i < fluxCount; i++) {
         const fy = -1.8 + (i % 3) * 1.8
-        const fz = -3.2 + Math.floor(i / 3) * 3.2
+        const fz = -3.0 + Math.floor(i / 3) * 3.0
         const arrow = new THREE.ArrowHelper(
           new THREE.Vector3(1, 0, 0),
-          new THREE.Vector3(-6.7, fy, fz),
-          13.4,
+          new THREE.Vector3(-6.2, fy, fz),
+          12.4,
           0x06b6d4,
           0.8,
           0.4
         )
-        motorGroup.add(arrow)
+        fluxLinesGrp.add(arrow)
       }
 
-      // Rotor Group
-      const rotorGroup = new THREE.Group()
-      motorGroup.add(rotorGroup)
-
-      const shaftGeo = new THREE.CylinderGeometry(0.35, 0.35, 14, 16)
+      // 4. Rotor Assembly: Steel Shaft, Laminated Core & Copper Windings
       const shaftMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.2 })
-      const shaft = new THREE.Mesh(shaftGeo, shaftMat)
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 17, 16), shaftMat)
       shaft.rotation.x = Math.PI / 2
-      rotorGroup.add(shaft)
+      shaft.userData = { partKey: 'shaft' }
+      rotorGrp.add(shaft)
+      interactableMeshes.push(shaft)
 
-      const coilWidth = 6.8
-      const coilLength = 8.5
-      const copperMat = new THREE.MeshStandardMaterial({
-        color: 0xf59e0b,
-        metalness: 0.85,
-        roughness: 0.25,
-      })
-
-      const coilLeft = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, coilLength, 12), copperMat)
-      coilLeft.position.x = -coilWidth / 2
-      coilLeft.rotation.x = Math.PI / 2
-      coilLeft.userData = { partId: 'armature' }
-      rotorGroup.add(coilLeft)
-      interactableMeshes.push(coilLeft)
-
-      const coilRight = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, coilLength, 12), copperMat)
-      coilRight.position.x = coilWidth / 2
-      coilRight.rotation.x = Math.PI / 2
-      coilRight.userData = { partId: 'armature' }
-      rotorGroup.add(coilRight)
-      interactableMeshes.push(coilRight)
-
-      const coilFront = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, coilWidth, 12), copperMat)
-      coilFront.position.z = coilLength / 2
-      coilFront.rotation.z = Math.PI / 2
-      coilFront.userData = { partId: 'armature' }
-      rotorGroup.add(coilFront)
-      interactableMeshes.push(coilFront)
-
-      const coilBack = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, coilWidth, 12), copperMat)
-      coilBack.position.z = -coilLength / 2
-      coilBack.rotation.z = Math.PI / 2
-      coilBack.userData = { partId: 'armature' }
-      rotorGroup.add(coilBack)
-      interactableMeshes.push(coilBack)
-
-      const coreGeo = new THREE.CylinderGeometry(coilWidth * 0.44, coilWidth * 0.44, coilLength * 0.85, 20)
-      const coreMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.7, roughness: 0.4 })
-      const ironCore = new THREE.Mesh(coreGeo, coreMat)
+      // Laminated Rotor Iron Core
+      const coreMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.7, roughness: 0.4 })
+      const ironCore = new THREE.Mesh(new THREE.CylinderGeometry(3.0, 3.0, 8.2, 24), coreMat)
       ironCore.rotation.x = Math.PI / 2
-      ironCore.userData = { partId: 'armature' }
-      rotorGroup.add(ironCore)
+      ironCore.userData = { partKey: 'armature' }
+      rotorGrp.add(ironCore)
       interactableMeshes.push(ironCore)
 
-      // Split-Ring Commutator Segments
-      const commMat = new THREE.MeshStandardMaterial({
-        color: 0xd97706,
-        metalness: 0.9,
-        roughness: 0.2,
-      })
-      const comm1Geo = new THREE.CylinderGeometry(0.85, 0.85, 1.8, 16, 1, false, 0.15, Math.PI - 0.3)
+      // Multi-Turn Copper Windings
+      const copperMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.85, roughness: 0.25 })
+      const coilWidth = 6.4
+      const coilLength = 8.8
+
+      const coilLeft = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, coilLength, 12), copperMat)
+      coilLeft.position.x = -coilWidth / 2
+      coilLeft.rotation.x = Math.PI / 2
+      coilLeft.userData = { partKey: 'armature' }
+      rotorGrp.add(coilLeft)
+      interactableMeshes.push(coilLeft)
+
+      const coilRight = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, coilLength, 12), copperMat)
+      coilRight.position.x = coilWidth / 2
+      coilRight.rotation.x = Math.PI / 2
+      coilRight.userData = { partKey: 'armature' }
+      rotorGrp.add(coilRight)
+      interactableMeshes.push(coilRight)
+
+      const coilFront = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, coilWidth, 12), copperMat)
+      coilFront.position.z = coilLength / 2
+      coilFront.rotation.z = Math.PI / 2
+      coilFront.userData = { partKey: 'armature' }
+      rotorGrp.add(coilFront)
+      interactableMeshes.push(coilFront)
+
+      const coilBack = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, coilWidth, 12), copperMat)
+      coilBack.position.z = -coilLength / 2
+      coilBack.rotation.z = Math.PI / 2
+      coilBack.userData = { partKey: 'armature' }
+      rotorGrp.add(coilBack)
+      interactableMeshes.push(coilBack)
+
+      // 5. Split-Ring Commutator Segments
+      const commMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.9, roughness: 0.2 })
+      const comm1Geo = new THREE.CylinderGeometry(0.9, 0.9, 2.0, 16, 1, false, 0.18, Math.PI - 0.36)
       const commRing1 = new THREE.Mesh(comm1Geo, commMat)
       commRing1.rotation.x = Math.PI / 2
-      commRing1.position.z = coilLength / 2 + 1.8
-      commRing1.userData = { partId: 'commutator' }
-      rotorGroup.add(commRing1)
+      commRing1.position.z = coilLength / 2 + 2.0
+      commRing1.userData = { partKey: 'commutator' }
+      rotorGrp.add(commRing1)
       interactableMeshes.push(commRing1)
 
-      const comm2Geo = new THREE.CylinderGeometry(0.85, 0.85, 1.8, 16, 1, false, Math.PI + 0.15, Math.PI - 0.3)
+      const comm2Geo = new THREE.CylinderGeometry(0.9, 0.9, 2.0, 16, 1, false, Math.PI + 0.18, Math.PI - 0.36)
       const commRing2 = new THREE.Mesh(comm2Geo, commMat)
       commRing2.rotation.x = Math.PI / 2
-      commRing2.position.z = coilLength / 2 + 1.8
-      commRing2.userData = { partId: 'commutator' }
-      rotorGroup.add(commRing2)
+      commRing2.position.z = coilLength / 2 + 2.0
+      commRing2.userData = { partKey: 'commutator' }
+      rotorGrp.add(commRing2)
       interactableMeshes.push(commRing2)
 
-      // Carbon Brushes
-      const brushMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 })
-      const brushGeo = new THREE.BoxGeometry(0.5, 0.7, 1.4)
+      // 6. Spring-Loaded Carbon Brushes & Terminals
+      const brushMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 })
+      const brushGeo = new THREE.BoxGeometry(0.55, 0.8, 1.5)
 
       const brushPositive = new THREE.Mesh(brushGeo, brushMat)
-      brushPositive.position.set(-1.15, 0, coilLength / 2 + 1.8)
-      brushPositive.userData = { partId: 'commutator' }
-      motorGroup.add(brushPositive)
+      brushPositive.position.set(-1.22, 0, coilLength / 2 + 2.0)
+      brushPositive.userData = { partKey: 'commutator' }
+      brushesGrp.add(brushPositive)
       interactableMeshes.push(brushPositive)
 
       const brushNegative = new THREE.Mesh(brushGeo, brushMat)
-      brushNegative.position.set(1.15, 0, coilLength / 2 + 1.8)
-      brushNegative.userData = { partId: 'commutator' }
-      motorGroup.add(brushNegative)
+      brushNegative.position.set(1.22, 0, coilLength / 2 + 2.0)
+      brushNegative.userData = { partKey: 'commutator' }
+      brushesGrp.add(brushNegative)
       interactableMeshes.push(brushNegative)
 
-      const redLead = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.15, 0.15, 3.5, 12),
-        new THREE.MeshStandardMaterial({ color: 0xef4444 })
-      )
-      redLead.position.set(-2.5, -1.5, coilLength / 2 + 1.8)
+      // Terminal Wires
+      const redLead = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 4.0, 10), new THREE.MeshStandardMaterial({ color: 0xef4444 }))
+      redLead.position.set(-2.8, -1.8, coilLength / 2 + 2.0)
       redLead.rotation.z = Math.PI / 4
-      motorGroup.add(redLead)
+      brushesGrp.add(redLead)
 
-      const blueLead = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.15, 0.15, 3.5, 12),
-        new THREE.MeshStandardMaterial({ color: 0x3b82f6 })
-      )
-      blueLead.position.set(2.5, -1.5, coilLength / 2 + 1.8)
+      const blueLead = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 4.0, 10), new THREE.MeshStandardMaterial({ color: 0x3b82f6 }))
+      blueLead.position.set(2.8, -1.8, coilLength / 2 + 2.0)
       blueLead.rotation.z = -Math.PI / 4
-      motorGroup.add(blueLead)
+      brushesGrp.add(blueLead)
 
+      // 7. Dynamic Lorentz Force Vectors
       const forceArrowLeft = new THREE.ArrowHelper(
         new THREE.Vector3(0, 1, 0),
         new THREE.Vector3(-coilWidth / 2, 0, 0),
@@ -4192,7 +4604,8 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         0.9,
         0.45
       )
-      rotorGroup.add(forceArrowLeft)
+      forceArrowLeft.userData = { partKey: 'lorentz' }
+      rotorGrp.add(forceArrowLeft)
 
       const forceArrowRight = new THREE.ArrowHelper(
         new THREE.Vector3(0, -1, 0),
@@ -4202,11 +4615,13 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         0.9,
         0.45
       )
-      rotorGroup.add(forceArrowRight)
+      forceArrowRight.userData = { partKey: 'lorentz' }
+      rotorGrp.add(forceArrowRight)
 
       let angle = 0
-      let activeDissectId: 'commutator' | 'armature' | 'magnets' | null = null
+      let activeDissectKey: string | null = null
 
+      // Raycasting for Double-Tap & Double-Click Dissection
       const raycaster = new THREE.Raycaster()
       const pointer = new THREE.Vector2()
 
@@ -4220,18 +4635,18 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
         if (intersects.length > 0) {
           const hit = intersects[0].object as THREE.Mesh
-          const id = hit.userData?.partId as 'commutator' | 'armature' | 'magnets' | undefined
-          if (id) {
-            if (activeDissectId === id) {
-              activeDissectId = null
+          const key = hit.userData?.partKey as string | undefined
+          if (key && DISSECT_CARDS[key]) {
+            if (activeDissectKey === key) {
+              activeDissectKey = null
               callbacks.onInspectPart?.(null)
             } else {
-              activeDissectId = id
-              callbacks.onInspectPart?.(DISSECT_CARDS[id])
+              activeDissectKey = key
+              callbacks.onInspectPart?.(DISSECT_CARDS[key])
             }
           }
         } else {
-          activeDissectId = null
+          activeDissectKey = null
           callbacks.onInspectPart?.(null)
         }
       }
@@ -4253,16 +4668,28 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       renderer.domElement.addEventListener('dblclick', handleDblClick)
       renderer.domElement.addEventListener('touchend', handleTouchEnd)
 
+      const applyExplode = () => {
+        const factor = (params.explode / 100) * 8.0 // Explode expansion factor
+        statorLeftGrp.position.x = -factor
+        statorRightGrp.position.x = factor
+        brushesGrp.position.z = factor * 0.8
+        fluxLinesGrp.visible = params.explode < 30
+      }
+
+      applyExplode()
+
       function animate() {
         animId = requestAnimationFrame(animate)
 
-        if (isPlaying && params.voltage > 0) {
+        // Only spin if not in heavy exploded mode
+        if (params.voltage > 0 && params.explode < 70) {
           const speed = (params.voltage / 12) * params.fieldStrength * 0.05
           angle += speed
-          rotorGroup.rotation.z = angle
+          rotorGrp.rotation.z = angle
 
+          // Lorentz force couple flips and scales with torque angle
           const torqueMagnitude = Math.abs(Math.cos(angle))
-          const forceLen = Math.max(0.5, 3.5 * torqueMagnitude * (params.voltage / 12))
+          const forceLen = Math.max(0.6, 3.6 * torqueMagnitude * (params.voltage / 12))
 
           forceArrowLeft.setLength(forceLen, 0.8, 0.4)
           forceArrowRight.setLength(forceLen, 0.8, 0.4)
@@ -4286,18 +4713,21 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       return {
         updateParams: (newParams) => {
           params = { ...newParams }
+          applyExplode()
         },
         setPlaying: (playing) => {
           isPlaying = playing
         },
         reset: () => {
           angle = 0
-          rotorGroup.rotation.z = 0
-          activeDissectId = null
+          rotorGrp.rotation.z = 0
+          activeDissectKey = null
           callbacks.onInspectPart?.(null)
+          controls.reset()
+          applyExplode()
         },
         closeDissection: () => {
-          activeDissectId = null
+          activeDissectKey = null
           callbacks.onInspectPart?.(null)
         },
         dispose: () => {
@@ -4313,4 +4743,5 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       }
     },
   },
+
 }
