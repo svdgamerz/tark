@@ -602,11 +602,194 @@ KNOWN_CHAPTERS_MAP: Dict[Tuple[str, str, str], List[Dict[str, Any]]] = {
         {"source": "ilide.info-biology-4th-edition-coursebook-0610-pr_e0dc67d76cb4179ef278db40ea76923b.pdf", "chapter": "Chapter 20: Human Influences on Ecosystems", "start_page": 327, "end_page": 340, "total_doc_pages": 350, "chunks_count": 14},
         {"source": "ilide.info-biology-4th-edition-coursebook-0610-pr_e0dc67d76cb4179ef278db40ea76923b.pdf", "chapter": "Chapter 21: Biotechnology and Genetic Modification", "start_page": 341, "end_page": 350, "total_doc_pages": 350, "chunks_count": 10},
     ],
+
+    # --- CBSE CLASS 10 SCIENCE ---
+    ("CBSE (NCERT)", "10", "Science"): [
+        {"source": "jesc101.pdf", "chapter": "Chapter 1: Chemical Reactions and Equations", "start_page": 1, "end_page": 16, "total_doc_pages": 260, "chunks_count": 16},
+        {"source": "jesc102.pdf", "chapter": "Chapter 2: Acids, Bases and Salts", "start_page": 17, "end_page": 36, "total_doc_pages": 260, "chunks_count": 20},
+        {"source": "jesc103.pdf", "chapter": "Chapter 3: Metals and Non-metals", "start_page": 37, "end_page": 56, "total_doc_pages": 260, "chunks_count": 20},
+        {"source": "jesc104.pdf", "chapter": "Chapter 4: Carbon and its Compounds", "start_page": 57, "end_page": 78, "total_doc_pages": 260, "chunks_count": 22},
+        {"source": "jesc105.pdf", "chapter": "Chapter 5: Life Processes", "start_page": 79, "end_page": 108, "total_doc_pages": 260, "chunks_count": 30},
+        {"source": "jesc106.pdf", "chapter": "Chapter 6: Control and Coordination", "start_page": 109, "end_page": 126, "total_doc_pages": 260, "chunks_count": 18},
+        {"source": "jesc107.pdf", "chapter": "Chapter 7: How do Organisms Reproduce?", "start_page": 127, "end_page": 144, "total_doc_pages": 260, "chunks_count": 18},
+        {"source": "jesc108.pdf", "chapter": "Chapter 8: Heredity", "start_page": 145, "end_page": 158, "total_doc_pages": 260, "chunks_count": 14},
+        {"source": "jesc109.pdf", "chapter": "Chapter 9: Light - Reflection and Refraction", "start_page": 159, "end_page": 188, "total_doc_pages": 260, "chunks_count": 30},
+        {"source": "jesc110.pdf", "chapter": "Chapter 10: The Human Eye and the Colourful World", "start_page": 189, "end_page": 202, "total_doc_pages": 260, "chunks_count": 14},
+        {"source": "jesc111.pdf", "chapter": "Chapter 11: Electricity", "start_page": 203, "end_page": 224, "total_doc_pages": 260, "chunks_count": 22},
+        {"source": "jesc112.pdf", "chapter": "Chapter 12: Magnetic Effects of Electric Current", "start_page": 225, "end_page": 242, "total_doc_pages": 260, "chunks_count": 18},
+        {"source": "jesc113.pdf", "chapter": "Chapter 13: Our Environment", "start_page": 243, "end_page": 260, "total_doc_pages": 260, "chunks_count": 18},
+    ],
+
+    # --- CBSE CLASS 10 MATHEMATICS ---
+    ("CBSE (NCERT)", "10", "Maths"): [
+        {"source": "jemh101.pdf", "chapter": "Chapter 1: Real Numbers", "start_page": 1, "end_page": 18, "total_doc_pages": 300, "chunks_count": 18},
+        {"source": "jemh102.pdf", "chapter": "Chapter 2: Polynomials", "start_page": 19, "end_page": 38, "total_doc_pages": 300, "chunks_count": 20},
+        {"source": "jemh103.pdf", "chapter": "Chapter 3: Pair of Linear Equations in Two Variables", "start_page": 39, "end_page": 70, "total_doc_pages": 300, "chunks_count": 32},
+        {"source": "jemh104.pdf", "chapter": "Chapter 4: Quadratic Equations", "start_page": 71, "end_page": 92, "total_doc_pages": 300, "chunks_count": 22},
+        {"source": "jemh105.pdf", "chapter": "Chapter 5: Arithmetic Progressions", "start_page": 93, "end_page": 118, "total_doc_pages": 300, "chunks_count": 26},
+        {"source": "jemh106.pdf", "chapter": "Chapter 6: Triangles", "start_page": 119, "end_page": 154, "total_doc_pages": 300, "chunks_count": 36},
+        {"source": "jemh107.pdf", "chapter": "Chapter 7: Coordinate Geometry", "start_page": 155, "end_page": 174, "total_doc_pages": 300, "chunks_count": 20},
+        {"source": "jemh108.pdf", "chapter": "Chapter 8: Introduction to Trigonometry", "start_page": 175, "end_page": 196, "total_doc_pages": 300, "chunks_count": 22},
+        {"source": "jemh109.pdf", "chapter": "Chapter 9: Some Applications of Trigonometry", "start_page": 197, "end_page": 210, "total_doc_pages": 300, "chunks_count": 14},
+        {"source": "jemh110.pdf", "chapter": "Chapter 10: Circles", "start_page": 211, "end_page": 224, "total_doc_pages": 300, "chunks_count": 14},
+        {"source": "jemh111.pdf", "chapter": "Chapter 11: Areas Related to Circles", "start_page": 225, "end_page": 242, "total_doc_pages": 300, "chunks_count": 18},
+        {"source": "jemh112.pdf", "chapter": "Chapter 12: Surface Areas and Volumes", "start_page": 243, "end_page": 264, "total_doc_pages": 300, "chunks_count": 22},
+        {"source": "jemh113.pdf", "chapter": "Chapter 13: Statistics", "start_page": 265, "end_page": 294, "total_doc_pages": 300, "chunks_count": 30},
+        {"source": "jemh114.pdf", "chapter": "Chapter 14: Probability", "start_page": 295, "end_page": 300, "total_doc_pages": 300, "chunks_count": 6},
+    ],
+
+    # --- CBSE CLASS 9 SCIENCE ---
+    ("CBSE (NCERT)", "9", "Science"): [
+        {"source": "iesc101.pdf", "chapter": "Chapter 1: Matter in Our Surroundings", "start_page": 1, "end_page": 14, "total_doc_pages": 218, "chunks_count": 14},
+        {"source": "iesc102.pdf", "chapter": "Chapter 2: Is Matter Around Us Pure", "start_page": 15, "end_page": 30, "total_doc_pages": 218, "chunks_count": 16},
+        {"source": "iesc103.pdf", "chapter": "Chapter 3: Atoms and Molecules", "start_page": 31, "end_page": 44, "total_doc_pages": 218, "chunks_count": 14},
+        {"source": "iesc104.pdf", "chapter": "Chapter 4: Structure of the Atom", "start_page": 45, "end_page": 56, "total_doc_pages": 218, "chunks_count": 12},
+        {"source": "iesc105.pdf", "chapter": "Chapter 5: The Fundamental Unit of Life", "start_page": 57, "end_page": 68, "total_doc_pages": 218, "chunks_count": 12},
+        {"source": "iesc106.pdf", "chapter": "Chapter 6: Tissues", "start_page": 69, "end_page": 82, "total_doc_pages": 218, "chunks_count": 14},
+        {"source": "iesc107.pdf", "chapter": "Chapter 7: Motion", "start_page": 83, "end_page": 104, "total_doc_pages": 218, "chunks_count": 22},
+        {"source": "iesc108.pdf", "chapter": "Chapter 8: Force and Laws of Motion", "start_page": 105, "end_page": 122, "total_doc_pages": 218, "chunks_count": 18},
+        {"source": "iesc109.pdf", "chapter": "Chapter 9: Gravitation", "start_page": 123, "end_page": 144, "total_doc_pages": 218, "chunks_count": 22},
+        {"source": "iesc110.pdf", "chapter": "Chapter 10: Work and Energy", "start_page": 145, "end_page": 160, "total_doc_pages": 218, "chunks_count": 16},
+        {"source": "iesc111.pdf", "chapter": "Chapter 11: Sound", "start_page": 161, "end_page": 186, "total_doc_pages": 218, "chunks_count": 26},
+        {"source": "iesc112.pdf", "chapter": "Chapter 12: Improvement in Food Resources", "start_page": 187, "end_page": 218, "total_doc_pages": 218, "chunks_count": 32},
+    ],
+
+    # --- CBSE CLASS 9 MATHEMATICS ---
+    ("CBSE (NCERT)", "9", "Maths"): [
+        {"source": "iemh101.pdf", "chapter": "Chapter 1: Number Systems", "start_page": 1, "end_page": 28, "total_doc_pages": 260, "chunks_count": 28},
+        {"source": "iemh102.pdf", "chapter": "Chapter 2: Polynomials", "start_page": 29, "end_page": 52, "total_doc_pages": 260, "chunks_count": 24},
+        {"source": "iemh103.pdf", "chapter": "Chapter 3: Coordinate Geometry", "start_page": 53, "end_page": 68, "total_doc_pages": 260, "chunks_count": 16},
+        {"source": "iemh104.pdf", "chapter": "Chapter 4: Linear Equations in Two Variables", "start_page": 69, "end_page": 78, "total_doc_pages": 260, "chunks_count": 10},
+        {"source": "iemh105.pdf", "chapter": "Chapter 5: Introduction to Euclid’s Geometry", "start_page": 79, "end_page": 88, "total_doc_pages": 260, "chunks_count": 10},
+        {"source": "iemh106.pdf", "chapter": "Chapter 6: Lines and Angles", "start_page": 89, "end_page": 110, "total_doc_pages": 260, "chunks_count": 22},
+        {"source": "iemh107.pdf", "chapter": "Chapter 7: Triangles", "start_page": 111, "end_page": 140, "total_doc_pages": 260, "chunks_count": 30},
+        {"source": "iemh108.pdf", "chapter": "Chapter 8: Quadrilaterals", "start_page": 141, "end_page": 158, "total_doc_pages": 260, "chunks_count": 18},
+        {"source": "iemh109.pdf", "chapter": "Chapter 9: Circles", "start_page": 159, "end_page": 186, "total_doc_pages": 260, "chunks_count": 28},
+        {"source": "iemh110.pdf", "chapter": "Chapter 10: Heron’s Formula", "start_page": 187, "end_page": 204, "total_doc_pages": 260, "chunks_count": 18},
+        {"source": "iemh111.pdf", "chapter": "Chapter 11: Surface Areas and Volumes", "start_page": 205, "end_page": 236, "total_doc_pages": 260, "chunks_count": 32},
+        {"source": "iemh112.pdf", "chapter": "Chapter 12: Statistics", "start_page": 237, "end_page": 260, "total_doc_pages": 260, "chunks_count": 24},
+    ],
+
+    # --- CBSE CLASS 8 SCIENCE ---
+    ("CBSE (NCERT)", "8", "Science"): [
+        {"source": "hesc101.pdf", "chapter": "Chapter 1: Crop Production and Management", "start_page": 1, "end_page": 16, "total_doc_pages": 180, "chunks_count": 16},
+        {"source": "hesc102.pdf", "chapter": "Chapter 2: Microorganisms: Friend and Foe", "start_page": 17, "end_page": 32, "total_doc_pages": 180, "chunks_count": 16},
+        {"source": "hesc103.pdf", "chapter": "Chapter 3: Coal and Petroleum", "start_page": 33, "end_page": 44, "total_doc_pages": 180, "chunks_count": 12},
+        {"source": "hesc104.pdf", "chapter": "Chapter 4: Combustion and Flame", "start_page": 45, "end_page": 58, "total_doc_pages": 180, "chunks_count": 14},
+        {"source": "hesc105.pdf", "chapter": "Chapter 5: Conservation of Plants and Animals", "start_page": 59, "end_page": 72, "total_doc_pages": 180, "chunks_count": 14},
+        {"source": "hesc106.pdf", "chapter": "Chapter 6: Reproduction in Animals", "start_page": 73, "end_page": 86, "total_doc_pages": 180, "chunks_count": 14},
+        {"source": "hesc107.pdf", "chapter": "Chapter 7: Reaching the Age of Adolescence", "start_page": 87, "end_page": 100, "total_doc_pages": 180, "chunks_count": 14},
+        {"source": "hesc108.pdf", "chapter": "Chapter 8: Force and Pressure", "start_page": 101, "end_page": 118, "total_doc_pages": 180, "chunks_count": 18},
+        {"source": "hesc109.pdf", "chapter": "Chapter 9: Friction", "start_page": 119, "end_page": 132, "total_doc_pages": 180, "chunks_count": 14},
+        {"source": "hesc110.pdf", "chapter": "Chapter 10: Sound", "start_page": 133, "end_page": 148, "total_doc_pages": 180, "chunks_count": 16},
+        {"source": "hesc111.pdf", "chapter": "Chapter 11: Chemical Effects of Electric Current", "start_page": 149, "end_page": 160, "total_doc_pages": 180, "chunks_count": 12},
+        {"source": "hesc112.pdf", "chapter": "Chapter 12: Some Natural Phenomena", "start_page": 161, "end_page": 172, "total_doc_pages": 180, "chunks_count": 12},
+        {"source": "hesc113.pdf", "chapter": "Chapter 13: Light", "start_page": 173, "end_page": 180, "total_doc_pages": 180, "chunks_count": 8},
+    ],
+
+    # --- CBSE CLASS 8 MATHEMATICS ---
+    ("CBSE (NCERT)", "8", "Maths"): [
+        {"source": "hemh101.pdf", "chapter": "Chapter 1: Rational Numbers", "start_page": 1, "end_page": 18, "total_doc_pages": 210, "chunks_count": 18},
+        {"source": "hemh102.pdf", "chapter": "Chapter 2: Linear Equations in One Variable", "start_page": 19, "end_page": 36, "total_doc_pages": 210, "chunks_count": 18},
+        {"source": "hemh103.pdf", "chapter": "Chapter 3: Understanding Quadrilaterals", "start_page": 37, "end_page": 56, "total_doc_pages": 210, "chunks_count": 20},
+        {"source": "hemh104.pdf", "chapter": "Chapter 4: Data Handling", "start_page": 57, "end_page": 74, "total_doc_pages": 210, "chunks_count": 18},
+        {"source": "hemh105.pdf", "chapter": "Chapter 5: Square and Square Roots", "start_page": 75, "end_page": 96, "total_doc_pages": 210, "chunks_count": 22},
+        {"source": "hemh106.pdf", "chapter": "Chapter 6: Cube and Cube Roots", "start_page": 97, "end_page": 110, "total_doc_pages": 210, "chunks_count": 14},
+        {"source": "hemh107.pdf", "chapter": "Chapter 7: Comparing Quantities", "start_page": 111, "end_page": 132, "total_doc_pages": 210, "chunks_count": 22},
+        {"source": "hemh108.pdf", "chapter": "Chapter 8: Algebraic Expressions and Identities", "start_page": 133, "end_page": 150, "total_doc_pages": 210, "chunks_count": 18},
+        {"source": "hemh109.pdf", "chapter": "Chapter 9: Mensuration", "start_page": 151, "end_page": 172, "total_doc_pages": 210, "chunks_count": 22},
+        {"source": "hemh110.pdf", "chapter": "Chapter 10: Exponents and Powers", "start_page": 173, "end_page": 186, "total_doc_pages": 210, "chunks_count": 14},
+        {"source": "hemh111.pdf", "chapter": "Chapter 11: Direct and Inverse Proportions", "start_page": 187, "end_page": 198, "total_doc_pages": 210, "chunks_count": 12},
+        {"source": "hemh112.pdf", "chapter": "Chapter 12: Factorisation", "start_page": 199, "end_page": 206, "total_doc_pages": 210, "chunks_count": 8},
+        {"source": "hemh113.pdf", "chapter": "Chapter 13: Introduction to Graphs", "start_page": 207, "end_page": 210, "total_doc_pages": 210, "chunks_count": 4},
+    ],
+
+    # --- ICSE CLASS 10 PHYSICS ---
+    ("ICSE (CISCE)", "10", "Physics"): [
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 1: Force", "start_page": 1, "end_page": 22, "total_doc_pages": 250, "chunks_count": 22},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 2: Work, Energy and Power", "start_page": 23, "end_page": 44, "total_doc_pages": 250, "chunks_count": 22},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 3: Machines", "start_page": 45, "end_page": 64, "total_doc_pages": 250, "chunks_count": 20},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 4: Refraction of Light at Plane Surfaces", "start_page": 65, "end_page": 90, "total_doc_pages": 250, "chunks_count": 26},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 5: Refraction through a Lens", "start_page": 91, "end_page": 114, "total_doc_pages": 250, "chunks_count": 24},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 6: Spectrum", "start_page": 115, "end_page": 130, "total_doc_pages": 250, "chunks_count": 16},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 7: Sound", "start_page": 131, "end_page": 150, "total_doc_pages": 250, "chunks_count": 20},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 8: Current Electricity", "start_page": 151, "end_page": 180, "total_doc_pages": 250, "chunks_count": 30},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 9: Household Circuits", "start_page": 181, "end_page": 196, "total_doc_pages": 250, "chunks_count": 16},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 10: Electro-magnetism", "start_page": 197, "end_page": 220, "total_doc_pages": 250, "chunks_count": 24},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 11: Calorimetry", "start_page": 221, "end_page": 236, "total_doc_pages": 250, "chunks_count": 16},
+        {"source": "ICSE_Class10_Physics.pdf", "chapter": "Chapter 12: Radioactivity", "start_page": 237, "end_page": 250, "total_doc_pages": 250, "chunks_count": 14},
+    ],
+
+    # --- ICSE CLASS 10 MATHEMATICS ---
+    ("ICSE (CISCE)", "10", "Maths"): [
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 1: Goods and Services Tax (GST)", "start_page": 1, "end_page": 16, "total_doc_pages": 320, "chunks_count": 16},
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 2: Banking (Recurring Deposit Accounts)", "start_page": 17, "end_page": 28, "total_doc_pages": 320, "chunks_count": 12},
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 3: Shares and Dividend", "start_page": 29, "end_page": 44, "total_doc_pages": 320, "chunks_count": 16},
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 4: Linear Inequations", "start_page": 45, "end_page": 58, "total_doc_pages": 320, "chunks_count": 14},
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 5: Quadratic Equations in One Variable", "start_page": 59, "end_page": 78, "total_doc_pages": 320, "chunks_count": 20},
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 6: Solving Problems (Based on Quadratic Equations)", "start_page": 79, "end_page": 92, "total_doc_pages": 320, "chunks_count": 14},
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 7: Ratio and Proportion", "start_page": 93, "end_page": 112, "total_doc_pages": 320, "chunks_count": 20},
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 8: Remainder and Factor Theorems", "start_page": 113, "end_page": 124, "total_doc_pages": 320, "chunks_count": 12},
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 9: Matrices", "start_page": 125, "end_page": 146, "total_doc_pages": 320, "chunks_count": 22},
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 10: Arithmetic Progression", "start_page": 147, "end_page": 166, "total_doc_pages": 320, "chunks_count": 20},
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 11: Geometric Progression", "start_page": 167, "end_page": 182, "total_doc_pages": 320, "chunks_count": 16},
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 12: Reflection", "start_page": 183, "end_page": 194, "total_doc_pages": 320, "chunks_count": 12},
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 13: Section and Mid-Point Formula", "start_page": 195, "end_page": 208, "total_doc_pages": 320, "chunks_count": 14},
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 14: Equation of a Line", "start_page": 209, "end_page": 226, "total_doc_pages": 320, "chunks_count": 18},
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 15: Similarity", "start_page": 227, "end_page": 246, "total_doc_pages": 320, "chunks_count": 20},
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 16: Loci", "start_page": 247, "end_page": 256, "total_doc_pages": 320, "chunks_count": 10},
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 17: Circles", "start_page": 257, "end_page": 278, "total_doc_pages": 320, "chunks_count": 22},
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 18: Tangents and Intersecting Chords", "start_page": 279, "end_page": 294, "total_doc_pages": 320, "chunks_count": 16},
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 19: Constructions", "start_page": 295, "end_page": 304, "total_doc_pages": 320, "chunks_count": 10},
+        {"source": "ICSE_Class10_Maths.pdf", "chapter": "Chapter 20: Mensuration: Cylinder, Cone and Sphere", "start_page": 305, "end_page": 320, "total_doc_pages": 320, "chunks_count": 16},
+    ],
+
+    # --- ICSE CLASS 9 HISTORY & CIVICS ---
+    ("ICSE (CISCE)", "9", "History & Civics"): [
+        # Civics
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 1: Our Constitution", "start_page": 1, "end_page": 14, "total_doc_pages": 230, "chunks_count": 14},
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 2: Salient Features of the Constitution - I", "start_page": 15, "end_page": 26, "total_doc_pages": 230, "chunks_count": 12},
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 3: Salient Features of the Constitution - II", "start_page": 27, "end_page": 38, "total_doc_pages": 230, "chunks_count": 12},
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 4: Elections", "start_page": 39, "end_page": 50, "total_doc_pages": 230, "chunks_count": 12},
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 5: Local Self-Government - Rural", "start_page": 51, "end_page": 62, "total_doc_pages": 230, "chunks_count": 12},
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 6: Local Self-Government - Urban", "start_page": 63, "end_page": 74, "total_doc_pages": 230, "chunks_count": 12},
+        # History
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 7: The Harappan Civilization", "start_page": 75, "end_page": 90, "total_doc_pages": 230, "chunks_count": 16},
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 8: Early Vedic Civilization", "start_page": 91, "end_page": 102, "total_doc_pages": 230, "chunks_count": 12},
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 9: Later Vedic Age", "start_page": 103, "end_page": 114, "total_doc_pages": 230, "chunks_count": 12},
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 10: India in the 6th Century BC: Rise of Jainism and Buddhism", "start_page": 115, "end_page": 128, "total_doc_pages": 230, "chunks_count": 14},
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 11: The Mauryan Empire", "start_page": 129, "end_page": 144, "total_doc_pages": 230, "chunks_count": 16},
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 12: The Sangam Age", "start_page": 145, "end_page": 156, "total_doc_pages": 230, "chunks_count": 12},
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 13: The Age of the Guptas", "start_page": 157, "end_page": 170, "total_doc_pages": 230, "chunks_count": 14},
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 14: South India and the Cholas", "start_page": 171, "end_page": 182, "total_doc_pages": 230, "chunks_count": 12},
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 15: The Delhi Sultanate", "start_page": 183, "end_page": 196, "total_doc_pages": 230, "chunks_count": 14},
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 16: The Mughal Empire", "start_page": 197, "end_page": 210, "total_doc_pages": 230, "chunks_count": 14},
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 17: Composite Culture", "start_page": 211, "end_page": 218, "total_doc_pages": 230, "chunks_count": 8},
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 18: The Renaissance", "start_page": 219, "end_page": 224, "total_doc_pages": 230, "chunks_count": 6},
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 19: The Reformation", "start_page": 225, "end_page": 228, "total_doc_pages": 230, "chunks_count": 4},
+        {"source": "ICSE_Class9_History.pdf", "chapter": "Chapter 20: Industrial Revolution", "start_page": 229, "end_page": 230, "total_doc_pages": 230, "chunks_count": 2},
+    ],
+
+    # --- IGCSE (CAMBRIDGE) MATHEMATICS (0580) ---
+    ("IGCSE (Cambridge)", "10", "Maths"): [
+        {"source": "Cambridge_IGCSE_Maths.pdf", "chapter": "Chapter 1: Number", "start_page": 1, "end_page": 40, "total_doc_pages": 360, "chunks_count": 40},
+        {"source": "Cambridge_IGCSE_Maths.pdf", "chapter": "Chapter 2: Algebra and Graphs", "start_page": 41, "end_page": 100, "total_doc_pages": 360, "chunks_count": 60},
+        {"source": "Cambridge_IGCSE_Maths.pdf", "chapter": "Chapter 3: Coordinate Geometry", "start_page": 101, "end_page": 130, "total_doc_pages": 360, "chunks_count": 30},
+        {"source": "Cambridge_IGCSE_Maths.pdf", "chapter": "Chapter 4: Geometry", "start_page": 131, "end_page": 180, "total_doc_pages": 360, "chunks_count": 50},
+        {"source": "Cambridge_IGCSE_Maths.pdf", "chapter": "Chapter 5: Mensuration", "start_page": 181, "end_page": 220, "total_doc_pages": 360, "chunks_count": 40},
+        {"source": "Cambridge_IGCSE_Maths.pdf", "chapter": "Chapter 6: Trigonometry", "start_page": 221, "end_page": 260, "total_doc_pages": 360, "chunks_count": 40},
+        {"source": "Cambridge_IGCSE_Maths.pdf", "chapter": "Chapter 7: Vectors and Transformations", "start_page": 261, "end_page": 300, "total_doc_pages": 360, "chunks_count": 40},
+        {"source": "Cambridge_IGCSE_Maths.pdf", "chapter": "Chapter 8: Probability", "start_page": 301, "end_page": 330, "total_doc_pages": 360, "chunks_count": 30},
+        {"source": "Cambridge_IGCSE_Maths.pdf", "chapter": "Chapter 9: Statistics", "start_page": 331, "end_page": 360, "total_doc_pages": 360, "chunks_count": 30},
+    ],
 }
 
 # Auto-generate cross-board aliases (e.g. History & Political Science, History & Civics, Social Science)
 for (b, g, s), chaps in list(KNOWN_CHAPTERS_MAP.items()):
     if b == "Maharashtra State Board (Balbharati)":
+        KNOWN_CHAPTERS_MAP.setdefault(("Maharashtra State Board", g, s), chaps)
+        KNOWN_CHAPTERS_MAP.setdefault(("Balbharati", g, s), chaps)
+        KNOWN_CHAPTERS_MAP.setdefault(("State Board", g, s), chaps)
         if s == "History":
             pol = KNOWN_CHAPTERS_MAP.get((b, g, "Political Science")) or KNOWN_CHAPTERS_MAP.get((b, g, "Civics")) or []
             combined = chaps + pol
@@ -618,8 +801,22 @@ for (b, g, s), chaps in list(KNOWN_CHAPTERS_MAP.items()):
             KNOWN_CHAPTERS_MAP.setdefault((b, g, "Civics"), chaps)
 
     elif b == "CBSE (NCERT)":
-        # Mirror under "CBSE"
+        # Mirror under "CBSE" and "NCERT"
         KNOWN_CHAPTERS_MAP.setdefault(("CBSE", g, s), chaps)
+        KNOWN_CHAPTERS_MAP.setdefault(("NCERT", g, s), chaps)
         if s in ("History", "Geography", "Political Science", "Economics", "Civics"):
             KNOWN_CHAPTERS_MAP.setdefault(("CBSE", g, "Social Science"), chaps)
             KNOWN_CHAPTERS_MAP.setdefault(("CBSE (NCERT)", g, "Social Science"), chaps)
+            KNOWN_CHAPTERS_MAP.setdefault(("NCERT", g, "Social Science"), chaps)
+
+    elif b == "ICSE (CISCE)":
+        KNOWN_CHAPTERS_MAP.setdefault(("ICSE", g, s), chaps)
+        KNOWN_CHAPTERS_MAP.setdefault(("CISCE", g, s), chaps)
+        if s in ("History", "Civics"):
+            KNOWN_CHAPTERS_MAP.setdefault(("ICSE (CISCE)", g, "History & Civics"), chaps)
+            KNOWN_CHAPTERS_MAP.setdefault(("ICSE", g, "History & Civics"), chaps)
+
+    elif b == "IGCSE (Cambridge)":
+        KNOWN_CHAPTERS_MAP.setdefault(("IGCSE", g, s), chaps)
+        KNOWN_CHAPTERS_MAP.setdefault(("Cambridge", g, s), chaps)
+
