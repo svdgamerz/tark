@@ -482,6 +482,7 @@ Return ONLY a valid, parseable JSON object with NO markdown fences, matching thi
 {
   "title": "Short Descriptive Title with Emoji (e.g. 🧪 Hydraulic Lift & Pascal's Law)",
   "subject": "Physics" | "Chemistry" | "Biology" | "Mathematics",
+  "apparatus_type": "electrochemistry" | "circuit" | "fluids_piston" | "mechanics" | "optics" | "cellular" | "universal_reactor",
   "formula": "Primary Governing Textbook Equation (e.g. F1/A1 = F2/A2)",
   "readouts": [
     {"label": "Pressure (P)", "calc_js": "((p.F1 / p.A1) / 1000).toFixed(1)", "unit": "kPa"},
@@ -547,7 +548,8 @@ async def generate_custom_simulation_html(question: str, context: str = "", subj
         f"Pedagogical Context: {context.strip()[:600] if context else 'Standard STEM curriculum laboratory experiment'}"
         f"{tb_section}\n\n"
         f"INSTRUCTION: Create the full JSON virtual lab specification for this topic. "
-        f"Provide realistic parameter sliders, 4 textbook scenario presets, 3 inspectable components, "
+        f"Provide the most appropriate apparatus_type (electrochemistry, circuit, fluids_piston, mechanics, optics, cellular, or universal_reactor), "
+        f"realistic parameter sliders with SI units, 4 scenario presets, 3 inspectable components, "
         f"and the exact analytical curve function for the dynamic graph. Return ONLY raw JSON."
     )
 

@@ -80,7 +80,7 @@ def build_harness_html(spec: dict[str, Any]) -> str:
         unit = r.get("unit", "")
         calc_code = r.get("calc_js", "0")
         readouts_js_parts.append(
-            f"{{ label: {json.dumps(label)}, unit: {json.dumps(unit)}, calc: (p, state) => {{ try {{ return ({calc_code}); }} catch(e) {{ return '--'; }} }} }}"
+            f"{{ label: {json.dumps(label)}, unit: {json.dumps(unit)}, calc: (p, state) => {{ try {{ return (new Function('p', 'state', 'return (' + {json.dumps(calc_code)} + ')') )(p, state); }} catch(e) {{ return '--'; }} }} }}"
         )
     readouts_js = "[\n    " + ",\n    ".join(readouts_js_parts) + "\n  ]"
 
@@ -91,7 +91,7 @@ def build_harness_html(spec: dict[str, Any]) -> str:
         f_str = c.get("formula", "")
         bounds_code = c.get("bounds_js", "{x: 0, y: 0, w: 0, h: 0}")
         comp_js_parts.append(
-            f"{{ name: {json.dumps(name)}, role: {json.dumps(role)}, formula: {json.dumps(f_str)}, getBounds: (appW, appH, p) => {{ try {{ return ({bounds_code}); }} catch(e) {{ return null; }} }} }}"
+            f"{{ name: {json.dumps(name)}, role: {json.dumps(role)}, formula: {json.dumps(f_str)}, getBounds: (appW, appH, p) => {{ try {{ return (new Function('appW', 'appH', 'p', 'return (' + {json.dumps(bounds_code)} + ')') )(appW, appH, p); }} catch(e) {{ return null; }} }} }}"
         )
     components_js = "[\n    " + ",\n    ".join(comp_js_parts) + "\n  ]"
 
@@ -113,8 +113,8 @@ def build_harness_html(spec: dict[str, Any]) -> str:
     yLabel: {json.dumps(g_yl)},
     xMin: {g_xmin}, xMax: {g_xmax},
     yMin: {g_ymin}, yMax: {g_ymax},
-    fn: (x, p, state) => {{ try {{ return ({g_fn}); }} catch(e) {{ return 0; }} }},
-    getCurrentX: (p, state) => {{ try {{ return ({g_curx}); }} catch(e) {{ return {g_xmin}; }} }}
+    fn: (x, p, state) => {{ try {{ return (new Function('x', 'p', 'state', 'return (' + {json.dumps(g_fn)} + ')') )(x, p, state); }} catch(e) {{ return 0; }} }},
+    getCurrentX: (p, state) => {{ try {{ return (new Function('p', 'state', 'return (' + {json.dumps(g_curx)} + ')') )(p, state); }} catch(e) {{ return {g_xmin}; }} }}
   }}"""
 
     presets_js = json.dumps(presets)
@@ -179,7 +179,7 @@ def build_harness_html(spec: dict[str, Any]) -> str:
     for idx, m in enumerate(missions):
         c_code = m.get("condition_js", "false")
         missions_js_parts.append(
-            f"{{ id: {json.dumps(m.get('id', idx+1))}, title: {json.dumps(m.get('title', f'Mission {idx+1}'))}, task: {json.dumps(m.get('task', ''))}, hint: {json.dumps(m.get('hint', ''))}, xp: {m.get('xp', 50)}, check: (p, state) => {{ try {{ return Boolean({c_code}); }} catch(e) {{ return false; }} }} }}"
+            f"{{ id: {json.dumps(m.get('id', idx+1))}, title: {json.dumps(m.get('title', f'Mission {idx+1}'))}, task: {json.dumps(m.get('task', ''))}, hint: {json.dumps(m.get('hint', ''))}, xp: {m.get('xp', 50)}, check: (p, state) => {{ try {{ return Boolean((new Function('p', 'state', 'return (' + {json.dumps(c_code)} + ')') )(p, state)); }} catch(e) {{ return false; }} }} }}"
         )
     missions_js = "[\n    " + ",\n    ".join(missions_js_parts) + "\n  ]"
 
@@ -951,6 +951,649 @@ html, body {{
     }}
   }};
 
+  // --- Safe Custom Apparatus Compiler ---
+  let compiledCustomApparatus = null;
+  try {{
+    const rawAppCode = {json.dumps(draw_apparatus_code)};
+    if (rawAppCode && rawAppCode.trim().length > 15) {{
+      compiledCustomApparatus = new Function('ctx', 'appW', 'appH', 'p', 'state', 'helpers', `
+        ${{rawAppCode}}
+        if (typeof drawApparatus === 'function') {{
+          drawApparatus(ctx, appW, appH, p, state);
+        }}
+      `);
+    }}
+  }} catch(e) {{
+    console.warn('Custom apparatus compilation fallback:', e);
+  }}
+
+  // =========================================================================
+  // Master Procedural Laboratory Visualizer (AAA-Grade Scientific Engines)
+  // Ensures simulations are NEVER blank and EVERY slider movement creates real,
+  // dramatic, educational visual reactions!
+  // =========================================================================
+
+  function renderMasterLaboratoryApparatus(ctx, appW, appH, p, state) {{
+    const titleStr = {json.dumps(title)}.toLowerCase();
+    const subjectStr = {json.dumps(subject)}.toLowerCase();
+    const formulaStr = {json.dumps(formula)}.toLowerCase();
+    const pKeys = Object.keys(p);
+
+    const isElectrochem = titleStr.includes('redox') || titleStr.includes('cell') || titleStr.includes('titration') || 
+                          titleStr.includes('electrolysis') || titleStr.includes('cu') || titleStr.includes('zinc') || 
+                          titleStr.includes('acid') || titleStr.includes('solution') || subjectStr.includes('chem');
+
+    const isCircuit = titleStr.includes('ohm') || titleStr.includes('circuit') || titleStr.includes('resistor') || 
+                      titleStr.includes('voltage') || titleStr.includes('current') || titleStr.includes('induction') || 
+                      titleStr.includes('faraday') || titleStr.includes('magnetic') || titleStr.includes('electricity');
+
+    const isFluidPiston = titleStr.includes('piston') || titleStr.includes('hydraulic') || titleStr.includes('pascal') || 
+                          titleStr.includes('gas') || titleStr.includes('pressure') || titleStr.includes('boyle') || 
+                          titleStr.includes('charles');
+
+    const isMechanics = titleStr.includes('pendulum') || titleStr.includes('spring') || titleStr.includes('projectile') || 
+                        titleStr.includes('motion') || titleStr.includes('gravity') || titleStr.includes('harmonic') || 
+                        titleStr.includes('oscillation');
+
+    const isOptics = titleStr.includes('optic') || titleStr.includes('ray') || titleStr.includes('lens') || 
+                     titleStr.includes('snell') || titleStr.includes('focal') || titleStr.includes('refract') || 
+                     titleStr.includes('prism');
+
+    const isBio = titleStr.includes('bio') || titleStr.includes('dna') || titleStr.includes('enzyme') || 
+                  titleStr.includes('mitosis') || titleStr.includes('cell') || titleStr.includes('membrane') || 
+                  subjectStr.includes('bio');
+
+    if (isElectrochem) {{
+      renderElectrochemLab(ctx, appW, appH, p, state, pKeys);
+    }} else if (isCircuit) {{
+      renderCircuitLab(ctx, appW, appH, p, state, pKeys);
+    }} else if (isFluidPiston) {{
+      renderHydraulicsLab(ctx, appW, appH, p, state, pKeys);
+    }} else if (isMechanics) {{
+      renderMechanicsLab(ctx, appW, appH, p, state, pKeys);
+    }} else if (isOptics) {{
+      renderOpticsLab(ctx, appW, appH, p, state, pKeys);
+    }} else if (isBio) {{
+      renderBiologyLab(ctx, appW, appH, p, state, pKeys);
+    }} else {{
+      renderUniversalReactorLab(ctx, appW, appH, p, state, pKeys);
+    }}
+  }}
+
+  // 1. Dual-Chamber Electrochemical / Chemical Solution Lab
+  function renderElectrochemLab(ctx, appW, appH, p, state, pKeys) {{
+    const p0 = p[pKeys[0]] !== undefined ? p[pKeys[0]] : 1.0;
+    const p1 = p[pKeys[1]] !== undefined ? p[pKeys[1]] : 0.5;
+    const p2 = p[pKeys[2]] !== undefined ? p[pKeys[2]] : 0.1;
+    const temp = p.temp || p.temperature || p.Temperature || 25;
+
+    const benchY = appH * 0.76;
+    const benchH = appH - benchY - 10;
+    ctx.fillStyle = '#0b1329';
+    ctx.fillRect(10, benchY, appW - 20, benchH);
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(10, benchY, appW - 20, benchH);
+
+    // Grid on bench
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+    ctx.lineWidth = 1;
+    for (let x = 20; x < appW - 20; x += 25) {{
+      ctx.beginPath(); ctx.moveTo(x, benchY); ctx.lineTo(x, appH - 10); ctx.stroke();
+    }}
+
+    // Left Beaker (Anode / Oxidation Chamber)
+    const b1x = appW * 0.08, b1w = appW * 0.36;
+    const b1h = appH * 0.44, b1y = benchY - b1h + 4;
+    helpers.drawGlassware(b1x, b1y, b1w, b1h, 0.72, 'rgba(56, 189, 248, 0.22)', 'ZnSO₄ (1.0 M)');
+
+    // Right Beaker (Cathode / Reduction Chamber)
+    const b2x = appW * 0.56, b2w = appW * 0.36;
+    const b2h = appH * 0.44, b2y = benchY - b2h + 4;
+    const blueAlpha = Math.min(0.95, Math.max(0.22, 0.2 + p1 * 0.5));
+    helpers.drawGlassware(b2x, b2y, b2w, b2h, 0.72, `rgba(14, 165, 233, ${{blueAlpha}})`, `CuSO₄ (${{p1}} M)`);
+
+    // Zinc Anode Electrode (Left)
+    const el1W = Math.max(16, Math.min(30, 20 * (p0 / 1.0 || 1)));
+    const el1X = b1x + b1w * 0.25 - el1W / 2;
+    const el1Y = b1y - 35;
+    const el1H = b1h * 0.85;
+    const znGrad = ctx.createLinearGradient(el1X, 0, el1X + el1W, 0);
+    znGrad.addColorStop(0, '#64748b'); znGrad.addColorStop(0.3, '#f1f5f9'); znGrad.addColorStop(0.8, '#cbd5e1'); znGrad.addColorStop(1, '#475569');
+    ctx.fillStyle = znGrad;
+    ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(el1X, el1Y, el1W, el1H, 3); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#f8fafc'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Zn Anode (-)', el1X + el1W / 2, el1Y - 8);
+
+    // Copper Cathode Electrode (Right)
+    const el2W = 22;
+    const el2X = b2x + b2w * 0.75 - el2W / 2;
+    const el2Y = b2y - 35;
+    const el2H = b2h * 0.85;
+    const cuGrad = ctx.createLinearGradient(el2X, 0, el2X + el2W, 0);
+    cuGrad.addColorStop(0, '#78350f'); cuGrad.addColorStop(0.2, '#f59e0b'); cuGrad.addColorStop(0.6, '#d97706'); cuGrad.addColorStop(1, '#92400e');
+    ctx.fillStyle = cuGrad;
+    ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(el2X, el2Y, el2W, el2H, 3); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Cu Cathode (+)', el2X + el2W / 2, el2Y - 8);
+
+    // Effervescent rising bubbles
+    const bubbleSpeed = 1.0 + (temp / 25) * 1.5;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+    for (let i = 0; i < 14; i++) {{
+      const bPhase = (state.time * bubbleSpeed * 0.6 + i * 0.35) % 1;
+      const bx = b1x + 12 + (i * 21) % (b1w - 24);
+      const by = (b1y + b1h - 10) - bPhase * (b1h * 0.65);
+      const br = 1.5 + (i % 3) * 1.2;
+      ctx.beginPath(); ctx.arc(bx + Math.sin(state.time * 4 + i) * 2, by, br, 0, Math.PI * 2); ctx.fill();
+    }}
+    for (let i = 0; i < 16; i++) {{
+      const bPhase = (state.time * bubbleSpeed * 0.8 + i * 0.28) % 1;
+      const bx = b2x + 12 + (i * 19) % (b2w - 24);
+      const by = (b2y + b2h - 10) - bPhase * (b2h * 0.65);
+      const br = 1.8 + (i % 3) * 1.3;
+      ctx.beginPath(); ctx.arc(bx + Math.sin(state.time * 5 + i) * 2.5, by, br, 0, Math.PI * 2); ctx.fill();
+    }}
+
+    // Salt Bridge U-Tube
+    const sbX1 = b1x + b1w * 0.72;
+    const sbX2 = b2x + b2w * 0.28;
+    const sbTopY = b1y - 12;
+    const sbDipY = b1y + b1h * 0.45;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+    ctx.lineWidth = 14;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(sbX1, sbDipY); ctx.lineTo(sbX1, sbTopY); ctx.lineTo(sbX2, sbTopY); ctx.lineTo(sbX2, sbDipY);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
+    ctx.lineWidth = 8;
+    ctx.stroke();
+    ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Salt Bridge (KNO₃)', (sbX1 + sbX2) / 2, sbTopY - 6);
+    ctx.restore();
+
+    // Overhead Wires & Digital Voltmeter
+    const meterX = appW * 0.38, meterY = appH * 0.08, meterW = appW * 0.24, meterH = 54;
+    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(el1X + el1W / 2, el1Y);
+    ctx.lineTo(el1X + el1W / 2, meterY + meterH / 2);
+    ctx.lineTo(meterX, meterY + meterH / 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#f59e0b';
+    ctx.beginPath();
+    ctx.moveTo(meterX + meterW, meterY + meterH / 2);
+    ctx.lineTo(el2X + el2W / 2, meterY + meterH / 2);
+    ctx.lineTo(el2X + el2W / 2, el2Y);
+    ctx.stroke();
+
+    // Multimeter Screen
+    ctx.fillStyle = '#0b1329';
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = '#38bdf8'; ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.roundRect(meterX, meterY, meterW, meterH, 8); ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = '#02101f';
+    ctx.fillRect(meterX + 8, meterY + 6, meterW - 16, 26);
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)'; ctx.lineWidth = 1;
+    ctx.strokeRect(meterX + 8, meterY + 6, meterW - 16, 26);
+
+    const ratioQ = Math.max(0.001, (p2 || 0.1) / Math.max(0.01, (p1 || 0.5)));
+    const cellE = Math.max(0.1, 1.10 - (0.0592 / 2) * Math.log10(ratioQ));
+
+    ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 15px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('+' + cellE.toFixed(3) + ' V', meterX + meterW / 2, meterY + 24);
+    ctx.fillStyle = '#94a3b8'; ctx.font = '8px sans-serif';
+    ctx.fillText('CELL POTENTIAL (E_cell)', meterX + meterW / 2, meterY + 44);
+
+    // Flowing Electron Stream
+    const wirePathLen = (el1X + el1W / 2) - meterX + (meterY + meterH / 2 - el1Y);
+    const speed = state.time * 65;
+    ctx.fillStyle = '#38bdf8'; ctx.shadowColor = '#38bdf8'; ctx.shadowBlur = 6;
+    for (let e = 0; e < 8; e++) {{
+      const eDist = (speed + e * 40) % (wirePathLen + meterW + 150);
+      let ex = 0, ey = 0;
+      if (eDist < (el1Y - (meterY + meterH / 2))) {{
+        ex = el1X + el1W / 2; ey = el1Y - eDist;
+      }} else if (eDist < (el1Y - (meterY + meterH / 2)) + (meterX - (el1X + el1W / 2))) {{
+        ex = (el1X + el1W / 2) + (eDist - (el1Y - (meterY + meterH / 2)));
+        ey = meterY + meterH / 2;
+      }} else {{
+        const d3 = eDist - ((el1Y - (meterY + meterH / 2)) + (meterX - (el1X + el1W / 2)));
+        ex = meterX + meterW + Math.min(el2X + el2W / 2 - (meterX + meterW), d3);
+        ey = meterY + meterH / 2 + Math.max(0, d3 - (el2X + el2W / 2 - (meterX + meterW)));
+      }}
+      if (ex > 0 && ey > 0 && ey <= el2Y) {{
+        ctx.beginPath(); ctx.arc(ex, ey, 3.5, 0, Math.PI * 2); ctx.fill();
+      }}
+    }}
+    ctx.shadowBlur = 0;
+
+    // Chemical Reaction Banner
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(appW * 0.10, appH * 0.88, appW * 0.80, 26, 6); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#e0eaff'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('Zn(s) + Cu²⁺(aq) ➔ Zn²⁺(aq) + Cu(s)  |  Standard E° = +1.10 V', appW * 0.50, appH * 0.88 + 17);
+  }}
+
+  // 2. Working Electric Circuit & Breadboard Lab
+  function renderCircuitLab(ctx, appW, appH, p, state, pKeys) {{
+    const volt = p.voltage || p.V || p[pKeys[0]] || 12;
+    const res = p.resistance || p.R || p[pKeys[1]] || 20;
+    const curr = volt / Math.max(0.1, res);
+    const pwr = volt * curr;
+
+    // Breadboard Canvas
+    const cx = appW * 0.12, cy = appH * 0.14, cw = appW * 0.76, ch = appH * 0.68;
+    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 4;
+    ctx.strokeRect(cx, cy, cw, ch);
+
+    // Battery (Left branch)
+    const batW = 28, batH = 65, batX = cx - batW / 2, batY = cy + ch * 0.5 - batH / 2;
+    ctx.fillStyle = '#1e293b'; ctx.fillRect(batX, batY, batW, batH);
+    ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2; ctx.strokeRect(batX, batY, batW, batH);
+    ctx.fillStyle = '#ef4444'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('+', batX + batW / 2, batY - 6);
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillText('-', batX + batW / 2, batY + batH + 14);
+    ctx.font = 'bold 10px monospace'; ctx.fillStyle = '#f8fafc';
+    ctx.fillText(volt.toFixed(1) + ' V', batX + batW / 2, batY + batH / 2 + 4);
+
+    // Resistor (Top branch)
+    const resW = 75, resH = 22, resX = cx + cw * 0.5 - resW / 2, resY = cy - resH / 2;
+    ctx.fillStyle = '#d97706'; ctx.fillRect(resX, resY, resW, resH);
+    ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2; ctx.strokeRect(resX, resY, resW, resH);
+    // Bands
+    ctx.fillStyle = '#b45309'; ctx.fillRect(resX + 14, resY, 6, resH);
+    ctx.fillStyle = '#000000'; ctx.fillRect(resX + 28, resY, 6, resH);
+    ctx.fillStyle = '#ef4444'; ctx.fillRect(resX + 42, resY, 6, resH);
+    ctx.fillStyle = '#fbbf24'; ctx.fillRect(resX + 56, resY, 6, resH);
+    ctx.fillStyle = '#f8fafc'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(res.toFixed(1) + ' Ω', resX + resW / 2, resY - 8);
+
+    // Heat aura if power is high
+    if (pwr > 10) {{
+      ctx.save();
+      ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = Math.min(25, pwr);
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)'; ctx.lineWidth = 1;
+      ctx.strokeRect(resX - 4, resY - 4, resW + 8, resH + 8);
+      ctx.restore();
+    }}
+
+    // Incandescent Bulb (Right branch)
+    const bulbX = cx + cw, bulbY = cy + ch * 0.5;
+    const bulbRadius = 24;
+    const glowIntensity = Math.min(1.0, curr / 2.0);
+
+    // Radiant Light Bloom Rays
+    if (glowIntensity > 0.05) {{
+      ctx.save();
+      const glowGrad = ctx.createRadialGradient(bulbX, bulbY, 5, bulbX, bulbY, 30 + glowIntensity * 45);
+      glowGrad.addColorStop(0, `rgba(254, 240, 138, ${{glowIntensity * 0.9}})`);
+      glowGrad.addColorStop(0.4, `rgba(250, 204, 21, ${{glowIntensity * 0.5}})`);
+      glowGrad.addColorStop(1, 'rgba(250, 204, 21, 0)');
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath(); ctx.arc(bulbX, bulbY, 30 + glowIntensity * 45, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }}
+
+    // Glass Bulb Dome
+    ctx.save();
+    ctx.fillStyle = `rgba(254, 240, 138, ${{0.15 + glowIntensity * 0.7}})`;
+    ctx.strokeStyle = '#fef08a'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(bulbX, bulbY, bulbRadius, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // Filament
+    ctx.strokeStyle = glowIntensity > 0.1 ? '#ffffff' : '#64748b';
+    ctx.lineWidth = 2.5; ctx.beginPath();
+    ctx.moveTo(bulbX - 8, bulbY + 8);
+    ctx.lineTo(bulbX, bulbY - 6 + Math.sin(state.time * 20) * (glowIntensity * 2));
+    ctx.lineTo(bulbX + 8, bulbY + 8);
+    ctx.stroke();
+    ctx.fillStyle = '#f8fafc'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+    ctx.fillText((pwr).toFixed(1) + ' W', bulbX, bulbY + bulbRadius + 15);
+    ctx.restore();
+
+    // Round Ammeter (Bottom branch)
+    const amX = cx + cw * 0.5, amY = cy + ch;
+    helpers.drawGauge(amX, amY, 32, 0, Math.max(5, curr * 1.5), curr, 'Current (I)', 'A');
+
+    // Flowing Electron Dots around wire loop
+    const perimeter = 2 * (cw + ch);
+    const eSpeed = curr * 80;
+    ctx.fillStyle = '#38bdf8'; ctx.shadowColor = '#38bdf8'; ctx.shadowBlur = 8;
+    for (let i = 0; i < 22; i++) {{
+      const dist = (state.time * eSpeed + i * (perimeter / 22)) % perimeter;
+      let ex = 0, ey = 0;
+      if (dist < cw) {{
+        ex = cx + dist; ey = cy;
+      }} else if (dist < cw + ch) {{
+        ex = cx + cw; ey = cy + (dist - cw);
+      }} else if (dist < 2 * cw + ch) {{
+        ex = cx + cw - (dist - (cw + ch)); ey = cy + ch;
+      }} else {{
+        ex = cx; ey = cy + ch - (dist - (2 * cw + ch));
+      }}
+      ctx.beginPath(); ctx.arc(ex, ey, 3.5, 0, Math.PI * 2); ctx.fill();
+    }}
+    ctx.shadowBlur = 0;
+
+    // Ohm's Law Formula Banner
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(appW * 0.15, appH * 0.88, appW * 0.70, 26, 6); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(`V = I · R  ➜  ${{volt.toFixed(1)}}V = (${{curr.toFixed(2)}}A) × (${{res.toFixed(1)}}Ω)`, appW * 0.5, appH * 0.88 + 17);
+  }}
+
+  // 3. Dual-Piston Hydraulics & Fluid Mechanics Lab
+  function renderHydraulicsLab(ctx, appW, appH, p, state, pKeys) {{
+    const f1 = p.F1 || p.f1 || p.force || p[pKeys[0]] || 50;
+    const a1 = p.A1 || p.a1 || p.area1 || p[pKeys[1]] || 25;
+    const a2 = p.A2 || p.a2 || p.area2 || p[pKeys[2]] || 250;
+    const pressure = (f1 / a1); // kPa
+    const f2 = pressure * a2;
+
+    const baseH = 50, baseY = appH * 0.72;
+    const c1W = Math.max(45, Math.min(80, a1 * 1.5));
+    const c1X = appW * 0.18 - c1W / 2;
+    const c2W = Math.max(90, Math.min(160, Math.sqrt(a2) * 9));
+    const c2X = appW * 0.68 - c2W / 2;
+
+    const displacement = Math.min(40, (f1 / 10));
+    const p1Y = baseY - 110 + displacement;
+    const p2Y = baseY - 120 - (displacement * (a1 / a2));
+
+    // Hydraulic Base Pipe
+    ctx.fillStyle = '#0284c7';
+    ctx.fillRect(c1X, baseY, (c2X + c2W) - c1X, baseH);
+    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2;
+    ctx.strokeRect(c1X, baseY, (c2X + c2W) - c1X, baseH);
+
+    // Left Cylinder & Piston
+    helpers.drawCylinder(c1X, p1Y, c1W, baseY - p1Y + baseH, 'Input (A1)', '#38bdf8');
+    helpers.drawPiston(c1X, p1Y, c1W, 18, 55, '#64748b');
+    helpers.drawVector(c1X + c1W / 2, p1Y - 60, c1X + c1W / 2, p1Y - 10, '#ef4444', `F1 = ${{f1}}N`);
+
+    // Right Cylinder & Piston
+    helpers.drawCylinder(c2X, p2Y, c2W, baseY - p2Y + baseH, 'Output (A2)', '#38bdf8');
+    helpers.drawPiston(c2X, p2Y, c2W, 22, 60, '#64748b');
+
+    // 3D Isometric Load Block lifted by Output Piston
+    const loadW = c2W * 0.85, loadH = 35;
+    const loadX = c2X + (c2W - loadW) / 2, loadY = p2Y - loadH - 8;
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(loadX, loadY, loadW, loadH);
+    ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1.5;
+    ctx.strokeRect(loadX, loadY, loadW, loadH);
+    ctx.fillStyle = '#f8fafc'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(`LOAD (${{Math.round(f2)}} N)`, loadX + loadW / 2, loadY + loadH / 2 + 4);
+    helpers.drawVector(c2X + c2W / 2, p2Y, c2X + c2W / 2, p2Y - 70, '#10b981', `F2 = ${{Math.round(f2)}}N`);
+
+    // Central Gauge
+    helpers.drawGauge(appW * 0.44, baseY - 50, 32, 0, 50, pressure, 'Pressure', 'kPa');
+
+    // Pascal's Law Formula Banner
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(appW * 0.12, appH * 0.88, appW * 0.76, 26, 6); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(`P = F1/A1 = F2/A2  |  Pressure = ${{pressure.toFixed(1)}} kPa  |  Amplification = ${{(a2/a1).toFixed(1)}}×`, appW * 0.5, appH * 0.88 + 17);
+  }}
+
+  // 4. Mechanics / Oscillations & Kinematics Lab
+  function renderMechanicsLab(ctx, appW, appH, p, state, pKeys) {{
+    const length = p.length || p.L || p[pKeys[0]] || 1.5;
+    const mass = p.mass || p.m || p[pKeys[1]] || 2.0;
+    const g = p.gravity || p.g || 9.8;
+    const omega = Math.sqrt(g / Math.max(0.2, length));
+
+    const pivotX = appW * 0.42, pivotY = appH * 0.16;
+    const rodPx = Math.min(220, length * 110);
+    const thetaMax = 0.55;
+    const theta = thetaMax * Math.cos(omega * state.time);
+    const bobX = pivotX + rodPx * Math.sin(theta);
+    const bobY = pivotY + rodPx * Math.cos(theta);
+
+    // Ceiling Bracket
+    ctx.fillStyle = '#1e293b'; ctx.fillRect(pivotX - 50, pivotY - 12, 100, 12);
+    ctx.strokeStyle = '#64748b'; ctx.lineWidth = 1.5; ctx.strokeRect(pivotX - 50, pivotY - 12, 100, 12);
+
+    // Trajectory Arc Ghost
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(pivotX, pivotY, rodPx, Math.PI / 2 - thetaMax, Math.PI / 2 + thetaMax);
+    ctx.stroke();
+
+    // Rod
+    ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(pivotX, pivotY); ctx.lineTo(bobX, bobY); ctx.stroke();
+
+    // Pivot Pin
+    ctx.fillStyle = '#38bdf8'; ctx.beginPath(); ctx.arc(pivotX, pivotY, 5, 0, Math.PI * 2); ctx.fill();
+
+    // Oscillating Bob
+    const bobRadius = 14 + mass * 3;
+    helpers.drawSphere(bobX, bobY, bobRadius, '#38bdf8', `${{mass}} kg`);
+
+    // Velocity Vector (Tangent)
+    const vMag = -omega * rodPx * thetaMax * Math.sin(omega * state.time);
+    const vx = vMag * Math.cos(theta) * 0.35;
+    const vy = -vMag * Math.sin(theta) * 0.35;
+    helpers.drawVector(bobX, bobY, bobX + vx, bobY + vy, '#10b981', 'v');
+
+    // Energy Meters (Kinetic & Potential trading in real time)
+    const maxE = mass * g * (rodPx * (1 - Math.cos(thetaMax)));
+    const curH = rodPx * (1 - Math.cos(theta));
+    const pe = mass * g * curH;
+    const ke = Math.max(0, maxE - pe);
+
+    const mX = appW * 0.78, mY = appH * 0.22, mW = 20, mH = 160;
+    // PE bar
+    ctx.fillStyle = '#1e293b'; ctx.fillRect(mX, mY, mW, mH);
+    const peH = (pe / Math.max(1, maxE)) * mH;
+    ctx.fillStyle = '#38bdf8'; ctx.fillRect(mX, mY + mH - peH, mW, peH);
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)'; ctx.strokeRect(mX, mY, mW, mH);
+    ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('PE', mX + mW / 2, mY + mH + 14);
+
+    // KE bar
+    ctx.fillStyle = '#1e293b'; ctx.fillRect(mX + 35, mY, mW, mH);
+    const keH = (ke / Math.max(1, maxE)) * mH;
+    ctx.fillStyle = '#10b981'; ctx.fillRect(mX + 35, mY + mH - keH, mW, keH);
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)'; ctx.strokeRect(mX + 35, mY, mW, mH);
+    ctx.fillStyle = '#10b981';
+    ctx.fillText('KE', mX + 35 + mW / 2, mY + mH + 14);
+
+    // Mechanics Formula Banner
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(appW * 0.12, appH * 0.88, appW * 0.76, 26, 6); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+    const period = (2 * Math.PI / omega).toFixed(2);
+    ctx.fillText(`T = 2π√(L/g)  ➜  Period = ${{period}} s  |  Frequency = ${{(1/period).toFixed(2)}} Hz`, appW * 0.5, appH * 0.88 + 17);
+  }}
+
+  // 5. Optical Bench & Ray Tracing Lab
+  function renderOpticsLab(ctx, appW, appH, p, state, pKeys) {{
+    const n1 = 1.0; // Air
+    const n2 = p.n || p.refractive_index || p[pKeys[0]] || 1.5;
+    const angleDeg = p.angle || p.theta || p[pKeys[1]] || 45;
+    const theta1 = (angleDeg * Math.PI) / 180;
+    const sinTheta2 = (n1 / n2) * Math.sin(theta1);
+    const theta2 = Math.asin(Math.min(1.0, sinTheta2));
+
+    const benchY = appH * 0.50;
+    // Optical bench axis
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(20, benchY); ctx.lineTo(appW - 20, benchY); ctx.stroke();
+
+    // Medium Boundary / Prism
+    const blkX = appW * 0.45, blkW = appW * 0.42, blkH = appH * 0.65, blkY = appH * 0.18;
+    ctx.fillStyle = 'rgba(56, 189, 248, 0.12)';
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.5)'; ctx.lineWidth = 2;
+    ctx.fillRect(blkX, blkY, blkW, blkH);
+    ctx.strokeRect(blkX, blkY, blkW, blkH);
+
+    ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(`Medium 2 (n = ${{n2.toFixed(2)}})`, blkX + blkW / 2, blkY + 20);
+
+    // Surface Normal (dashed)
+    const normX = blkX;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(normX, benchY - 100); ctx.lineTo(normX, benchY + 100); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Laser Source (Left)
+    const laserX = appW * 0.12, laserY = benchY - Math.tan(theta1) * (blkX - laserX);
+    ctx.fillStyle = '#1e293b'; ctx.fillRect(laserX - 25, laserY - 12, 25, 24);
+    ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2; ctx.strokeRect(laserX - 25, laserY - 12, 25, 24);
+    ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(laserX, laserY, 4, 0, Math.PI * 2); ctx.fill();
+
+    // Incident Ray
+    helpers.drawRay(laserX, laserY, blkX, benchY, '#ef4444');
+
+    // Refracted Ray (Inside Medium)
+    const refLen = 180;
+    const refX2 = blkX + refLen * Math.cos(theta2);
+    const refY2 = benchY + refLen * Math.sin(theta2);
+    helpers.drawRay(blkX, benchY, refX2, refY2, '#38bdf8');
+
+    // Reflected Ray
+    const reflLen = 140;
+    const reflX2 = blkX - reflLen * Math.cos(theta1);
+    const reflY2 = benchY - reflLen * Math.sin(theta1);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.35)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(blkX, benchY); ctx.lineTo(reflX2, reflY2); ctx.stroke();
+    ctx.restore();
+
+    // Angle Arcs
+    ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 1.5; ctx.beginPath();
+    ctx.arc(blkX, benchY, 32, Math.PI, Math.PI + theta1); ctx.stroke();
+    ctx.fillStyle = '#ef4444'; ctx.font = 'bold 10px monospace';
+    ctx.fillText(`θ1=${{angleDeg}}°`, blkX - 45, benchY - 18);
+
+    ctx.strokeStyle = '#38bdf8'; ctx.beginPath();
+    ctx.arc(blkX, benchY, 32, 0, theta2); ctx.stroke();
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillText(`θ2=${{((theta2 * 180) / Math.PI).toFixed(1)}}°`, blkX + 45, benchY + 18);
+
+    // Snell's Law Banner
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(appW * 0.12, appH * 0.88, appW * 0.76, 26, 6); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(`n₁·sin(θ₁) = n₂·sin(θ₂)  |  Refracted Angle θ₂ = ${{((theta2 * 180) / Math.PI).toFixed(1)}}°`, appW * 0.5, appH * 0.88 + 17);
+  }}
+
+  // 6. Cellular, Biochemical & Enzyme Lab
+  function renderBiologyLab(ctx, appW, appH, p, state, pKeys) {{
+    const conc = p.substrate || p.concentration || p[pKeys[0]] || 5.0;
+    const temp = p.temp || p[pKeys[1]] || 37;
+
+    // Microscopic Field Aperture
+    const cx = appW * 0.48, cy = appH * 0.48, radius = Math.min(appW * 0.40, appH * 0.38);
+    ctx.save();
+    ctx.fillStyle = '#05192d';
+    ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)'; ctx.lineWidth = 3; ctx.stroke();
+
+    // Lipid Bilayer Membrane (curved horizontal boundary)
+    ctx.strokeStyle = '#10b981'; ctx.lineWidth = 14;
+    ctx.beginPath();
+    ctx.arc(cx, cy + radius * 0.4, radius * 0.85, Math.PI * 0.8, Math.PI * 0.2, true);
+    ctx.stroke();
+
+    // Membrane Channel Protein
+    const cpX = cx - 18, cpY = cy + radius * 0.22;
+    ctx.fillStyle = '#6366f1'; ctx.fillRect(cpX, cpY, 36, 28);
+    ctx.strokeStyle = '#a5b4fc'; ctx.strokeRect(cpX, cpY, 36, 28);
+
+    // Floating Substrate Molecules (streaming in through channel)
+    const subCount = Math.min(35, Math.max(8, Math.floor(conc * 4)));
+    ctx.fillStyle = '#fbbf24';
+    for (let i = 0; i < subCount; i++) {{
+      const pX = cx + Math.sin(state.time * (1.2 + i * 0.1) + i) * (radius * 0.65);
+      const pY = cy - 30 + Math.cos(state.time * (1.5 + i * 0.1) + i * 2) * (radius * 0.45);
+      ctx.beginPath(); ctx.arc(pX, pY, 4, 0, Math.PI * 2); ctx.fill();
+    }}
+
+    // Central Enzyme Active Site
+    helpers.drawSphere(cx, cy - 25, 36, '#8b5cf6', 'Enzyme');
+    // Lock-and-key substrate docking in progress
+    const dockPhase = Math.sin(state.time * 3);
+    const subDockY = cy - 25 + dockPhase * 8;
+    helpers.drawSphere(cx + 18, subDockY, 12, '#fbbf24', 'S');
+
+    ctx.restore();
+
+    // Bio Banner
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+    ctx.strokeStyle = '#10b981'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(appW * 0.12, appH * 0.88, appW * 0.76, 26, 6); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#10b981'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(`Enzyme-Substrate Complex [ES]  |  Temp: ${{temp}}°C  |  Substrate [S]: ${{conc}} mM`, appW * 0.5, appH * 0.88 + 17);
+  }}
+
+  // 7. Universal STEM Dynamic Reactor
+  function renderUniversalReactorLab(ctx, appW, appH, p, state, pKeys) {{
+    const p0 = p[pKeys[0]] !== undefined ? p[pKeys[0]] : 50;
+    const p1 = p[pKeys[1]] !== undefined ? p[pKeys[1]] : 25;
+
+    const rX = appW * 0.22, rW = appW * 0.56, rH = appH * 0.62, rY = appH * 0.16;
+    // Reactor Vessel
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.roundRect(rX, rY, rW, rH, 16); ctx.fill(); ctx.stroke();
+
+    // Internal Fluid Level
+    const fillRatio = Math.min(0.85, Math.max(0.15, p0 / 100));
+    const flH = (rH - 20) * fillRatio;
+    const flY = rY + rH - flH - 10;
+    const fluidGrad = ctx.createLinearGradient(0, flY, 0, rY + rH);
+    fluidGrad.addColorStop(0, '#0284c7'); fluidGrad.addColorStop(1, '#075985');
+    ctx.fillStyle = fluidGrad;
+    ctx.fillRect(rX + 8, flY, rW - 16, flH);
+
+    // Spinning Magnetic Vortex Stirrer
+    const stirX = rX + rW / 2, stirY = rY + rH - 24;
+    const stirAngle = state.time * (p1 * 0.4 + 4);
+    ctx.save();
+    ctx.translate(stirX, stirY); ctx.rotate(stirAngle);
+    ctx.fillStyle = '#f8fafc'; ctx.fillRect(-18, -4, 36, 8);
+    ctx.restore();
+
+    // Animated Effervescent Bubbles
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    for (let i = 0; i < 20; i++) {{
+      const bPhase = (state.time * 1.5 + i * 0.2) % 1;
+      const bx = rX + 20 + (i * 24) % (rW - 40);
+      const by = (rY + rH - 30) - bPhase * (flH - 10);
+      ctx.beginPath(); ctx.arc(bx + Math.sin(state.time * 6 + i) * 3, by, 2 + (i % 3), 0, Math.PI * 2); ctx.fill();
+    }}
+
+    // Reactor Gauges
+    helpers.drawGauge(rX + 45, rY + 45, 26, 0, 100, p0, 'Input', '%');
+    helpers.drawGauge(rX + rW - 45, rY + 45, 26, 0, 100, p1, 'Agitation', 'RPM');
+
+    // Universal Status Banner
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(appW * 0.12, appH * 0.88, appW * 0.76, 26, 6); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('Dynamic STEM Apparatus Active  |  60 FPS Continuous Physical Simulation', appW * 0.5, appH * 0.88 + 17);
+  }}
+
   // --- Interactive Inspector Detection ---
   const inspectorCard = document.getElementById('inspectorCard');
   const inspTitle = document.getElementById('inspTitle');
@@ -1328,15 +1971,18 @@ html, body {{
     }}
 
     ctx.save();
-    try {{
-      const p = state.params;
-      {draw_apparatus_code}
-      if (typeof drawApparatus === 'function') {{
-        drawApparatus(ctx, appW, appH, p, state);
+    let customDrawn = false;
+    if (compiledCustomApparatus) {{
+      try {{
+        compiledCustomApparatus(ctx, appW, appH, state.params, state, helpers);
+        customDrawn = true;
+      }} catch(e) {{
+        console.warn('Custom apparatus runtime notice:', e);
+        customDrawn = false;
       }}
-    }} catch(e) {{
-      ctx.fillStyle = '#ef4444'; ctx.font = '12px sans-serif';
-      ctx.fillText('Simulation notice: ' + e.message, 20, 40);
+    }}
+    if (!customDrawn) {{
+      renderMasterLaboratoryApparatus(ctx, appW, appH, state.params, state);
     }}
     ctx.restore();
 
