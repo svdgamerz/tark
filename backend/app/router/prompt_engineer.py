@@ -57,7 +57,7 @@ _NON_ACADEMIC_PATTERNS = [
 
 # Patterns that indicate genuinely academic/exam queries worth enhancing
 _ACADEMIC_SIGNALS = [
-    re.compile(r"\b(explain|define|derive|prove|theorem|law|principle|formula|equation|reaction|mechanism|process)\b", re.I),
+    re.compile(r"\b(explain|define|derive|prove|theorem|law|principle|formula|equation|reaction|mechanism|process|calculate|solve|evaluate|molar|stoichiometry)\b", re.I),
     re.compile(r"\b(physics|chemistry|biology|maths?|mathematics|science|geography|history|economics|accountancy|civics)\b", re.I),
     re.compile(r"\b(ncert|cbse|icse|igcse|jee|neet|board|exam|syllabus|textbook|chapter|class\s*\d|grade\s*\d)\b", re.I),
     re.compile(r"\b(photosynthesis|mitosis|meiosis|electromagnet|refraction|diffraction|osmosis|respiration|digestion)\b", re.I),
@@ -98,7 +98,7 @@ def _is_academic_query(text: str, context: dict[str, Any] | None = None) -> bool
 
     # Must have BOTH academic signal AND curriculum context to qualify
     has_academic_signal = any(pat.search(low) for pat in _ACADEMIC_SIGNALS)
-    has_curriculum_context = bool(ctx.get("board") or ctx.get("grade") or ctx.get("exam"))
+    has_curriculum_context = bool(ctx.get("board") or ctx.get("grade") or ctx.get("exam") or ctx.get("subject"))
 
     return has_academic_signal and has_curriculum_context
 

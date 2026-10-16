@@ -47,6 +47,15 @@ BOARD_NORMALIZE = {
 SUBJECT_NORMALIZE = {
     "mathematics": "Maths",
     "math": "Maths",
+    "sci": "Science",
+    "math": "Maths",
+    "chem": "Chemistry",
+    "bio": "Biology",
+    "phy": "Physics",
+    "hist": "History",
+    "geo": "Geography",
+    "civ": "Civics",
+    "sst": "Social Studies",
     "maths": "Maths",
     "maths 1": "Maths 1",
     "maths 1 (algebra)": "Maths 1",
@@ -494,11 +503,26 @@ def normalize_board(raw: str) -> str:
     return BOARD_NORMALIZE.get(key, raw.strip())
 
 
+ROMAN_GRADES = {
+    "xii": "12", "xi": "11", "x": "10", "ix": "9",
+    "viii": "8", "vii": "7", "vi": "6", "v": "5", "iv": "4",
+}
+
+
 def normalize_grade(raw: str) -> str:
     if not raw:
         return ""
-    m = re.search(r"\b(1[0-2]|[1-9])\b", str(raw))
-    return m.group(1) if m else str(raw).strip()
+    clean = str(raw).strip().lower()
+    # Check Roman numerals
+    for r, g in ROMAN_GRADES.items():
+        if re.search(r"\b" + r + r"\b", clean):
+            return g
+    # Check digits with optional ordinal suffix (e.g. 10th, 9th, 1st, 2nd, 3rd)
+    m = re.search(r"\b(1[0-2]|[1-9])(?:st|nd|rd|th)?\b", clean)
+    if m:
+        return m.group(1)
+    m2 = re.search(r"(1[0-2]|[1-9])", clean)
+    return m2.group(1) if m2 else clean
 
 
 def normalize_subject(raw: str) -> str:

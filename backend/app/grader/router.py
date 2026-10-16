@@ -49,9 +49,9 @@ def grade_batch(req: BatchGradeRequest) -> dict[str, Any]:
             except Exception:
                 feedback = "Failed to parse numeric value"
         elif qtype == "symbolic":
-            # Normalized symbolic check
-            s_norm = sub.student_answer.replace(" ", "").lower()
-            e_norm = sub.expected_answer.replace(" ", "").lower()
+            # Normalized symbolic check (handles implicit/explicit multiplication, casing, and spaces)
+            s_norm = sub.student_answer.replace(" ", "").replace("*", "").lower()
+            e_norm = sub.expected_answer.replace(" ", "").replace("*", "").lower()
             is_correct = (s_norm == e_norm)
             feedback = "Correct symbolic match" if is_correct else f"Incorrect: expected '{sub.expected_answer}'"
         else:
