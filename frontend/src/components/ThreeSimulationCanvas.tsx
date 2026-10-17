@@ -208,9 +208,29 @@ export function ThreeSimulationCanvas({
         )}
       </div>
 
+      {/* Quick Concept Presets right below 3D viewport */}
+      {template.presets && template.presets.length > 0 && (
+        <div className="sim-presets-strip" id="sim-presets-strip">
+          <span className="sim-presets-title">⚡ Quick Experiments:</span>
+          <div className="sim-presets-list">
+            {template.presets.map((preset, idx) => (
+              <button
+                key={idx}
+                id={`sim-preset-${idx}`}
+                type="button"
+                className="sim-preset-pill"
+                onClick={() => applyPreset(preset.params)}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Real-Time Mathematical & Physics Telemetry Readouts */}
       {readouts.length > 0 && (
-        <div className="sim-readouts-bar">
+        <div className="sim-readouts-bar" id="sim-readouts-bar">
           {readouts.map((r, idx) => (
             <div key={idx} className="sim-readout-item">
               <span className="sim-readout-label">{r.label}</span>
@@ -220,25 +240,6 @@ export function ThreeSimulationCanvas({
               {r.formula && <span className="sim-readout-formula">{r.formula}</span>}
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Quick Concept Presets */}
-      {template.presets && template.presets.length > 0 && (
-        <div className="sim-presets-strip">
-          <span className="sim-presets-title">⚡ Quick Experiments:</span>
-          <div className="sim-presets-list">
-            {template.presets.map((preset, idx) => (
-              <button
-                key={idx}
-                type="button"
-                className="sim-preset-pill"
-                onClick={() => applyPreset(preset.params)}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
         </div>
       )}
 

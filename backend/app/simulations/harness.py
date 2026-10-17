@@ -190,6 +190,15 @@ def build_harness_html(spec: dict[str, Any]) -> str:
         )
     missions_js = "[\n    " + ",\n    ".join(missions_js_parts) + "\n  ]"
 
+    is_3d_explicit = spec.get("is_3d", False)
+    t_lower = title.lower()
+    s_lower = subject.lower()
+    is_3d_topic = is_3d_explicit or any(
+        kw in t_lower or kw in s_lower
+        for kw in ["3d", "anatomy", "anatomical", "heart", "organ", "eye", "cell", "molecule", "orbital", "solar system", "rutherford", "prism", "helix"]
+    )
+    default_mode = "3D" if is_3d_topic else "2D"
+
     three_scripts = get_three_scripts_html()
     three_css = get_three_css()
     three_ui = get_three_ui_html()
@@ -252,6 +261,21 @@ html, body {{
   align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; font-size: 1rem;
 }}
 .icon-btn:hover {{ background: rgba(56, 189, 248, 0.25); border-color: rgba(56, 189, 248, 0.55); color: #fff; }}
+
+.view-mode-toggle {{
+  display: inline-flex; align-items: center; background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 8px; padding: 2px; gap: 2px;
+}}
+.view-btn {{
+  background: transparent; border: none; color: #94a3b8;
+  padding: 4px 10px; border-radius: 6px; font-size: 0.76rem; font-weight: 700;
+  cursor: pointer; transition: all 0.15s;
+}}
+.view-btn:hover {{ color: #e2e8f0; }}
+.view-btn.active {{
+  background: rgba(56, 189, 248, 0.25); color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+}}
 
 /* Canvas Viewport */
 #canvasWrap {{ flex: 1; position: relative; width: 100%; overflow: hidden; background: #070d18; }}
@@ -441,6 +465,10 @@ html, body {{
       {chips_html}
     </div>
     <div class="header-right">
+      <div class="view-mode-toggle" id="viewModeToggle" title="Switch between 2D Precision Canvas and 3D WebGL Spatial View">
+        <button type="button" class="view-btn {'active' if default_mode == '2D' else ''}" id="btnView2D" data-mode="2D">📐 2D</button>
+        <button type="button" class="view-btn {'active' if default_mode == '3D' else ''}" id="btnView3D" data-mode="3D">💎 3D</button>
+      </div>
       <button class="icon-btn" id="audioToggle" title="Toggle Sound (Mute/Unmute)">🔊</button>
     </div>
   </div>
@@ -2042,9 +2070,47 @@ html, body {{
     requestAnimationFrame(loop);
   }}
 
+  let activeViewMode = '{default_mode}';
+
+  function applyViewMode(mode) {{
+    activeViewMode = mode;
+    const wContainer = document.getElementById('webglContainer');
+    const camHud = document.getElementById('cameraControls3D');
+    const hintHud = document.querySelector('.viewport-hint-3d');
+    const simC = document.getElementById('simCanvas');
+
+    const btn2D = document.getElementById('btnView2D');
+    const btn3D = document.getElementById('btnView3D');
+
+    if (btn2D) btn2D.classList.toggle('active', mode === '2D');
+    if (btn3D) btn3D.classList.toggle('active', mode === '3D');
+
+    if (mode === '2D') {{
+      if (wContainer) wContainer.style.display = 'none';
+      if (camHud) camHud.style.display = 'none';
+      if (hintHud) hintHud.style.display = 'none';
+      if (simC) simC.style.pointerEvents = 'auto';
+      threeLabActive = false;
+    }} else {{
+      if (wContainer) wContainer.style.display = 'block';
+      if (camHud) camHud.style.display = 'flex';
+      if (hintHud) hintHud.style.display = 'block';
+      if (simC) simC.style.pointerEvents = 'none';
+      if (!threeLabActive) {{
+        initThreeLab();
+      }}
+      threeLabActive = true;
+    }}
+  }}
+
+  const b2d = document.getElementById('btnView2D');
+  const b3d = document.getElementById('btnView3D');
+  if (b2d) b2d.addEventListener('click', () => applyViewMode('2D'));
+  if (b3d) b3d.addEventListener('click', () => applyViewMode('3D'));
+
   updateTelemetry();
   renderActiveMission();
-  initThreeLab();
+  applyViewMode(activeViewMode);
   broadcastTelemetry('sim_init');
   requestAnimationFrame(loop);
 }})();

@@ -2286,7 +2286,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
       // Direct anterior coronal camera framing (standard medical illustration perspective)
       const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
-      camera.position.set(0, 0.4, 13.5)
+      camera.position.set(0, 0.8, 13.2)
 
       const renderer = new THREE.WebGLRenderer({ antialias: true })
       renderer.setSize(width, height)
@@ -2297,7 +2297,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const controls = new OrbitControls(camera, renderer.domElement)
       controls.enableDamping = true
       controls.dampingFactor = 0.05
-      controls.target.set(0, 0.2, 0)
+      controls.minDistance = 6.0
+      controls.maxDistance = 20.0
+      controls.target.set(0, 0.8, 0)
 
       // Main anatomical rig with natural physiological apex tilt
       const heartRig = new THREE.Group()
@@ -2472,6 +2474,15 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       registerPart(lvPostMesh, 'lv')
       leftHeartGroup.add(lvPostMesh)
 
+      // Anatomical Cardiac Apex: Cone pointing inferiorly and to the left (Apex Cordis)
+      const apexGeo = new THREE.ConeGeometry(1.2, 1.9, 32)
+      apexGeo.rotateZ(Math.PI)
+      apexGeo.rotateZ(0.25)
+      const lvApexMesh = new THREE.Mesh(apexGeo, myoMatLeft)
+      lvApexMesh.position.set(0.7, -2.6, 0.15)
+      registerPart(lvApexMesh, 'lv')
+      leftHeartGroup.add(lvApexMesh)
+
       // LV Anterior Wall Shell (z >= 0) - Covers the heart when intact
       const lvAntGeo = new THREE.SphereGeometry(2.4, 32, 32, 0, Math.PI, 0, Math.PI)
       lvAntGeo.scale(0.9, 1.45, 0.9)
@@ -2489,12 +2500,21 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       leftHeartGroup.add(lvCavity)
 
       // Coronal Cut Face Rim on z = 0 (Showing thick ~15 mm myocardium wall)
-      const lvCutRingGeo = new THREE.RingGeometry(1.5, 2.35, 32)
+      const lvCutRingGeo = new THREE.RingGeometry(1.4, 2.38, 32)
       lvCutRingGeo.scale(0.9, 1.45, 1.0)
       const lvCutFace = new THREE.Mesh(lvCutRingGeo, cutWallLeftMat)
       lvCutFace.position.set(1.0, -0.6, 0.01)
       registerPart(lvCutFace, 'lv')
       leftHeartGroup.add(lvCutFace)
+
+      // Trabeculae Carneae Muscular Columns lining LV interior
+      for (let t = 0; t < 6; t++) {
+        const trabGeo = new THREE.CylinderGeometry(0.12, 0.18, 1.8, 8)
+        const trabMesh = new THREE.Mesh(trabGeo, myoMatLeft)
+        trabMesh.position.set(0.6 + (t % 3) * 0.45, -1.2 + (t > 2 ? 0.8 : 0), -0.35)
+        trabMesh.rotation.z = (t - 2.5) * 0.15
+        leftHeartGroup.add(trabMesh)
+      }
 
       // Papillary Muscles anchored inside LV posterior floor
       const papGeo = new THREE.CylinderGeometry(0.3, 0.45, 1.4, 12)
@@ -2542,6 +2562,15 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       laMesh.position.set(1.2, 2.2, -0.3)
       registerPart(laMesh, 'la')
       leftHeartGroup.add(laMesh)
+
+      // Left Auricle (appendage with crenulated form)
+      const laAuricle = new THREE.Mesh(
+        new THREE.SphereGeometry(0.7, 16, 16),
+        atriumMat
+      )
+      laAuricle.scale.set(1.1, 0.7, 1.3)
+      laAuricle.position.set(0.9, 1.7, 0.75)
+      leftHeartGroup.add(laAuricle)
 
       // 4 Pulmonary Vein Intakes (Oxygenated Blood from Lungs)
       const pvOffsets = [
@@ -2594,6 +2623,35 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         leftHeartGroup.add(bMesh)
       })
 
+      // Systemic Oxygenated Blood Flow Particles (travel along left heart half)
+      const sysCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(1.5, 2.5, -0.6),
+        new THREE.Vector3(1.2, 2.1, -0.3),
+        new THREE.Vector3(1.0, 0.8, -0.1),
+        new THREE.Vector3(0.9, -0.8, -0.2),
+        new THREE.Vector3(0.7, -2.1, 0.0),
+        new THREE.Vector3(0.4, -0.8, 0.1),
+        new THREE.Vector3(0.3, 1.1, 0.1),
+        new THREE.Vector3(0.2, 3.2, 0.2),
+        new THREE.Vector3(0.0, 5.4, -0.6),
+        new THREE.Vector3(1.7, 2.8, -1.2)
+      ])
+      const sysBloodCount = 35
+      const sysBloodSpheres: THREE.Mesh[] = []
+      const sysBloodMat = new THREE.MeshStandardMaterial({
+        color: 0xef4444,
+        emissive: 0xdc2626,
+        emissiveIntensity: 0.9,
+        roughness: 0.2
+      })
+      const bBallGeo = new THREE.SphereGeometry(0.12, 10, 10)
+      for (let s = 0; s < sysBloodCount; s++) {
+        const sm = new THREE.Mesh(bBallGeo, sysBloodMat)
+        sm.userData = { progress: s / sysBloodCount }
+        leftHeartGroup.add(sm)
+        sysBloodSpheres.push(sm)
+      }
+
       // ========================================================
       // 2. RIGHT HEART (PULMONARY CIRCUIT - ANATOMICAL RIGHT, VIEWER'S LEFT: X < 0)
       // ========================================================
@@ -2636,6 +2694,12 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       raMesh.position.set(-1.4, 2.0, 0.0)
       registerPart(raMesh, 'ra')
       rightHeartGroup.add(raMesh)
+
+      // Right Auricle (dog-ear appendage wrapping anteriorly)
+      const raAuricle = new THREE.Mesh(new THREE.SphereGeometry(0.75, 16, 16), myoMatRight)
+      raAuricle.scale.set(1.2, 0.8, 1.1)
+      raAuricle.position.set(-0.8, 1.9, 0.85)
+      rightHeartGroup.add(raAuricle)
 
       // Tricuspid Valve Leaflets
       const triGeo = new THREE.PlaneGeometry(1.3, 0.75)
@@ -2713,6 +2777,33 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       lpaMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(1.2, 0.4, -0.7).normalize())
       rightHeartGroup.add(lpaMesh)
 
+      // Pulmonary Deoxygenated Blood Flow Particles (travel along right heart half)
+      const pulCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-1.6, 4.2, -0.4),
+        new THREE.Vector3(-1.4, 2.0, 0.0),
+        new THREE.Vector3(-1.0, 0.7, 0.0),
+        new THREE.Vector3(-1.0, -0.6, -0.1),
+        new THREE.Vector3(-0.7, -1.5, 0.0),
+        new THREE.Vector3(-0.4, 0.8, 0.5),
+        new THREE.Vector3(-0.2, 2.6, 0.8),
+        new THREE.Vector3(0.2, 3.8, 0.3),
+        new THREE.Vector3(-1.2, 4.2, -0.3)
+      ])
+      const pulBloodCount = 35
+      const pulBloodSpheres: THREE.Mesh[] = []
+      const pulBloodMat = new THREE.MeshStandardMaterial({
+        color: 0x38bdf8,
+        emissive: 0x0284c7,
+        emissiveIntensity: 0.9,
+        roughness: 0.2
+      })
+      for (let s = 0; s < pulBloodCount; s++) {
+        const pm = new THREE.Mesh(bBallGeo, pulBloodMat)
+        pm.userData = { progress: s / pulBloodCount }
+        rightHeartGroup.add(pm)
+        pulBloodSpheres.push(pm)
+      }
+
       // ========================================================
       // 3. ANTERIOR CORONARY SULCUS & SULCUS VESSELS (INTACT VIEW)
       // ========================================================
@@ -2723,7 +2814,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       fatMesh.rotation.z = Math.PI / 3.4
       heartRig.add(fatMesh)
 
-      // Left Anterior Descending (LAD) Coronary Artery (Crimson vessel running down to apex)
+      // Left Anterior Descending (LAD) Coronary Artery
       const ladCurve = new THREE.CatmullRomCurve3([
         new THREE.Vector3(-0.1, 1.6, 1.35),
         new THREE.Vector3(-0.2, 0.6, 1.55),
@@ -2747,44 +2838,112 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       heartRig.add(gcvMesh)
 
       // ========================================================
-      // 4. DOUBLE CIRCULATION BLOOD PARTICLES
+      // 4. MOTION GRAPHICS: CORONAL BISECTING LASER & SLICING PLANE
       // ========================================================
-      const particleCount = 200
-      const bloodGeo = new THREE.BufferGeometry()
-      const bloodPos = new Float32Array(particleCount * 3)
-      const bloodColors = new Float32Array(particleCount * 3)
+      // Holographic Dissection Plane at z = 0 that activates and pulses during split
+      const slicePlaneGeo = new THREE.PlaneGeometry(8.5, 11.5)
+      const slicePlaneMat = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        transparent: true,
+        opacity: 0.0,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending
+      })
+      const slicePlaneMesh = new THREE.Mesh(slicePlaneGeo, slicePlaneMat)
+      slicePlaneMesh.position.set(0, 0.5, 0)
+      heartRig.add(slicePlaneMesh)
 
-      for (let i = 0; i < particleCount; i++) {
-        const isOxygenated = i < particleCount / 2
-        const xBase = isOxygenated ? 1.0 : -1.0
-        bloodPos[i * 3] = xBase + (Math.random() - 0.5) * 1.5
-        bloodPos[i * 3 + 1] = (Math.random() - 0.5) * 5.5
-        bloodPos[i * 3 + 2] = -0.2 + (Math.random() - 0.5) * 1.0
+      // Scanning Dissection Laser Line across cutting edge
+      const laserLineGeo = new THREE.CylinderGeometry(0.04, 0.04, 10.0, 8)
+      const laserLineMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0 })
+      const laserLine = new THREE.Mesh(laserLineGeo, laserLineMat)
+      laserLine.position.set(0, 0.5, 0.02)
+      heartRig.add(laserLine)
 
-        // Oxygenated: bright crimson (0xef4444); Deoxygenated: royal cyan-blue (0x38bdf8)
-        if (isOxygenated) {
-          bloodColors[i * 3] = 0.95
-          bloodColors[i * 3 + 1] = 0.2
-          bloodColors[i * 3 + 2] = 0.25
-        } else {
-          bloodColors[i * 3] = 0.15
-          bloodColors[i * 3 + 1] = 0.65
-          bloodColors[i * 3 + 2] = 0.95
-        }
+      // Glowing Dissection Spark Emitter Particles
+      const sparkCount = 45
+      const sparkGeo = new THREE.BufferGeometry()
+      const sparkPos = new Float32Array(sparkCount * 3)
+      for (let k = 0; k < sparkCount; k++) {
+        sparkPos[k * 3] = (Math.random() - 0.5) * 1.5
+        sparkPos[k * 3 + 1] = -3.0 + Math.random() * 7.0
+        sparkPos[k * 3 + 2] = (Math.random() - 0.5) * 0.4
+      }
+      sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3))
+      const sparkMat = new THREE.PointsMaterial({
+        color: 0xa5f3fc,
+        size: 0.18,
+        transparent: true,
+        opacity: 0.0,
+        blending: THREE.AdditiveBlending
+      })
+      const sparkPoints = new THREE.Points(sparkGeo, sparkMat)
+      heartRig.add(sparkPoints)
+
+      // ========================================================
+      // 5. MOTION GRAPHICS: CARDIAC ELECTRICAL CONDUCTION RIBBON
+      // ========================================================
+      const conductionCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-1.6, 3.1, 0.6), // SA Node
+        new THREE.Vector3(-0.9, 2.2, 0.2), // Internodal tract
+        new THREE.Vector3(-0.1, 0.9, 0.0), // AV Node
+        new THREE.Vector3(0.0, 0.2, 0.0),  // Bundle of His
+        new THREE.Vector3(0.1, -1.0, 0.0), // Septum branch
+        new THREE.Vector3(0.4, -2.4, 0.1)  // Purkinje apex
+      ])
+      const condGeo = new THREE.TubeGeometry(conductionCurve, 32, 0.06, 8, false)
+      const condMat = new THREE.MeshBasicMaterial({
+        color: 0xfacc15,
+        transparent: true,
+        opacity: 0.75,
+        blending: THREE.AdditiveBlending
+      })
+      const conductionMesh = new THREE.Mesh(condGeo, condMat)
+      heartRig.add(conductionMesh)
+
+      // Electrical Action Potential Pulse Spark
+      const condSpark = new THREE.Mesh(
+        new THREE.SphereGeometry(0.16, 12, 12),
+        new THREE.MeshBasicMaterial({ color: 0xffffff })
+      )
+      heartRig.add(condSpark)
+
+      // 3D Chamber Biometric Callout Badges
+      function createHeartBadge(text: string, subtext: string, isLeft: boolean) {
+        const bCanvas = document.createElement('canvas')
+        bCanvas.width = 512
+        bCanvas.height = 160
+        const bCtx = bCanvas.getContext('2d')!
+        bCtx.fillStyle = 'rgba(7, 13, 24, 0.94)'
+        bCtx.strokeStyle = isLeft ? '#ef4444' : '#38bdf8'
+        bCtx.lineWidth = 5
+        bCtx.beginPath()
+        bCtx.roundRect(8, 8, 496, 144, 18)
+        bCtx.fill()
+        bCtx.stroke()
+
+        bCtx.fillStyle = isLeft ? '#f87171' : '#38bdf8'
+        bCtx.font = 'bold 34px sans-serif'
+        bCtx.fillText(text, 24, 60)
+
+        bCtx.fillStyle = '#e2e8f0'
+        bCtx.font = 'bold 24px monospace'
+        bCtx.fillText(subtext, 24, 110)
+
+        const bTexture = new THREE.CanvasTexture(bCanvas)
+        const bMat = new THREE.SpriteMaterial({ map: bTexture, transparent: true, opacity: 0.0 })
+        const sprite = new THREE.Sprite(bMat)
+        sprite.scale.set(3.4, 1.05, 1.0)
+        return sprite
       }
 
-      bloodGeo.setAttribute('position', new THREE.BufferAttribute(bloodPos, 3))
-      bloodGeo.setAttribute('color', new THREE.BufferAttribute(bloodColors, 3))
+      const lvBadge = createHeartBadge('🔴 LEFT VENTRICLE', '15 mm Wall · 120 mmHg Systolic', true)
+      lvBadge.position.set(1.4, 3.8, 0.2)
+      leftHeartGroup.add(lvBadge)
 
-      const bloodMat = new THREE.PointsMaterial({
-        size: 0.15,
-        vertexColors: true,
-        transparent: true,
-        opacity: 0.9,
-        blending: THREE.AdditiveBlending,
-      })
-      const bloodParticles = new THREE.Points(bloodGeo, bloodMat)
-      heartRig.add(bloodParticles)
+      const rvBadge = createHeartBadge('🔵 RIGHT VENTRICLE', '4 mm Wall · 25 mmHg Pulmonary', false)
+      rvBadge.position.set(-1.4, 3.8, 0.2)
+      rightHeartGroup.add(rvBadge)
 
       // Raycaster for Mouse Double-Click and Mobile Double-Tap
       const raycaster = new THREE.Raycaster()
@@ -2880,6 +3039,31 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         lvCutFace.visible = splitProgress > 0.04
         rvCutFace.visible = splitProgress > 0.04
 
+        // Split Motion Graphics: Bisecting laser slicing plane glow & holographic datum
+        const splitMidWave = Math.sin(splitProgress * Math.PI)
+        slicePlaneMesh.visible = splitProgress > 0.02
+        slicePlaneMat.opacity = Math.max(0.18 * splitProgress, splitMidWave * 0.75)
+        laserLine.visible = splitProgress > 0.02 && splitProgress < 0.98
+        laserLineMat.opacity = splitMidWave * 0.95
+        laserLine.position.y = 0.5 + Math.sin(pulseTime * 14) * 3.5
+
+        // Biometric Callout Badges fade in as halves separate
+        const badgeAlpha = Math.max(0, Math.min(1, (splitProgress - 0.25) * 1.5))
+        ;(lvBadge.material as THREE.SpriteMaterial).opacity = badgeAlpha
+        ;(rvBadge.material as THREE.SpriteMaterial).opacity = badgeAlpha
+
+        // Dissection sparks emission during split separation
+        sparkMat.opacity = splitMidWave * 0.85
+        if (splitMidWave > 0.1) {
+          const sAttr = sparkGeo.attributes.position as THREE.BufferAttribute
+          for (let k = 0; k < sparkCount; k++) {
+            let px = sAttr.getX(k) + (Math.random() - 0.5) * 0.12
+            if (Math.abs(px) > 2.5) px = (Math.random() - 0.5) * 0.8
+            sAttr.setX(k, px)
+          }
+          sAttr.needsUpdate = true
+        }
+
         if (isPlaying) {
           const freq = (params.bpm / 60) * Math.PI * 2
           pulseTime += 0.024
@@ -2898,6 +3082,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
             : 1.0 + Math.sin(cyclePhase) * 0.04
 
           lvPostMesh.scale.set(0.9 * ventScale, 1.45 * (2 - ventScale), 0.9 * ventScale)
+          lvApexMesh.scale.set(ventScale, 2 - ventScale, ventScale)
           lvAntMesh.scale.set(0.9 * ventScale, 1.45 * (2 - ventScale), 0.9 * ventScale)
           rvPostMesh.scale.set(1.05 * ventScale, 1.35 * (2 - ventScale), 0.85 * ventScale)
           rvAntMesh.scale.set(1.05 * ventScale, 1.35 * (2 - ventScale), 0.85 * ventScale)
@@ -2914,14 +3099,24 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           saPulseMesh.scale.setScalar(1.0 + saWave * 1.4)
           ;(saPulseMesh.material as THREE.MeshBasicMaterial).opacity = 0.65 - saWave * 0.55
 
-          // Double circulation blood particles
-          const pos = bloodGeo.attributes.position as THREE.BufferAttribute
-          for (let i = 0; i < particleCount; i++) {
-            let y = pos.getY(i) + (isVentBeat ? 0.16 : 0.09)
-            if (y > 5.2) y = -2.6
-            pos.setY(i, y)
-          }
-          pos.needsUpdate = true
+          // Electrical conduction spark travels down septum
+          const condProg = (cyclePhase / (Math.PI * 2)) % 1.0
+          const condPos = conductionCurve.getPointAt(condProg)
+          condSpark.position.copy(condPos)
+          condMat.opacity = 0.45 + saWave * 0.55
+
+          // Double circulation blood streams active inside split halves
+          const flowSpeed = (isVentBeat ? 0.35 : 0.18) * (params.bpm / 70)
+          sysBloodSpheres.forEach(sm => {
+            sm.userData.progress = (sm.userData.progress + 0.008 * flowSpeed) % 1.0
+            const pCoord = sysCurve.getPointAt(sm.userData.progress)
+            sm.position.copy(pCoord)
+          })
+          pulBloodSpheres.forEach(pm => {
+            pm.userData.progress = (pm.userData.progress + 0.008 * flowSpeed) % 1.0
+            const pCoord = pulCurve.getPointAt(pm.userData.progress)
+            pm.position.copy(pCoord)
+          })
         }
 
         controls.update()
