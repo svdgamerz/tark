@@ -1398,18 +1398,22 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       { label: '🔥 Methane (CH₄ - Tetrahedral 109.5°)', params: { moleculeId: 1, bondScale: 1.0, showDipoles: 0 } },
       { label: '💨 Carbon Dioxide (CO₂ - Linear 180°)', params: { moleculeId: 2, bondScale: 1.0, showDipoles: 1 } },
       { label: '❄️ Ammonia (NH₃ - Pyramidal 107°)', params: { moleculeId: 3, bondScale: 1.0, showDipoles: 1 } },
+      { label: '⚡ Phosphorus Pentachloride (PCl₅ - Trigonal Bipyramidal)', params: { moleculeId: 4, bondScale: 1.0, showDipoles: 0 } },
+      { label: '🛡️ Sulfur Hexafluoride (SF₆ - Octahedral 90°)', params: { moleculeId: 5, bondScale: 1.0, showDipoles: 0 } },
     ],
     params: [
-      { key: 'moleculeId', label: 'Molecule (0:H2O, 1:CH4, 2:CO2, 3:NH3)', min: 0, max: 3, step: 1, defaultValue: 0, unit: '' },
+      { key: 'moleculeId', label: 'Molecule (0:H2O, 1:CH4, 2:CO2, 3:NH3, 4:PCl5, 5:SF6)', min: 0, max: 5, step: 1, defaultValue: 0, unit: '' },
       { key: 'bondScale', label: 'Bond Length Scale', min: 0.6, max: 1.6, step: 0.1, defaultValue: 1.0, unit: 'x' },
       { key: 'showDipoles', label: 'Show Polarity Dipole Arrows', min: 0, max: 1, step: 1, defaultValue: 1, unit: '' },
     ],
     calculateReadouts: (p) => {
       const molMap = [
-        { name: 'Water (H₂O)', geom: 'Bent / V-Shaped', angle: '104.5°', polar: 'Polar (1.85 D)' },
-        { name: 'Methane (CH₄)', geom: 'Tetrahedral', angle: '109.5°', polar: 'Non-Polar (0 D)' },
-        { name: 'Carbon Dioxide (CO₂)', geom: 'Linear', angle: '180.0°', polar: 'Non-Polar (0 D)' },
-        { name: 'Ammonia (NH₃)', geom: 'Trigonal Pyramidal', angle: '107.0°', polar: 'Polar (1.47 D)' },
+        { name: 'Water (H₂O)', geom: 'Bent / V-Shaped (sp³)', angle: '104.5°', polar: 'Polar (1.85 D)' },
+        { name: 'Methane (CH₄)', geom: 'Tetrahedral (sp³)', angle: '109.5°', polar: 'Non-Polar (0 D)' },
+        { name: 'Carbon Dioxide (CO₂)', geom: 'Linear (sp)', angle: '180.0°', polar: 'Non-Polar (0 D)' },
+        { name: 'Ammonia (NH₃)', geom: 'Trigonal Pyramidal (sp³)', angle: '107.0°', polar: 'Polar (1.47 D)' },
+        { name: 'Phosphorus Pentachloride (PCl₅)', geom: 'Trigonal Bipyramidal (sp³d)', angle: '90° (ax) / 120° (eq)', polar: 'Non-Polar (0 D)' },
+        { name: 'Sulfur Hexafluoride (SF₆)', geom: 'Octahedral (sp³d²)', angle: '90.0°', polar: 'Non-Polar (0 D)' },
       ]
       const m = molMap[p.moleculeId] || molMap[0]
       return [
@@ -1473,6 +1477,10 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         O: new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.25, metalness: 0.1 }),
         C: new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4, metalness: 0.1 }),
         N: new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.3, metalness: 0.1 }),
+        P: new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.35, metalness: 0.15 }),
+        S: new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.35, metalness: 0.15 }),
+        Cl: new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.3, metalness: 0.1 }),
+        F: new THREE.MeshStandardMaterial({ color: 0x06b6d4, roughness: 0.25, metalness: 0.1 }),
         bond: new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.4, metalness: 0.3 }),
       }
 
@@ -1489,6 +1497,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const lonePairGroup = new THREE.Group()
       molGroup.add(lonePairGroup)
 
+      const dipoleGroup = new THREE.Group()
+      molGroup.add(dipoleGroup)
+
       let activeDissectId: 'central' | 'dipole' | null = null
 
       function buildMolecule() {
@@ -1496,10 +1507,33 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           molGroup.remove(molGroup.children[0])
         }
         lonePairGroup.clear()
+        dipoleGroup.clear()
         molGroup.add(lonePairGroup)
+        molGroup.add(dipoleGroup)
         interactableMeshes.length = 0
 
         const scale = params.bondScale
+
+        const addDipoleArrow = (from: THREE.Vector3, to: THREE.Vector3) => {
+          if (params.showDipoles === 0) return
+          const dir = new THREE.Vector3().subVectors(to, from)
+          const len = dir.length()
+          const arrow = new THREE.ArrowHelper(dir.clone().normalize(), from, len, 0xef4444, 0.7, 0.35)
+          dipoleGroup.add(arrow)
+        }
+
+        const addBondBetween = (p1: THREE.Vector3, p2: THREE.Vector3) => {
+          const dir = new THREE.Vector3().subVectors(p2, p1)
+          const len = dir.length()
+          const bGeo = new THREE.CylinderGeometry(0.24, 0.24, len, 16)
+          bGeo.translate(0, len / 2, 0)
+          const bMesh = new THREE.Mesh(bGeo, mats.bond)
+          bMesh.position.copy(p1)
+          bMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize())
+          bMesh.userData = { partId: 'central' }
+          molGroup.add(bMesh)
+          interactableMeshes.push(bMesh)
+        }
 
         if (params.moleculeId === 0) {
           // Water (H2O): Oxygen at origin, two Hydrogens at 104.5 degrees
@@ -1525,21 +1559,11 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           molGroup.add(h2)
           interactableMeshes.push(h2)
 
-          const addBond = (p1: THREE.Vector3, p2: THREE.Vector3) => {
-            const dir = new THREE.Vector3().subVectors(p2, p1)
-            const len = dir.length()
-            const bGeo = new THREE.CylinderGeometry(0.28, 0.28, len, 16)
-            bGeo.translate(0, len / 2, 0)
-            const bMesh = new THREE.Mesh(bGeo, mats.bond)
-            bMesh.position.copy(p1)
-            bMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize())
-            bMesh.userData = { partId: 'central' }
-            molGroup.add(bMesh)
-            interactableMeshes.push(bMesh)
-          }
+          addBondBetween(new THREE.Vector3(0, 0, 0), h1Pos)
+          addBondBetween(new THREE.Vector3(0, 0, 0), h2Pos)
 
-          addBond(new THREE.Vector3(0, 0, 0), h1Pos)
-          addBond(new THREE.Vector3(0, 0, 0), h2Pos)
+          // Net Dipole Arrow pointing up towards oxygen lone pairs
+          addDipoleArrow(new THREE.Vector3(0, -2.2, 0), new THREE.Vector3(0, 2.2, 0))
 
           // 2 Dissected Lone Pair Lobes for Oxygen
           const lobeGeo = new THREE.SphereGeometry(1.3, 24, 24)
@@ -1576,16 +1600,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
             h.userData = { partId: 'dipole' }
             molGroup.add(h)
             interactableMeshes.push(h)
-
-            const dir = pos.clone()
-            const len = dir.length()
-            const bGeo = new THREE.CylinderGeometry(0.28, 0.28, len, 16)
-            bGeo.translate(0, len / 2, 0)
-            const bMesh = new THREE.Mesh(bGeo, mats.bond)
-            bMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize())
-            bMesh.userData = { partId: 'central' }
-            molGroup.add(bMesh)
-            interactableMeshes.push(bMesh)
+            addBondBetween(new THREE.Vector3(0, 0, 0), pos)
           })
         } else if (params.moleculeId === 2) {
           // Carbon Dioxide (CO2): Linear O=C=O
@@ -1608,17 +1623,17 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           interactableMeshes.push(o2)
 
           const addDoubleBond = (xOffset: number) => {
-            const bGeo = new THREE.CylinderGeometry(0.2, 0.2, dist, 16)
+            const bGeo = new THREE.CylinderGeometry(0.18, 0.18, dist, 16)
             bGeo.translate(0, dist / 2, 0)
             const b1 = new THREE.Mesh(bGeo, mats.bond)
-            b1.position.set(0, 0.4, 0)
+            b1.position.set(0, 0.35, 0)
             b1.rotation.z = xOffset > 0 ? -Math.PI / 2 : Math.PI / 2
             b1.userData = { partId: 'central' }
             molGroup.add(b1)
             interactableMeshes.push(b1)
 
             const b2 = new THREE.Mesh(bGeo, mats.bond)
-            b2.position.set(0, -0.4, 0)
+            b2.position.set(0, -0.35, 0)
             b2.rotation.z = xOffset > 0 ? -Math.PI / 2 : Math.PI / 2
             b2.userData = { partId: 'central' }
             molGroup.add(b2)
@@ -1626,7 +1641,12 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           }
           addDoubleBond(dist)
           addDoubleBond(-dist)
-        } else {
+
+          // Equal and opposite bond dipoles cancel out
+          addDipoleArrow(new THREE.Vector3(0, 1.2, 0), new THREE.Vector3(dist, 1.2, 0))
+          addDipoleArrow(new THREE.Vector3(0, 1.2, 0), new THREE.Vector3(-dist, 1.2, 0))
+
+        } else if (params.moleculeId === 3) {
           // Ammonia (NH3): Nitrogen with 3 Hydrogens in trigonal pyramid
           const nMesh = new THREE.Mesh(new THREE.SphereGeometry(1.4, 32, 32), mats.N)
           nMesh.position.y = 0.8
@@ -1643,18 +1663,11 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
             h.userData = { partId: 'dipole' }
             molGroup.add(h)
             interactableMeshes.push(h)
-
-            const dir = new THREE.Vector3().subVectors(hPos, nMesh.position)
-            const len = dir.length()
-            const bGeo = new THREE.CylinderGeometry(0.28, 0.28, len, 16)
-            bGeo.translate(0, len / 2, 0)
-            const bMesh = new THREE.Mesh(bGeo, mats.bond)
-            bMesh.position.copy(nMesh.position)
-            bMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize())
-            bMesh.userData = { partId: 'central' }
-            molGroup.add(bMesh)
-            interactableMeshes.push(bMesh)
+            addBondBetween(nMesh.position, hPos)
           }
+
+          // Net Dipole Arrow pointing up towards lone pair
+          addDipoleArrow(new THREE.Vector3(0, -1.5, 0), new THREE.Vector3(0, 2.8, 0))
 
           // Single Apex Lone Pair Lobe for Nitrogen
           const lobeGeo = new THREE.SphereGeometry(1.4, 24, 24)
@@ -1662,6 +1675,65 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           const lpN = new THREE.Mesh(lobeGeo, lonePairMat)
           lpN.position.set(0, 2.6, 0)
           lonePairGroup.add(lpN)
+
+        } else if (params.moleculeId === 4) {
+          // Phosphorus Pentachloride (PCl5): Trigonal Bipyramidal (sp3d)
+          const pMesh = new THREE.Mesh(new THREE.SphereGeometry(1.5, 32, 32), mats.P)
+          pMesh.userData = { partId: 'central' }
+          molGroup.add(pMesh)
+          interactableMeshes.push(pMesh)
+
+          const eqDist = 3.4 * scale
+          const axDist = 3.8 * scale
+
+          // 2 Axial Chlorines (90° to equatorial)
+          const axPositions = [new THREE.Vector3(0, axDist, 0), new THREE.Vector3(0, -axDist, 0)]
+          axPositions.forEach((pos) => {
+            const cl = new THREE.Mesh(new THREE.SphereGeometry(1.15, 24, 24), mats.Cl)
+            cl.position.copy(pos)
+            cl.userData = { partId: 'dipole' }
+            molGroup.add(cl)
+            interactableMeshes.push(cl)
+            addBondBetween(new THREE.Vector3(0, 0, 0), pos)
+          })
+
+          // 3 Equatorial Chlorines (120° apart in XZ plane)
+          for (let i = 0; i < 3; i++) {
+            const a = (i * 2 * Math.PI) / 3
+            const eqPos = new THREE.Vector3(eqDist * Math.cos(a), 0, eqDist * Math.sin(a))
+            const cl = new THREE.Mesh(new THREE.SphereGeometry(1.15, 24, 24), mats.Cl)
+            cl.position.copy(eqPos)
+            cl.userData = { partId: 'dipole' }
+            molGroup.add(cl)
+            interactableMeshes.push(cl)
+            addBondBetween(new THREE.Vector3(0, 0, 0), eqPos)
+          }
+
+        } else if (params.moleculeId === 5) {
+          // Sulfur Hexafluoride (SF6): Octahedral (sp3d2, all 90° angles)
+          const sMesh = new THREE.Mesh(new THREE.SphereGeometry(1.5, 32, 32), mats.S)
+          sMesh.userData = { partId: 'central' }
+          molGroup.add(sMesh)
+          interactableMeshes.push(sMesh)
+
+          const fDist = 3.3 * scale
+          const octPositions = [
+            new THREE.Vector3(fDist, 0, 0),
+            new THREE.Vector3(-fDist, 0, 0),
+            new THREE.Vector3(0, fDist, 0),
+            new THREE.Vector3(0, -fDist, 0),
+            new THREE.Vector3(0, 0, fDist),
+            new THREE.Vector3(0, 0, -fDist),
+          ]
+
+          octPositions.forEach((pos) => {
+            const fMesh = new THREE.Mesh(new THREE.SphereGeometry(1.0, 24, 24), mats.F)
+            fMesh.position.copy(pos)
+            fMesh.userData = { partId: 'dipole' }
+            molGroup.add(fMesh)
+            interactableMeshes.push(fMesh)
+            addBondBetween(new THREE.Vector3(0, 0, 0), pos)
+          })
         }
 
         lonePairGroup.visible = Boolean(activeDissectId === 'central')
@@ -2499,10 +2571,17 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       registerPart(lvCavity, 'lv')
       leftHeartGroup.add(lvCavity)
 
-      // Coronal Cut Face Rim on z = 0 (Showing thick ~15 mm myocardium wall)
-      const lvCutRingGeo = new THREE.RingGeometry(1.4, 2.38, 32)
-      lvCutRingGeo.scale(0.9, 1.45, 1.0)
-      const lvCutFace = new THREE.Mesh(lvCutRingGeo, cutWallLeftMat)
+      // Coronal Cut Face on z = 0 (Showing thick ~15 mm myocardium wall and solid interventricular septum)
+      const lvShape = new THREE.Shape()
+      // Outer border matching LV posterior contour
+      const lvR = 2.38
+      lvShape.absellipse(0, 0, lvR * 0.9, lvR * 1.45, 0, Math.PI * 2, false, 0)
+      // Inner lumen hole (hollow cavity)
+      const lvHole = new THREE.Path()
+      lvHole.absellipse(0.12, 0, 1.4 * 0.85, 1.4 * 1.35, 0, Math.PI * 2, true, 0)
+      lvShape.holes.push(lvHole)
+      const lvCutShapeGeo = new THREE.ShapeGeometry(lvShape, 48)
+      const lvCutFace = new THREE.Mesh(lvCutShapeGeo, cutWallLeftMat)
       lvCutFace.position.set(1.0, -0.6, 0.01)
       registerPart(lvCutFace, 'lv')
       leftHeartGroup.add(lvCutFace)
@@ -2679,10 +2758,15 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       registerPart(rvCavity, 'rv')
       rightHeartGroup.add(rvCavity)
 
-      // Coronal Cut Face Rim on z = 0 (Showing thin ~4 mm wall border - 3x thinner than LV!)
-      const rvCutRingGeo = new THREE.RingGeometry(2.0, 2.3, 32)
-      rvCutRingGeo.scale(1.05, 1.35, 1.0)
-      const rvCutFace = new THREE.Mesh(rvCutRingGeo, cutWallRightMat)
+      // Coronal Cut Face on z = 0 (Showing thin ~4 mm wall border - 3x thinner than LV, wrapping crescent around septum)
+      const rvShape = new THREE.Shape()
+      const rvR = 2.3
+      rvShape.absellipse(0, 0, rvR * 1.05, rvR * 1.35, 0, Math.PI * 2, false, 0)
+      const rvHole = new THREE.Path()
+      rvHole.absellipse(-0.06, 0, 2.05 * 1.0, 2.05 * 1.3, 0, Math.PI * 2, true, 0)
+      rvShape.holes.push(rvHole)
+      const rvCutShapeGeo = new THREE.ShapeGeometry(rvShape, 48)
+      const rvCutFace = new THREE.Mesh(rvCutShapeGeo, cutWallRightMat)
       rvCutFace.position.set(-1.0, -0.5, 0.01)
       registerPart(rvCutFace, 'rv')
       rightHeartGroup.add(rvCutFace)
@@ -5263,6 +5347,17 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       )
       scene.add(photonSpark)
 
+      // Retinal Focal Spot Indicator (Sharp glowing dot when focused on retina, blurry halo when defocused)
+      const focalSpotMat = new THREE.MeshBasicMaterial({
+        color: 0x22c55e,
+        transparent: true,
+        opacity: 0.85,
+        side: THREE.DoubleSide,
+      })
+      const focalSpotMesh = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.22, 24), focalSpotMat)
+      focalSpotMesh.position.set(0, 0, -3.09)
+      eyeRig.add(focalSpotMesh)
+
       // Light Object (Candle with flame)
       const objectGroup = new THREE.Group()
       scene.add(objectGroup)
@@ -5278,11 +5373,11 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       flameMesh.position.y = 1.35
       objectGroup.add(flameMesh)
 
-      // Corrective Spectacles Group (Framed glass lenses in front of eye)
+      // Corrective Spectacles Group (Authentic titanium glasses frame in front of eye)
       const specGroup = new THREE.Group()
       scene.add(specGroup)
 
-      const specLensGeo = new THREE.CylinderGeometry(1.6, 1.6, 0.15, 32)
+      const specLensGeo = new THREE.CylinderGeometry(1.65, 1.65, 0.14, 32)
       const specLensMat = new THREE.MeshPhysicalMaterial({
         color: 0x67e8f9,
         transparent: true,
@@ -5296,16 +5391,27 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       specGroup.add(specLensMesh)
 
       // Titanium Spectacle Rim & Nose Bridge
-      const specRimGeo = new THREE.TorusGeometry(1.65, 0.07, 8, 36)
+      const specRimGeo = new THREE.TorusGeometry(1.68, 0.08, 8, 36)
       const specRimMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.9, roughness: 0.2 })
       const specRimMesh = new THREE.Mesh(specRimGeo, specRimMat)
       specRimMesh.position.set(0, 0, 4.8)
       specGroup.add(specRimMesh)
 
-      const bridgeMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.4, 8), specRimMat)
-      bridgeMesh.rotation.z = Math.PI / 2
-      bridgeMesh.position.set(-1.8, 0.4, 4.8)
+      // Nose bridge arch connecting left/right frames
+      const bridgeCurve = new THREE.QuadraticBezierCurve3(
+        new THREE.Vector3(-1.65, 0.2, 4.8),
+        new THREE.Vector3(-2.3, 0.6, 4.8),
+        new THREE.Vector3(-2.9, 0.2, 4.8)
+      )
+      const bridgeMesh = new THREE.Mesh(new THREE.TubeGeometry(bridgeCurve, 16, 0.06, 8, false), specRimMat)
       specGroup.add(bridgeMesh)
+
+      // Left temple arm extending back towards ear
+      const templeGeo = new THREE.CylinderGeometry(0.05, 0.05, 5.2, 8)
+      const templeMesh = new THREE.Mesh(templeGeo, specRimMat)
+      templeMesh.rotation.x = Math.PI / 2
+      templeMesh.position.set(1.68, 0.2, 2.2)
+      specGroup.add(templeMesh)
 
       specGroup.visible = false
 
@@ -5347,6 +5453,19 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
         if (uCm < 40 && params.accommodation < 0.6 && params.visionDefect === 0) {
           focalZ -= (0.6 - params.accommodation) * 1.8
+        }
+
+        // Retinal focus check: If focal point is within ±0.15 of retina (-3.1), spot is sharp green
+        const defocusDist = Math.abs(focalZ - (-3.1))
+        if (defocusDist < 0.2) {
+          focalSpotMat.color.setHex(0x22c55e) // Sharp focus (green)
+          focalSpotMesh.scale.set(1.0, 1.0, 1.0)
+          focalSpotMat.opacity = 0.95
+        } else {
+          focalSpotMat.color.setHex(0xef4444) // Blurred circle of confusion (red)
+          const blurScale = 1.0 + defocusDist * 2.8
+          focalSpotMesh.scale.set(blurScale, blurScale, 1.0)
+          focalSpotMat.opacity = 0.6
         }
 
         const lensZ = 1.85
@@ -5622,6 +5741,19 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       nucleolusMesh.name = 'nucleus'
       cellRig.add(nucleolusMesh)
 
+      // Chromatin Thread Coils inside nucleoplasm
+      for (let ch = 0; ch < 5; ch++) {
+        const cCurve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(-0.9 + Math.sin(ch) * 0.4, 0.2 + (ch % 3) * 0.2, 0.1),
+          new THREE.Vector3(-0.6 + Math.cos(ch) * 0.3, 0.6 - (ch % 2) * 0.3, 0.3),
+          new THREE.Vector3(-0.8, 0.3, 0.4),
+        ])
+        const cGeo = new THREE.TubeGeometry(cCurve, 16, 0.03, 6, false)
+        const cMat = new THREE.MeshStandardMaterial({ color: 0xa855f7, roughness: 0.5 })
+        const cMesh = new THREE.Mesh(cGeo, cMat)
+        cellRig.add(cMesh)
+      }
+
       // Nuclear Pores (Octagonal tiny rings on outer envelope)
       for (let np = 0; np < 12; np++) {
         const theta = (np / 12) * Math.PI * 2
@@ -5795,6 +5927,26 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       c2.position.set(0.2, 0, 0)
       centrosomeGroup.add(c1, c2)
       cellRig.add(centrosomeGroup)
+
+      // Lysosomes (Suicide sacs containing digestive acid hydrolases)
+      const lysoGroup = new THREE.Group()
+      cellRig.add(lysoGroup)
+      const lysoMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.35 })
+      for (const [lx, ly, lz] of [[-1.2, -1.5, -0.6], [0.9, 1.4, -1.0], [1.7, -0.8, 1.1]]) {
+        const lyMesh = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), lysoMat)
+        lyMesh.position.set(lx, ly, lz)
+        lysoGroup.add(lyMesh)
+      }
+
+      // Peroxisomes (Catalase crystals decomposing H2O2)
+      const peroxGroup = new THREE.Group()
+      cellRig.add(peroxGroup)
+      const peroxMat = new THREE.MeshStandardMaterial({ color: 0x059669, roughness: 0.3 })
+      for (const [px, py, pz] of [[-0.4, -1.7, 0.8], [1.5, 0.8, -0.7]]) {
+        const pMesh = new THREE.Mesh(new THREE.SphereGeometry(0.19, 14, 14), peroxMat)
+        pMesh.position.set(px, py, pz)
+        peroxGroup.add(pMesh)
+      }
 
       // 9. Cytoplasmic Streaming (Cyclosis) Granules
       const streamingGranules: THREE.Mesh[] = []
