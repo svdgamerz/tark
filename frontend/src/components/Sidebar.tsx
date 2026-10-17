@@ -19,11 +19,6 @@ interface Props {
   boardShort: (b: string) => string
   onOpenFriends?: () => void
   friendsUnreadCount?: number
-  onOpenMathSandbox?: () => void
-  onOpenScratchpad?: () => void
-  onOpenMolecularViewer?: () => void
-  onOpenVoiceLabPartner?: () => void
-  onOpenMasteryGraph?: () => void
 }
 
 export function Sidebar({
@@ -42,11 +37,6 @@ export function Sidebar({
   boardShort,
   onOpenFriends,
   friendsUnreadCount,
-  onOpenMathSandbox,
-  onOpenScratchpad,
-  onOpenMolecularViewer,
-  onOpenVoiceLabPartner,
-  onOpenMasteryGraph,
 }: Props) {
   const { user } = useAuth()
   const [chatToDelete, setChatToDelete] = useState<Chat | null>(null)
@@ -147,31 +137,6 @@ export function Sidebar({
             </svg>
             Virtual Lab 🧪
           </button>
-          {onOpenMathSandbox && (
-            <button className="progress-btn" onClick={onOpenMathSandbox} title="Visual 2D/3D Math & Vector Field Sandbox">
-              📐 Math Sandbox 3D
-            </button>
-          )}
-          {onOpenScratchpad && (
-            <button className="progress-btn" onClick={onOpenScratchpad} title="Where Did I Go Wrong? Homework Error Spotter">
-              ✍️ Error Spotter
-            </button>
-          )}
-          {onOpenMolecularViewer && (
-            <button className="progress-btn" onClick={onOpenMolecularViewer} title="Interactive 3D Molecular & Crystal Viewer">
-              🔬 3D Molecules
-            </button>
-          )}
-          {onOpenVoiceLabPartner && (
-            <button className="progress-btn" onClick={onOpenVoiceLabPartner} title="Hands-free Voice Lab Partner">
-              🎙️ Voice Lab Partner
-            </button>
-          )}
-          {onOpenMasteryGraph && (
-            <button className="progress-btn" onClick={onOpenMasteryGraph} title="Diagnostic Concept Mastery Graph & Skill Tree">
-              🌳 Mastery Skill Tree
-            </button>
-          )}
           <button className="progress-btn" onClick={onOpenTasks} title="View study plans & task milestones">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 11l3 3L22 4" />

@@ -405,9 +405,10 @@ type SubjectTab = 'All' | 'Physics' | 'Chemistry' | 'Biology' | 'Mathematics'
 interface Props {
   onClose: () => void
   onSendToChat?: (query: string) => void
+  onOpenVoiceLabPartner?: () => void
 }
 
-export function VirtualLabModal({ onClose, onSendToChat }: Props) {
+export function VirtualLabModal({ onClose, onSendToChat, onOpenVoiceLabPartner }: Props) {
   const [catalog, setCatalog] = useState<CatalogSimulationItem[]>(FALLBACK_CATALOG)
   const [selectedTab, setSelectedTab] = useState<SubjectTab>('All')
   const [searchQuery, setSearchQuery] = useState('')
@@ -697,6 +698,29 @@ export function VirtualLabModal({ onClose, onSendToChat }: Props) {
                 )}
               </div>
               <div className="vl-active-actions">
+                {onOpenVoiceLabPartner && (
+                  <button
+                    type="button"
+                    className="vl-voice-partner-btn"
+                    onClick={onOpenVoiceLabPartner}
+                    title="Hands-free voice tutor for experiments"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'rgba(2, 132, 199, 0.15)',
+                      border: '1px solid rgba(56, 189, 248, 0.35)',
+                      color: '#38bdf8',
+                      borderRadius: '8px',
+                      padding: '6px 12px',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    🎙️ Voice Lab Partner
+                  </button>
+                )}
                 {onSendToChat && (
                   <button
                     type="button"

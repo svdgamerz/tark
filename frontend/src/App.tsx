@@ -1105,26 +1105,6 @@ export default function App() {
               ensureProfile(() => setShowVirtualLab(true))
               if (window.innerWidth <= 768) setSidebarOpen(false)
             }}
-            onOpenMathSandbox={() => {
-              setShowMathSandbox(true)
-              if (window.innerWidth <= 768) setSidebarOpen(false)
-            }}
-            onOpenScratchpad={() => {
-              setShowScratchpad(true)
-              if (window.innerWidth <= 768) setSidebarOpen(false)
-            }}
-            onOpenMolecularViewer={() => {
-              setShowMolecularViewer(true)
-              if (window.innerWidth <= 768) setSidebarOpen(false)
-            }}
-            onOpenVoiceLabPartner={() => {
-              setShowVoiceLabPartner(true)
-              if (window.innerWidth <= 768) setSidebarOpen(false)
-            }}
-            onOpenMasteryGraph={() => {
-              setShowMasteryGraph(true)
-              if (window.innerWidth <= 768) setSidebarOpen(false)
-            }}
             onSelect={(id) => {
               handleSelect(id)
               if (window.innerWidth <= 768) setSidebarOpen(false)
@@ -1172,96 +1152,6 @@ export default function App() {
           )}
           <div className="topbar-right">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginRight: '8px' }}>
-              <button
-                type="button"
-                onClick={() => setShowMathSandbox(true)}
-                title="Visual 2D/3D Math & Vector Field Sandbox"
-                style={{
-                  background: 'rgba(56, 189, 248, 0.1)',
-                  border: '1px solid rgba(56, 189, 248, 0.25)',
-                  color: '#38bdf8',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  padding: '5px 10px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                📐 Math 3D
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowScratchpad(true)}
-                title="Where Did I Go Wrong? Error Spotter"
-                style={{
-                  background: 'rgba(244, 63, 94, 0.1)',
-                  border: '1px solid rgba(244, 63, 94, 0.25)',
-                  color: '#fb7185',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  padding: '5px 10px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                ✍️ Error Spotter
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowMolecularViewer(true)}
-                title="Interactive 3D Molecular & Crystal Viewer"
-                style={{
-                  background: 'rgba(16, 185, 129, 0.1)',
-                  border: '1px solid rgba(16, 185, 129, 0.25)',
-                  color: '#34d399',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  padding: '5px 10px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                🔬 3D Molecules
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowVoiceLabPartner(true)}
-                title="Voice-First Hands-Free Lab Partner"
-                style={{
-                  background: 'rgba(2, 132, 199, 0.1)',
-                  border: '1px solid rgba(2, 132, 199, 0.25)',
-                  color: '#38bdf8',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  padding: '5px 10px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                🎙️ Lab Partner
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowMasteryGraph(true)}
-                title="Diagnostic Concept Mastery Skill Tree"
-                style={{
-                  background: 'rgba(168, 85, 247, 0.1)',
-                  border: '1px solid rgba(168, 85, 247, 0.25)',
-                  color: '#c084fc',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  padding: '5px 10px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                🌳 Skill Tree
-              </button>
               <button
                 type="button"
                 onClick={() => setShowVirtualLab(true)}
@@ -1396,6 +1286,10 @@ export default function App() {
                       i > 0 && messages[i - 1].role === 'user' ? messages[i - 1].content : undefined
                     )
                   }
+                  onOpenMathSandbox={() => setShowMathSandbox(true)}
+                  onOpenScratchpad={() => setShowScratchpad(true)}
+                  onOpenMolecularViewer={() => setShowMolecularViewer(true)}
+                  onOpenMasteryGraph={() => setShowMasteryGraph(true)}
                   onEdit={
                     m.role === 'user' && !busy
                       ? (v) => handleEditMessage(i, v)
@@ -1569,6 +1463,80 @@ export default function App() {
                       <small>Entire study folder or chapter</small>
                     </div>
                   </button>
+                  <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)', margin: '6px 4px' }} />
+                  <div style={{ padding: '4px 10px', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.05em' }}>
+                    STEM Tools & Sandboxes
+                  </div>
+                  <button
+                    type="button"
+                    className="attach-menu-item"
+                    onClick={() => {
+                      setShowAttachMenu(false)
+                      setShowMathSandbox(true)
+                    }}
+                  >
+                    <span className="ami-icon">📐</span>
+                    <div className="ami-text">
+                      <strong>3D Math & Multivariable Sandbox</strong>
+                      <small>Surfaces, vectors & calculus curves</small>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className="attach-menu-item"
+                    onClick={() => {
+                      setShowAttachMenu(false)
+                      setShowScratchpad(true)
+                    }}
+                  >
+                    <span className="ami-icon">✍️</span>
+                    <div className="ami-text">
+                      <strong>Error Spotter & Scratchpad</strong>
+                      <small>Diagnose step-by-step calculation mistakes</small>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className="attach-menu-item"
+                    onClick={() => {
+                      setShowAttachMenu(false)
+                      setShowMolecularViewer(true)
+                    }}
+                  >
+                    <span className="ami-icon">🔬</span>
+                    <div className="ami-text">
+                      <strong>3D Molecular & Crystal Viewer</strong>
+                      <small>Interactive orbital & crystal lattices</small>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className="attach-menu-item"
+                    onClick={() => {
+                      setShowAttachMenu(false)
+                      setShowVoiceLabPartner(true)
+                    }}
+                  >
+                    <span className="ami-icon">🎙️</span>
+                    <div className="ami-text">
+                      <strong>Voice Lab Partner</strong>
+                      <small>Hands-free voice tutor for experiments</small>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className="attach-menu-item"
+                    onClick={() => {
+                      setShowAttachMenu(false)
+                      setShowMasteryGraph(true)
+                    }}
+                  >
+                    <span className="ami-icon">🌳</span>
+                    <div className="ami-text">
+                      <strong>Concept Mastery Skill Tree</strong>
+                      <small>Syllabus learning paths & diagnostics</small>
+                    </div>
+                  </button>
                 </div>
               )}
             </div>
@@ -1695,6 +1663,7 @@ export default function App() {
         <VirtualLabModal
           onClose={() => setShowVirtualLab(false)}
           onSendToChat={(q) => void sendText(q)}
+          onOpenVoiceLabPartner={() => setShowVoiceLabPartner(true)}
         />
       )}
       <FriendsDrawer
