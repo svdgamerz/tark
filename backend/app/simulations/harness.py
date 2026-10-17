@@ -14,6 +14,12 @@ Provides medical/university laboratory-grade styling (PhET/Labster/BioRender cal
 
 import json
 from typing import Any
+from app.simulations.three_engine import (
+    get_three_css,
+    get_three_js_engine,
+    get_three_scripts_html,
+    get_three_ui_html,
+)
 
 
 def build_harness_html(spec: dict[str, Any]) -> str:
@@ -31,6 +37,7 @@ def build_harness_html(spec: dict[str, Any]) -> str:
     sliders_html = ""
     for p in params:
         key = p["key"]
+        label = p.get("label", key)
         val = p.get("default", p.get("defaultValue", (p["min"] + p["max"]) / 2))
         unit = p.get("unit", "")
         step = p.get("step", 1)
@@ -39,7 +46,7 @@ def build_harness_html(spec: dict[str, Any]) -> str:
           <div class="slider-header">
             <div class="slider-label-group">
               <span class="slider-dot"></span>
-              <span class="slider-label">{p['label']}</span>
+              <span class="slider-label">{label}</span>
             </div>
             <div class="slider-value-pill" id="val_{key}">
               <span class="val-num">{val}</span><span class="val-unit"> {unit}</span>
@@ -183,13 +190,20 @@ def build_harness_html(spec: dict[str, Any]) -> str:
         )
     missions_js = "[\n    " + ",\n    ".join(missions_js_parts) + "\n  ]"
 
+    three_scripts = get_three_scripts_html()
+    three_css = get_three_css()
+    three_ui = get_three_ui_html()
+    three_engine_js = get_three_js_engine(title, subject, formula, params)
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🧪 {title} – Tark Virtual Lab</title>
+{three_scripts}
 <style>
+{three_css}
 :root {{
   --bg: #070d18;
   --panel: rgba(11, 19, 41, 0.92);
@@ -433,6 +447,7 @@ html, body {{
 
   <!-- Canvas Viewport -->
   <div id="canvasWrap">
+    {three_ui}
     <canvas id="simCanvas"></canvas>
     <div id="inspectorCard">
       <h4 id="inspTitle"></h4>
@@ -500,6 +515,8 @@ html, body {{
   const SPEC_GRAPH = {graph_js};
   const SPEC_MISSIONS = {missions_js};
 
+  {three_engine_js}
+
   // --- Initialize Parameters ---
   {chr(10).join(f"  state.params['{p['key']}'] = {p.get('default', (p['min']+p['max'])/2)};" for p in params)}
 
@@ -538,6 +555,7 @@ html, body {{
     canvas.height = Math.floor(logicalH * dpr);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
+    if (typeof resizeThreeLab === 'function') resizeThreeLab();
   }}
   window.addEventListener('resize', resizeCanvas);
   resizeCanvas();
@@ -1947,10 +1965,11 @@ html, body {{
     state.lastNow = now;
     if (state.isPlaying) state.time += dt;
 
-    ctx.clearRect(0, 0, logicalW, logicalH);
+    if (threeLabActive && typeof updateThreeLab === 'function') {{
+      updateThreeLab(dt, state.time, state.params);
+    }}
 
-    ctx.fillStyle = '#070d18';
-    ctx.fillRect(0, 0, logicalW, logicalH);
+    ctx.clearRect(0, 0, logicalW, logicalH);
 
     const splitX = Math.floor(logicalW * 0.62);
     const appW = splitX - 10;
@@ -1959,6 +1978,32 @@ html, body {{
     const graphY = 16;
     const graphW = logicalW - splitX - 24;
     const graphH = logicalH - 32;
+
+    if (!threeLabActive) {{
+      ctx.fillStyle = '#070d18';
+      ctx.fillRect(0, 0, logicalW, logicalH);
+
+      ctx.save();
+      let customDrawn = false;
+      if (compiledCustomApparatus) {{
+        try {{
+          compiledCustomApparatus(ctx, appW, appH, state.params, state, helpers);
+          customDrawn = true;
+        }} catch(e) {{
+          console.warn('Custom apparatus runtime notice:', e);
+          customDrawn = false;
+        }}
+      }}
+      if (!customDrawn) {{
+        renderMasterLaboratoryApparatus(ctx, appW, appH, state.params, state);
+      }}
+      ctx.restore();
+    }} else {{
+      // In 3D mode, the left 62% remains transparent so WebGL 3D shows through!
+      // Only paint the dark background for the right analytical panel
+      ctx.fillStyle = '#070d18';
+      ctx.fillRect(splitX, 0, logicalW - splitX, logicalH);
+    }}
 
     ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
     ctx.lineWidth = 1;
@@ -1969,22 +2014,6 @@ html, body {{
     if (SPEC_GRAPH && SPEC_GRAPH.fn) {{
       helpers.drawAnalyticalGraph(graphX, graphY, graphW, graphH, SPEC_GRAPH, state.params, state);
     }}
-
-    ctx.save();
-    let customDrawn = false;
-    if (compiledCustomApparatus) {{
-      try {{
-        compiledCustomApparatus(ctx, appW, appH, state.params, state, helpers);
-        customDrawn = true;
-      }} catch(e) {{
-        console.warn('Custom apparatus runtime notice:', e);
-        customDrawn = false;
-      }}
-    }}
-    if (!customDrawn) {{
-      renderMasterLaboratoryApparatus(ctx, appW, appH, state.params, state);
-    }}
-    ctx.restore();
 
     updateMissions(dt);
 
@@ -2015,6 +2044,7 @@ html, body {{
 
   updateTelemetry();
   renderActiveMission();
+  initThreeLab();
   broadcastTelemetry('sim_init');
   requestAnimationFrame(loop);
 }})();
