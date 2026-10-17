@@ -2938,11 +2938,11 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       }
 
       const lvBadge = createHeartBadge('🔴 LEFT VENTRICLE', '15 mm Wall · 120 mmHg Systolic', true)
-      lvBadge.position.set(1.4, 3.8, 0.2)
+      lvBadge.position.set(2.8, 1.8, 0.4)
       leftHeartGroup.add(lvBadge)
 
       const rvBadge = createHeartBadge('🔵 RIGHT VENTRICLE', '4 mm Wall · 25 mmHg Pulmonary', false)
-      rvBadge.position.set(-1.4, 3.8, 0.2)
+      rvBadge.position.set(-2.8, 1.8, 0.4)
       rightHeartGroup.add(rvBadge)
 
       // Raycaster for Mouse Double-Click and Mobile Double-Tap
@@ -3019,18 +3019,18 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         leftHeartGroup.rotation.y = -splitProgress * 0.18
         leftHeartGroup.position.z = -splitProgress * 0.2
 
-        // Anterior ventricle flaps swing open and fade to reveal the coronal section
-        lvAntMesh.rotation.y = splitProgress * 1.5
+        // Anterior ventricle shells fade smoothly as coronal interior opens (no awkward hinged flaps)
+        lvAntMesh.position.z = splitProgress * 0.35
         const lvAntMat = lvAntMesh.material as THREE.MeshStandardMaterial
-        lvAntMat.transparent = splitProgress > 0.05
-        lvAntMat.opacity = Math.max(0, 1.0 - splitProgress * 1.4)
-        lvAntMesh.visible = splitProgress < 0.85
+        lvAntMat.transparent = true
+        lvAntMat.opacity = Math.max(0, 1.0 - splitProgress * 2.2)
+        lvAntMesh.visible = splitProgress < 0.55
 
-        rvAntMesh.rotation.y = -splitProgress * 1.5
+        rvAntMesh.position.z = splitProgress * 0.35
         const rvAntMat = rvAntMesh.material as THREE.MeshStandardMaterial
-        rvAntMat.transparent = splitProgress > 0.05
-        rvAntMat.opacity = Math.max(0, 1.0 - splitProgress * 1.4)
-        rvAntMesh.visible = splitProgress < 0.85
+        rvAntMat.transparent = true
+        rvAntMat.opacity = Math.max(0, 1.0 - splitProgress * 2.2)
+        rvAntMesh.visible = splitProgress < 0.55
 
         // Fade anterior sulcus fat, LAD vessels, and cut faces
         fatMesh.visible = splitProgress < 0.25
@@ -3039,26 +3039,26 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         lvCutFace.visible = splitProgress > 0.04
         rvCutFace.visible = splitProgress > 0.04
 
-        // Split Motion Graphics: Bisecting laser slicing plane glow & holographic datum
+        // Split Motion Graphics: Laser pulse and dissection sparks during separation ONLY (no persistent plane)
         const splitMidWave = Math.sin(splitProgress * Math.PI)
-        slicePlaneMesh.visible = splitProgress > 0.02
-        slicePlaneMat.opacity = Math.max(0.18 * splitProgress, splitMidWave * 0.75)
-        laserLine.visible = splitProgress > 0.02 && splitProgress < 0.98
+        slicePlaneMesh.visible = splitProgress > 0.02 && splitProgress < 0.94
+        slicePlaneMat.opacity = splitMidWave * 0.65
+        laserLine.visible = splitProgress > 0.02 && splitProgress < 0.94
         laserLineMat.opacity = splitMidWave * 0.95
         laserLine.position.y = 0.5 + Math.sin(pulseTime * 14) * 3.5
 
-        // Biometric Callout Badges fade in as halves separate
+        // Biometric Callout Badges fade in gracefully beside each hemisphere
         const badgeAlpha = Math.max(0, Math.min(1, (splitProgress - 0.25) * 1.5))
         ;(lvBadge.material as THREE.SpriteMaterial).opacity = badgeAlpha
         ;(rvBadge.material as THREE.SpriteMaterial).opacity = badgeAlpha
 
-        // Dissection sparks emission during split separation
-        sparkMat.opacity = splitMidWave * 0.85
+        // Dissection sparks emission during active transition
+        sparkMat.opacity = splitMidWave * 0.9
         if (splitMidWave > 0.1) {
           const sAttr = sparkGeo.attributes.position as THREE.BufferAttribute
           for (let k = 0; k < sparkCount; k++) {
-            let px = sAttr.getX(k) + (Math.random() - 0.5) * 0.12
-            if (Math.abs(px) > 2.5) px = (Math.random() - 0.5) * 0.8
+            let px = sAttr.getX(k) + (Math.random() - 0.5) * 0.16
+            if (Math.abs(px) > 2.8) px = (Math.random() - 0.5) * 0.8
             sAttr.setX(k, px)
           }
           sAttr.needsUpdate = true
@@ -4944,7 +4944,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
     title: '3D Human Eye Anatomy & Vision Optics',
     subject: 'Biology & Physics · Optics & Anatomy',
     concept: 'Ciliary Accommodation, Refraction & Vision Defects (Myopia/Hypermetropia)',
-    description: 'Anatomically authentic 3D human eye model based on medical reference standards (Kenhub). Displays physiological ciliary muscle accommodation, real-time light ray refraction through the cornea and crystalline biconvex lens onto the retina, and corrective spectacle lens simulation for Myopia and Hypermetropia.',
+    description: 'Anatomically authentic 3D human eye model based on medical reference standards (Kenhub & Netter). Features physiological ciliary muscle accommodation, suspensory zonules of Zinn, episcleral micro-capillaries, real-time light ray refraction through the cornea and crystalline biconvex lens onto the retina, and corrective spectacle lens simulation for Myopia and Hypermetropia.',
     emoji: '👁️',
     difficulty: 'Intermediate',
     presets: [
@@ -4963,15 +4963,12 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
     ],
     calculateReadouts: (p) => {
       const u = p.objectDist; void u
-      // Normal eye depth is ~24mm (2.4 cm).
       const eyeDepthCm = p.visionDefect === 1 ? 2.65 : p.visionDefect === 2 ? 2.15 : 2.4; void eyeDepthCm
-      // Lens power in diopters: P = 1/f = 1/v - 1/(-u)
-      const accommodationPower = p.accommodation * 12.0 // Up to +12D accommodation
+      const accommodationPower = p.accommodation * 12.0
       const basePower = 58.0 + accommodationPower
       const defectLabel = p.visionDefect === 1 ? 'Myopia (Elongated Axial Length)' : p.visionDefect === 2 ? 'Hypermetropia (Shortened Axial Length)' : 'Emmetropia (Normal Vision)'
       const lensCorrection = p.correctiveLens === 1 ? 'Concave Diverging Lens (-2.50 D)' : p.correctiveLens === 2 ? 'Convex Converging Lens (+2.50 D)' : 'No Correction'
 
-      // Focal point position relative to retina:
       let focusStatus = 'Focused Sharply on Fovea Centralis'
       if (p.visionDefect === 1 && p.correctiveLens !== 1) focusStatus = 'Rays Converge in Front of Retina (Blurred)'
       else if (p.visionDefect === 2 && p.correctiveLens !== 2) focusStatus = 'Rays Converge Behind Retina (Blurred)'
@@ -5015,7 +5012,6 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
       const interactableMeshes: THREE.Object3D[] = []
 
-      // Pedagogical Dissection Dictionary
       const DISSECT_CARDS: Record<string, DissectInfo> = {
         cornea: {
           title: 'Cornea · Anterior Transparent Window',
@@ -5063,40 +5059,63 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           title: 'Sclera · White Protective Outer Shell',
           partName: 'Sclera (Tough Fibrous Coat)',
           role: 'Maintains intraocular pressure (~15 mmHg), structural spherical shape, and anchors extraocular muscles.',
-          internalStructures: ['Dense Collagen Bundles', 'Episclera', 'Tenon Capsule', 'Extraocular Muscle Insertions'],
+          internalStructures: ['Dense Collagen Bundles', 'Episcleral Capillary Plexus', 'Tenon Capsule', 'Extraocular Muscle Insertions'],
           description: 'The opaque white of the eye transitions smoothly into the clear cornea at the sclerocorneal limbus.',
         },
       }
 
-      // 1. Sclera Shell (Radius 3.2)
+      // 1. Sclera Shell (Full intact sphere)
       const scleraGeo = new THREE.SphereGeometry(3.2, 48, 48)
       const scleraMat = new THREE.MeshStandardMaterial({
-        color: 0xf1f5f9,
-        roughness: 0.35,
-        metalness: 0.05,
+        color: 0xf8fafc,
+        roughness: 0.28,
+        metalness: 0.04,
       })
       const scleraMesh = new THREE.Mesh(scleraGeo, scleraMat)
       scleraMesh.name = 'sclera'
       eyeRig.add(scleraMesh)
       interactableMeshes.push(scleraMesh)
 
-      // Cutaway Sclera Section for splitView
-      const cutawayScleraGeo = new THREE.SphereGeometry(3.2, 48, 48, 0, Math.PI)
+      // Episcleral Micro-Capillaries on Sclera
+      const vesselsGroup = new THREE.Group()
+      const vesselMat = new THREE.MeshBasicMaterial({ color: 0xdc2626, transparent: true, opacity: 0.75 })
+      for (let v = 0; v < 14; v++) {
+        const phi = (v / 14) * Math.PI * 2
+        const vCurve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(Math.cos(phi) * 1.6, Math.sin(phi) * 1.6, 2.2),
+          new THREE.Vector3(Math.cos(phi + 0.12) * 2.3, Math.sin(phi + 0.12) * 2.3, 1.6),
+          new THREE.Vector3(Math.cos(phi + 0.22) * 3.0, Math.sin(phi + 0.22) * 3.0, 0.4),
+          new THREE.Vector3(Math.cos(phi + 0.18) * 3.16, Math.sin(phi + 0.18) * 3.16, -1.0),
+        ])
+        const vTube = new THREE.Mesh(new THREE.TubeGeometry(vCurve, 16, 0.035, 6, false), vesselMat)
+        vesselsGroup.add(vTube)
+      }
+      eyeRig.add(vesselsGroup)
+
+      // 3/4 Sagittal Dissection Cutaway Sclera
+      const cutawayScleraGeo = new THREE.SphereGeometry(3.2, 48, 48, 0, Math.PI * 1.5, 0, Math.PI)
       const cutawayScleraMesh = new THREE.Mesh(cutawayScleraGeo, scleraMat)
       cutawayScleraMesh.name = 'sclera'
       cutawayScleraMesh.visible = false
       eyeRig.add(cutawayScleraMesh)
 
-      // 2. Bulging Transparent Cornea (Anterior dome, offset forward at z = +2.6)
-      const corneaGeo = new THREE.SphereGeometry(1.65, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.45)
+      // Middle Choroid Vascular Layer (Dark crimson/brown lining under sclera)
+      const choroidGeo = new THREE.SphereGeometry(3.14, 48, 48, 0, Math.PI * 1.5, 0, Math.PI)
+      const choroidMat = new THREE.MeshStandardMaterial({ color: 0x450a0a, roughness: 0.65, side: THREE.DoubleSide })
+      const choroidMesh = new THREE.Mesh(choroidGeo, choroidMat)
+      choroidMesh.visible = false
+      eyeRig.add(choroidMesh)
+
+      // 2. Bulging Transparent Cornea Dome (Anterior dome, offset forward at z = +2.4)
+      const corneaGeo = new THREE.SphereGeometry(1.68, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.46)
       const corneaMat = new THREE.MeshPhysicalMaterial({
         color: 0x93c5fd,
         transparent: true,
         opacity: 0.45,
-        roughness: 0.1,
-        transmission: 0.7,
+        roughness: 0.06,
+        transmission: 0.85,
         ior: 1.376,
-        reflectivity: 0.8,
+        reflectivity: 0.9,
       })
       const corneaMesh = new THREE.Mesh(corneaGeo, corneaMat)
       corneaMesh.position.set(0, 0, 2.3)
@@ -5104,44 +5123,64 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       eyeRig.add(corneaMesh)
       interactableMeshes.push(corneaMesh)
 
-      // 3. Iris Ring
-      const irisGeo = new THREE.RingGeometry(0.55, 1.45, 36)
+      // Dark Limbal Ring (Sclerocorneal Junction)
+      const limbusGeo = new THREE.TorusGeometry(1.58, 0.08, 12, 36)
+      const limbusMat = new THREE.MeshBasicMaterial({ color: 0x0f172a })
+      const limbusMesh = new THREE.Mesh(limbusGeo, limbusMat)
+      limbusMesh.position.set(0, 0, 2.3)
+      eyeRig.add(limbusMesh)
+
+      // 3. Iris with radial pupillary stroma fibers
+      const irisGeo = new THREE.RingGeometry(0.55, 1.55, 36)
       const irisMat = new THREE.MeshStandardMaterial({
         color: 0x0284c7,
-        roughness: 0.6,
+        roughness: 0.55,
         side: THREE.DoubleSide,
       })
       const irisMesh = new THREE.Mesh(irisGeo, irisMat)
-      irisMesh.position.set(0, 0, 2.38)
+      irisMesh.position.set(0, 0, 2.36)
       irisMesh.name = 'iris'
       eyeRig.add(irisMesh)
       interactableMeshes.push(irisMesh)
 
-      // Pupil black backing aperture
+      // Pupil aperture (deep black behind iris)
       const pupilGeo = new THREE.CircleGeometry(0.54, 32)
       const pupilMat = new THREE.MeshBasicMaterial({ color: 0x020617 })
       const pupilMesh = new THREE.Mesh(pupilGeo, pupilMat)
-      pupilMesh.position.set(0, 0, 2.37)
+      pupilMesh.position.set(0, 0, 2.35)
       eyeRig.add(pupilMesh)
 
-      // 4. Crystalline Biconvex Lens (Scales with accommodation)
-      const lensGeo = new THREE.SphereGeometry(1.15, 32, 32)
+      // 4. Crystalline Biconvex Elastic Lens (Scales with accommodation)
+      const lensGeo = new THREE.SphereGeometry(1.18, 32, 32)
       const lensMat = new THREE.MeshPhysicalMaterial({
         color: 0xbae6fd,
         transparent: true,
-        opacity: 0.75,
-        roughness: 0.08,
-        transmission: 0.85,
+        opacity: 0.82,
+        roughness: 0.06,
+        transmission: 0.9,
         ior: 1.406,
       })
       const lensMesh = new THREE.Mesh(lensGeo, lensMat)
       lensMesh.position.set(0, 0, 1.85)
-      lensMesh.scale.set(1.0, 1.0, 0.45) // Biconvex aspect
+      lensMesh.scale.set(1.0, 1.0, 0.45)
       lensMesh.name = 'lens'
       eyeRig.add(lensMesh)
       interactableMeshes.push(lensMesh)
 
-      // 5. Ciliary Muscle Ring & Zonule fibers
+      // 5. Suspensory Zonules of Zinn (Radial tension filaments connecting lens to ciliary body)
+      const zonulesGroup = new THREE.Group()
+      const zonuleMat = new THREE.LineBasicMaterial({ color: 0x93c5fd, transparent: true, opacity: 0.65 })
+      for (let z = 0; z < 24; z++) {
+        const angle = (z / 24) * Math.PI * 2
+        const innerPt = new THREE.Vector3(Math.cos(angle) * 1.15, Math.sin(angle) * 1.15, 1.85)
+        const outerPt = new THREE.Vector3(Math.cos(angle) * 1.5, Math.sin(angle) * 1.5, 1.85)
+        const zGeo = new THREE.BufferGeometry().setFromPoints([innerPt, outerPt])
+        const zLine = new THREE.Line(zGeo, zonuleMat)
+        zonulesGroup.add(zLine)
+      }
+      eyeRig.add(zonulesGroup)
+
+      // Ciliary Muscle Ring
       const ciliaryGeo = new THREE.TorusGeometry(1.5, 0.22, 16, 40)
       const ciliaryMat = new THREE.MeshStandardMaterial({ color: 0xc2410c, roughness: 0.7 })
       const ciliaryMesh = new THREE.Mesh(ciliaryGeo, ciliaryMat)
@@ -5150,7 +5189,21 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       eyeRig.add(ciliaryMesh)
       interactableMeshes.push(ciliaryMesh)
 
-      // 6. Posterior Retina Lining (Inner hemispherical cup with orange/yellow glow)
+      // 6. Vitreous Body Gel Interior (translucent optical interior)
+      const vitreousGeo = new THREE.SphereGeometry(3.08, 32, 32, 0, Math.PI * 1.5, 0, Math.PI)
+      const vitreousMat = new THREE.MeshPhysicalMaterial({
+        color: 0xbae6fd,
+        transparent: true,
+        opacity: 0.18,
+        roughness: 0.05,
+        transmission: 0.95,
+        side: THREE.DoubleSide
+      })
+      const vitreousMesh = new THREE.Mesh(vitreousGeo, vitreousMat)
+      vitreousMesh.visible = false
+      eyeRig.add(vitreousMesh)
+
+      // Posterior Retina Lining
       const retinaGeo = new THREE.SphereGeometry(3.1, 40, 40, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5)
       const retinaMat = new THREE.MeshStandardMaterial({
         color: 0xea580c,
@@ -5163,7 +5216,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       interactableMeshes.push(retinaMesh)
 
       // Fovea Centralis (Golden tiny disc on retina pole)
-      const foveaGeo = new THREE.CircleGeometry(0.22, 24)
+      const foveaGeo = new THREE.CircleGeometry(0.24, 24)
       const foveaMat = new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide })
       const foveaMesh = new THREE.Mesh(foveaGeo, foveaMat)
       foveaMesh.position.set(0.4, 0, -3.08)
@@ -5171,7 +5224,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       eyeRig.add(foveaMesh)
 
       // 7. Optic Nerve Trunk (Posterior Cylinder)
-      const nerveGeo = new THREE.CylinderGeometry(0.65, 0.75, 3.0, 24)
+      const nerveGeo = new THREE.CylinderGeometry(0.65, 0.75, 3.2, 24)
       const nerveMat = new THREE.MeshStandardMaterial({ color: 0xfde047, roughness: 0.5 })
       const nerveMesh = new THREE.Mesh(nerveGeo, nerveMat)
       nerveMesh.rotation.x = Math.PI / 2
@@ -5181,20 +5234,20 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       interactableMeshes.push(nerveMesh)
 
       // Central retinal blood vessels on nerve
-      const arteryGeo = new THREE.CylinderGeometry(0.12, 0.12, 3.1, 16)
+      const arteryGeo = new THREE.CylinderGeometry(0.12, 0.12, 3.3, 16)
       const arteryMat = new THREE.MeshBasicMaterial({ color: 0xef4444 })
       const arteryMesh = new THREE.Mesh(arteryGeo, arteryMat)
       arteryMesh.rotation.x = Math.PI / 2
       arteryMesh.position.set(-0.65, -0.2, -4.5)
       eyeRig.add(arteryMesh)
 
-      // 8. Optical Ray Tracing Light Bundle (Incoming parallel & chief rays)
+      // 8. Optical Ray Tracing Light Bundle
       const rayGroup = new THREE.Group()
       scene.add(rayGroup)
 
       const rayLines: THREE.Line[] = []
       const rayMat = new THREE.LineBasicMaterial({ color: 0xfacc15, linewidth: 2, transparent: true, opacity: 0.85 })
-      const rayFocalMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 2, transparent: true, opacity: 0.9 })
+      const rayFocalMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 2, transparent: true, opacity: 0.95 })
 
       for (let i = 0; i < 5; i++) {
         const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()])
@@ -5203,7 +5256,14 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         rayGroup.add(line)
       }
 
-      // Light Object (Stylized Glowing Arrow / Candle in front of eye)
+      // Dynamic Photon Particle Spark travelling on chief ray
+      const photonSpark = new THREE.Mesh(
+        new THREE.SphereGeometry(0.12, 10, 10),
+        new THREE.MeshBasicMaterial({ color: 0xffffff })
+      )
+      scene.add(photonSpark)
+
+      // Light Object (Candle with flame)
       const objectGroup = new THREE.Group()
       scene.add(objectGroup)
 
@@ -5218,60 +5278,75 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       flameMesh.position.y = 1.35
       objectGroup.add(flameMesh)
 
-      // Corrective Spectacles Lens (Hovering in front of cornea)
+      // Corrective Spectacles Group (Framed glass lenses in front of eye)
+      const specGroup = new THREE.Group()
+      scene.add(specGroup)
+
       const specLensGeo = new THREE.CylinderGeometry(1.6, 1.6, 0.15, 32)
       const specLensMat = new THREE.MeshPhysicalMaterial({
         color: 0x67e8f9,
         transparent: true,
-        opacity: 0.45,
-        roughness: 0.1,
-        transmission: 0.9,
+        opacity: 0.55,
+        roughness: 0.08,
+        transmission: 0.92,
       })
       const specLensMesh = new THREE.Mesh(specLensGeo, specLensMat)
       specLensMesh.rotation.x = Math.PI / 2
       specLensMesh.position.set(0, 0, 4.8)
-      specLensMesh.visible = false
-      scene.add(specLensMesh)
+      specGroup.add(specLensMesh)
 
-      // Dynamic Optical Ray Updater
+      // Titanium Spectacle Rim & Nose Bridge
+      const specRimGeo = new THREE.TorusGeometry(1.65, 0.07, 8, 36)
+      const specRimMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.9, roughness: 0.2 })
+      const specRimMesh = new THREE.Mesh(specRimGeo, specRimMat)
+      specRimMesh.position.set(0, 0, 4.8)
+      specGroup.add(specRimMesh)
+
+      const bridgeMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.4, 8), specRimMat)
+      bridgeMesh.rotation.z = Math.PI / 2
+      bridgeMesh.position.set(-1.8, 0.4, 4.8)
+      specGroup.add(bridgeMesh)
+
+      specGroup.visible = false
+
       function updateRays() {
         const uCm = params.objectDist
-        // Map uCm to 3D world units (z from 6 to 25)
         const objZ = 4.8 + Math.min(22, (uCm / 180) * 18)
         objectGroup.position.set(0, 0, objZ)
 
-        // Show/hide corrective spectacles lens
+        // Show/hide corrective spectacles
         if (params.correctiveLens > 0) {
-          specLensMesh.visible = true
-          specLensMesh.scale.set(1.0, 1.0, params.correctiveLens === 1 ? 0.35 : 0.8) // Concave thinner center vs convex
+          specGroup.visible = true
+          specLensMesh.scale.set(1.0, 1.0, params.correctiveLens === 1 ? 0.35 : 0.8)
         } else {
-          specLensMesh.visible = false
+          specGroup.visible = false
         }
 
         // Lens thickness adaptation (accommodation)
-        const thickZ = 0.35 + params.accommodation * 0.38
+        const thickZ = 0.35 + params.accommodation * 0.45
         lensMesh.scale.set(1.0, 1.0, thickZ)
 
-        // Sclera and Retina section toggle (splitView)
+        // Suspensory zonule relaxation with accommodation
+        zonulesGroup.scale.setScalar(1.0 - params.accommodation * 0.08)
+
+        // Sclera and Sagittal section toggle (splitView)
         const isSplit = params.splitView >= 0.5
         scleraMesh.visible = !isSplit
+        vesselsGroup.visible = !isSplit
         cutawayScleraMesh.visible = isSplit
+        choroidMesh.visible = isSplit
+        vitreousMesh.visible = isSplit
 
-        // Focal plane Z coordinate inside eyeball:
-        // Retina center is at z = -3.1
         let focalZ = -3.1 // Normal emmetropia
 
         if (params.visionDefect === 1) {
-          // Myopia: converges before retina (e.g. z = -1.8)
           focalZ = params.correctiveLens === 1 ? -3.1 : -1.8
         } else if (params.visionDefect === 2) {
-          // Hypermetropia: converges behind retina (e.g. z = -4.2)
           focalZ = params.correctiveLens === 2 ? -3.1 : -4.3
         }
 
-        // Near distance accommodation compensation:
         if (uCm < 40 && params.accommodation < 0.6 && params.visionDefect === 0) {
-          focalZ -= (0.6 - params.accommodation) * 1.8 // Blurs behind retina if not accommodated
+          focalZ -= (0.6 - params.accommodation) * 1.8
         }
 
         const lensZ = 1.85
@@ -5286,16 +5361,25 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           const pts = [objPt, lensPt, focusPt]
           line.geometry.setFromPoints(pts)
         })
+
+        // Photon particle travels along chief central ray
+        const pCycle = (Date.now() * 0.002) % 1.0
+        if (pCycle < 0.5) {
+          const t = pCycle * 2.0
+          photonSpark.position.lerpVectors(new THREE.Vector3(0, 0, objZ), new THREE.Vector3(0, 0, lensZ), t)
+        } else {
+          const t = (pCycle - 0.5) * 2.0
+          photonSpark.position.lerpVectors(new THREE.Vector3(0, 0, lensZ), new THREE.Vector3(0, 0, focalZ), t)
+        }
       }
 
-      // Raycaster for interactive dissection inspection
       const raycaster = new THREE.Raycaster()
       const mouse = new THREE.Vector2()
 
-      function handleDblClick(e: MouseEvent) {
+      function triggerRaycast(clientX: number, clientY: number) {
         const rect = renderer.domElement.getBoundingClientRect()
-        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
-        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+        mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1
 
         raycaster.setFromCamera(mouse, camera)
         const hits = raycaster.intersectObjects(interactableMeshes, true)
@@ -5305,23 +5389,16 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           const card = DISSECT_CARDS[key] || DISSECT_CARDS.cornea
           callbacks.onInspectPart?.(card)
         }
+      }
+
+      function handleDblClick(e: MouseEvent) {
+        triggerRaycast(e.clientX, e.clientY)
       }
 
       function handleTouchEnd(e: TouchEvent) {
         if (e.changedTouches.length === 0) return
         const t = e.changedTouches[0]
-        const rect = renderer.domElement.getBoundingClientRect()
-        mouse.x = ((t.clientX - rect.left) / rect.width) * 2 - 1
-        mouse.y = -((t.clientY - rect.top) / rect.height) * 2 + 1
-
-        raycaster.setFromCamera(mouse, camera)
-        const hits = raycaster.intersectObjects(interactableMeshes, true)
-        if (hits.length > 0) {
-          const key = hits[0].object.name || 'cornea'
-          activeDissectKey = key
-          const card = DISSECT_CARDS[key] || DISSECT_CARDS.cornea
-          callbacks.onInspectPart?.(card)
-        }
+        triggerRaycast(t.clientX, t.clientY)
       }
 
       renderer.domElement.addEventListener('dblclick', handleDblClick)
@@ -5331,9 +5408,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         animId = requestAnimationFrame(animate)
         controls.update()
         updateRays()
-
-        // Subtle ocular saccade / micro-movement
-        eyeRig.rotation.y = Math.sin(Date.now() * 0.001) * 0.05
+        eyeRig.rotation.y = Math.sin(Date.now() * 0.001) * 0.04
         renderer.render(scene, camera)
       }
 
@@ -5386,7 +5461,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
     title: '3D Plant & Animal Cell Ultrastructure',
     subject: 'Biology · Cytology & Cell Physiology',
     concept: 'Eukaryotic Organelles, Membrane Systems & Bioenergetics',
-    description: 'Interactive 3D model of eukaryotic plant and animal cell ultrastructure based on transmission electron microscopy standards. Features interactive cutaway views, high-resolution mitochondria with folded cristae, stacked chloroplast thylakoids, rough & smooth endoplasmic reticulum, and nucleus with chromatin and nucleolus.',
+    description: 'High-definition 3D eukaryotic cell ultrastructure model based on transmission electron microscopy (TEM). Features true 3/4 cutaways, folded mitochondrial cristae with active ATP generation, stacked chloroplast thylakoid grana, rough ER cisternal sheets with ribosome beads, Golgi transport vesicle budding, and active cytoplasmic streaming.',
     emoji: '🔬',
     difficulty: 'Intermediate',
     presets: [
@@ -5424,7 +5499,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       createBioStudioEnvironment(scene)
 
       const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
-      camera.position.set(0, 3, 14)
+      camera.position.set(0, 4, 15)
 
       const renderer = new THREE.WebGLRenderer({ antialias: true })
       renderer.setSize(width, height)
@@ -5451,9 +5526,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         },
         mitochondria: {
           title: 'Mitochondrion · Cellular Powerhouse',
-          partName: 'Double-Membrane Mitochondria',
+          partName: 'Double-Membrane Mitochondria with Folded Cristae',
           role: 'Produces >90% of cellular ATP via Krebs cycle and the electron transport chain (Oxidative Phosphorylation).',
-          internalStructures: ['Outer Porin Membrane', 'Folded Inner Cristae Sheets', 'Mitochondrial Matrix (Mitochondrial DNA & Ribosomes)'],
+          internalStructures: ['Outer Porin Membrane', 'Folded Inner Cristae Sheets', 'Mitochondrial Matrix (Mitochondrial DNA & Ribosomes)', 'F1F0 ATP Synthase Complexes'],
           description: 'The extensive folding of cristae expands the surface area available for complexes I–IV and rotating F1F0 ATP synthase motors.',
         },
         chloroplast: {
@@ -5467,7 +5542,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           title: 'Endoplasmic Reticulum (Rough & Smooth ER)',
           partName: 'Endoplasmic Reticulum Cisternal Network',
           role: 'Synthesizes proteins (Rough ER with ribosomes) and lipids/steroids + calcium storage (Smooth ER).',
-          internalStructures: ['Membrane Lamellae / Cisternae', 'Membrane-bound Ribosome Granules', 'Tubular Smooth Lumen'],
+          internalStructures: ['Membrane Lamellae / Cisternae', 'Membrane-bound Ribosome Granules (Golden Beads)', 'Tubular Smooth Lumen'],
           description: 'Polypeptides synthesized by ribosomes thread directly into the ER lumen for post-translational folding and chaperone quality control.',
         },
         golgi: {
@@ -5488,52 +5563,77 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           title: 'Cellulose Cell Wall · Rigid Exoskeleton',
           partName: 'Primary & Secondary Cell Wall',
           role: 'Provides mechanical tensile strength, withstands high internal osmotic turgor pressure, and shapes the plant cell.',
-          internalStructures: ['Cellulose Microfibrils', 'Hemicellulose & Pectin Matrix', 'Plasmodesmata Intercellular Channels'],
-          description: 'Absent in animal cells. Composed of beta-glucose cellulose chains cross-linked by pectins, enabling plants to grow tall without an internal skeleton.',
+          internalStructures: ['Cellulose Microfibrils', 'Hemicellulose & Pectin Matrix', 'Middle Lamella (Calcium Pectate)', 'Plasmodesmata Channels'],
+          description: 'Composed of beta-glucose cellulose chains cross-linked by pectins, enabling plants to grow tall without an internal skeleton.',
         },
       }
 
-      // 1. Plant Cell Wall / Animal Membrane Shell
-      const plantWallGeo = new THREE.BoxGeometry(6.4, 5.2, 5.2)
+      // 1. Plant Cell Wall & Animal Membrane with genuine 3/4 cutaways
+      const plantWallGeo = new THREE.BoxGeometry(6.6, 5.4, 5.4)
       const plantWallMat = new THREE.MeshStandardMaterial({
         color: 0x15803d,
-        roughness: 0.5,
+        roughness: 0.45,
         transparent: true,
-        opacity: 0.45,
+        opacity: 0.55,
       })
       const plantWallMesh = new THREE.Mesh(plantWallGeo, plantWallMat)
       plantWallMesh.name = 'wall'
       cellRig.add(plantWallMesh)
       interactableMeshes.push(plantWallMesh)
 
-      const animalMembraneGeo = new THREE.SphereGeometry(3.2, 40, 40)
-      const animalMembraneMat = new THREE.MeshStandardMaterial({
-        color: 0x38bdf8,
-        roughness: 0.35,
+      // Plant Middle Lamella & Border Chamfers
+      const plantBorderGeo = new THREE.BoxGeometry(6.75, 5.55, 5.55)
+      const plantBorderMat = new THREE.MeshStandardMaterial({
+        color: 0x4ade80,
+        wireframe: true,
         transparent: true,
         opacity: 0.4,
+      })
+      const plantBorderMesh = new THREE.Mesh(plantBorderGeo, plantBorderMat)
+      cellRig.add(plantBorderMesh)
+
+      // Animal Cell Membrane (3/4 cutaway spherical dome)
+      const animalMembraneGeo = new THREE.SphereGeometry(3.3, 40, 40, 0, Math.PI * 1.5, 0, Math.PI)
+      const animalMembraneMat = new THREE.MeshStandardMaterial({
+        color: 0x0284c7,
+        roughness: 0.35,
+        transparent: true,
+        opacity: 0.45,
+        side: THREE.DoubleSide
       })
       const animalMembraneMesh = new THREE.Mesh(animalMembraneGeo, animalMembraneMat)
       animalMembraneMesh.name = 'wall'
       cellRig.add(animalMembraneMesh)
 
-      // 2. Nucleus & Nucleolus
-      const nucleusGeo = new THREE.SphereGeometry(1.25, 32, 32)
-      const nucleusMat = new THREE.MeshStandardMaterial({ color: 0x8b5cf6, roughness: 0.4 })
+      // 2. Nucleus & Nucleolus (3/4 Cutaway showing interior chromatin & nucleolus)
+      const nucleusGeo = new THREE.SphereGeometry(1.3, 32, 32, 0, Math.PI * 1.5, 0, Math.PI)
+      const nucleusMat = new THREE.MeshStandardMaterial({ color: 0x7c3aed, roughness: 0.4, side: THREE.DoubleSide })
       const nucleusMesh = new THREE.Mesh(nucleusGeo, nucleusMat)
       nucleusMesh.position.set(-0.8, 0.4, 0)
       nucleusMesh.name = 'nucleus'
       cellRig.add(nucleusMesh)
       interactableMeshes.push(nucleusMesh)
 
-      const nucleolusGeo = new THREE.SphereGeometry(0.42, 24, 24)
-      const nucleolusMat = new THREE.MeshStandardMaterial({ color: 0x4c1d95, roughness: 0.2 })
+      // Dense Nucleolus Core
+      const nucleolusGeo = new THREE.SphereGeometry(0.48, 24, 24)
+      const nucleolusMat = new THREE.MeshStandardMaterial({ color: 0x4c1d95, roughness: 0.25 })
       const nucleolusMesh = new THREE.Mesh(nucleolusGeo, nucleolusMat)
-      nucleolusMesh.position.set(-0.7, 0.5, 0.3)
+      nucleolusMesh.position.set(-0.7, 0.45, 0.25)
       nucleolusMesh.name = 'nucleus'
       cellRig.add(nucleolusMesh)
 
-      // 3. Mitochondria (Multiple kidney-shaped capsules with orange glow)
+      // Nuclear Pores (Octagonal tiny rings on outer envelope)
+      for (let np = 0; np < 12; np++) {
+        const theta = (np / 12) * Math.PI * 2
+        const pMesh = new THREE.Mesh(
+          new THREE.TorusGeometry(0.08, 0.02, 6, 12),
+          new THREE.MeshBasicMaterial({ color: 0xc4b5fd })
+        )
+        pMesh.position.set(-0.8 + Math.cos(theta) * 1.3, 0.4 + Math.sin(theta) * 1.1, -0.4)
+        cellRig.add(pMesh)
+      }
+
+      // 3. Mitochondria (Double-membrane cutaway with folded golden cristae sheets)
       const mitoGroup = new THREE.Group()
       cellRig.add(mitoGroup)
       const mitoPositions = [
@@ -5541,18 +5641,44 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         new THREE.Vector3(1.4, -1.3, -0.6),
         new THREE.Vector3(-1.8, -1.1, 0.9),
       ]
+      const atpSparks: THREE.Mesh[] = []
       mitoPositions.forEach((pos) => {
-        const mGeo = new THREE.CapsuleGeometry(0.32, 0.75, 16, 24)
-        const mMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.3 })
-        const mMesh = new THREE.Mesh(mGeo, mMat)
-        mMesh.position.copy(pos)
-        mMesh.rotation.set(0.6, 0.4, 0.8)
-        mMesh.name = 'mitochondria'
-        mitoGroup.add(mMesh)
-        interactableMeshes.push(mMesh)
+        const mGroup = new THREE.Group()
+        mGroup.position.copy(pos)
+        mGroup.rotation.set(0.6, 0.4, 0.8)
+
+        // Outer membrane capsule
+        const mOuter = new THREE.Mesh(
+          new THREE.CapsuleGeometry(0.36, 0.85, 16, 20),
+          new THREE.MeshStandardMaterial({ color: 0xea580c, roughness: 0.35 })
+        )
+        mOuter.name = 'mitochondria'
+        mGroup.add(mOuter)
+        interactableMeshes.push(mOuter)
+
+        // Inner folded cristae ridges
+        for (let cr = 0; cr < 5; cr++) {
+          const ridge = new THREE.Mesh(
+            new THREE.BoxGeometry(0.48, 0.08, 0.35),
+            new THREE.MeshBasicMaterial({ color: 0xfacc15 })
+          )
+          ridge.position.set(0, -0.3 + cr * 0.15, 0.12)
+          mGroup.add(ridge)
+        }
+
+        // Glowing ATP energy spark
+        const atp = new THREE.Mesh(
+          new THREE.SphereGeometry(0.08, 8, 8),
+          new THREE.MeshBasicMaterial({ color: 0xfef08a })
+        )
+        atp.position.set(0, 0, 0.4)
+        mGroup.add(atp)
+        atpSparks.push(atp)
+
+        mitoGroup.add(mGroup)
       })
 
-      // 4. Chloroplasts (For plant cell - stacked discoid thylakoids)
+      // 4. Chloroplasts (For plant cell - with stacked thylakoid grana discs)
       const chloroGroup = new THREE.Group()
       cellRig.add(chloroGroup)
       const chloroPositions = [
@@ -5561,68 +5687,143 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         new THREE.Vector3(0.3, -1.6, 1.2),
       ]
       chloroPositions.forEach((pos) => {
-        const cGeo = new THREE.SphereGeometry(0.55, 24, 24)
-        cGeo.scale(1.2, 0.6, 1.0)
-        const cMat = new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.35 })
-        const cMesh = new THREE.Mesh(cGeo, cMat)
-        cMesh.position.copy(pos)
-        cMesh.rotation.set(0.4, 0.2, 0.5)
-        cMesh.name = 'chloroplast'
-        chloroGroup.add(cMesh)
-        interactableMeshes.push(cMesh)
+        const cGroup = new THREE.Group()
+        cGroup.position.copy(pos)
+        cGroup.rotation.set(0.4, 0.2, 0.5)
+
+        const cOuter = new THREE.Mesh(
+          new THREE.SphereGeometry(0.65, 20, 20),
+          new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.35 })
+        )
+        cOuter.scale.set(1.2, 0.65, 1.0)
+        cOuter.name = 'chloroplast'
+        cGroup.add(cOuter)
+        interactableMeshes.push(cOuter)
+
+        // Stacked Thylakoid Grana discs
+        for (let g = 0; g < 3; g++) {
+          for (let d = 0; d < 4; d++) {
+            const disc = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.16, 0.16, 0.04, 12),
+              new THREE.MeshStandardMaterial({ color: 0x14532d })
+            )
+            disc.position.set(-0.25 + g * 0.25, -0.12 + d * 0.07, 0)
+            cGroup.add(disc)
+          }
+        }
+        chloroGroup.add(cGroup)
       })
 
-      // 5. Endoplasmic Reticulum (Concentric curved rings around nucleus)
+      // 5. Rough & Smooth Endoplasmic Reticulum with Ribosome beads
       const erGroup = new THREE.Group()
       cellRig.add(erGroup)
-      for (let i = 0; i < 3; i++) {
-        const r = 1.45 + i * 0.22
-        const erGeo = new THREE.TorusGeometry(r, 0.08, 12, 32, Math.PI * 1.3)
+      for (let i = 0; i < 4; i++) {
+        const r = 1.45 + i * 0.24
+        const erGeo = new THREE.TorusGeometry(r, 0.09, 12, 32, Math.PI * 1.3)
         const erMat = new THREE.MeshStandardMaterial({ color: 0xec4899, roughness: 0.4 })
         const erMesh = new THREE.Mesh(erGeo, erMat)
         erMesh.position.set(-0.8, 0.4, 0)
-        erMesh.rotation.set(0.4 + i * 0.2, 0.5, i * 0.3)
+        erMesh.rotation.set(0.4 + i * 0.18, 0.5, i * 0.28)
         erMesh.name = 'er'
         erGroup.add(erMesh)
         interactableMeshes.push(erMesh)
+
+        // Golden Ribosome Beads on Rough ER
+        for (let rb = 0; rb < 10; rb++) {
+          const ribo = new THREE.Mesh(
+            new THREE.SphereGeometry(0.04, 6, 6),
+            new THREE.MeshBasicMaterial({ color: 0xfacc15 })
+          )
+          const angle = (rb / 10) * Math.PI * 1.2
+          ribo.position.set(
+            -0.8 + Math.cos(angle) * r,
+            0.4 + Math.sin(angle) * r,
+            0.15 + (rb % 2) * 0.08
+          )
+          erGroup.add(ribo)
+        }
       }
 
-      // 6. Golgi Apparatus (Curved stacks with budding vesicles)
+      // 6. Golgi Apparatus with Budding Secretory Transport Vesicles
       const golgiGroup = new THREE.Group()
       cellRig.add(golgiGroup)
       for (let i = 0; i < 4; i++) {
-        const gGeo = new THREE.CylinderGeometry(0.08, 0.08, 1.2 - i * 0.15, 16)
+        const gGeo = new THREE.TorusGeometry(1.2 - i * 0.18, 0.08, 12, 24, Math.PI * 0.75)
         const gMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, roughness: 0.4 })
         const gMesh = new THREE.Mesh(gGeo, gMat)
-        gMesh.position.set(0.8, -0.3 + i * 0.16, 1.2)
-        gMesh.rotation.set(0.2, 0.8, 0.4)
+        gMesh.position.set(0.8, -0.3 + i * 0.18, 1.1)
+        gMesh.rotation.set(0.3, 0.9, 0.4)
         gMesh.name = 'golgi'
         golgiGroup.add(gMesh)
         interactableMeshes.push(gMesh)
       }
 
-      // 7. Central Vacuole (Large bluish-green reservoir in plant cell)
-      const vacuoleGeo = new THREE.SphereGeometry(1.6, 32, 32)
+      // Budding Vesicles
+      const vesicles: THREE.Mesh[] = []
+      for (let v = 0; v < 6; v++) {
+        const ves = new THREE.Mesh(
+          new THREE.SphereGeometry(0.12, 10, 10),
+          new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.3 })
+        )
+        ves.position.set(1.2 + Math.random() * 0.6, -0.2 + Math.random() * 0.8, 1.2 + Math.random() * 0.5)
+        golgiGroup.add(ves)
+        vesicles.push(ves)
+      }
+
+      // 7. Central Vacuole (Large sap reservoir in plant cell)
+      const vacuoleGeo = new THREE.SphereGeometry(1.7, 32, 32)
       const vacuoleMat = new THREE.MeshPhysicalMaterial({
         color: 0x38bdf8,
         transparent: true,
         opacity: 0.45,
-        roughness: 0.2,
-        transmission: 0.6,
+        roughness: 0.15,
+        transmission: 0.85,
       })
       const vacuoleMesh = new THREE.Mesh(vacuoleGeo, vacuoleMat)
       vacuoleMesh.position.set(1.2, 0.2, -0.4)
-      vacuoleMesh.scale.set(1.1, 1.2, 1.0)
+      vacuoleMesh.scale.set(1.15, 1.25, 1.05)
       vacuoleMesh.name = 'vacuole'
       cellRig.add(vacuoleMesh)
       interactableMeshes.push(vacuoleMesh)
 
+      // 8. Centrosome with Orthogonal Centrioles (Animal Cell)
+      const centrosomeGroup = new THREE.Group()
+      centrosomeGroup.position.set(-0.4, 1.8, 0.6)
+      const c1 = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.55, 9), new THREE.MeshStandardMaterial({ color: 0xf59e0b }))
+      const c2 = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.55, 9), new THREE.MeshStandardMaterial({ color: 0xf59e0b }))
+      c2.rotation.x = Math.PI / 2
+      c2.position.set(0.2, 0, 0)
+      centrosomeGroup.add(c1, c2)
+      cellRig.add(centrosomeGroup)
+
+      // 9. Cytoplasmic Streaming (Cyclosis) Granules
+      const streamingGranules: THREE.Mesh[] = []
+      const granMat = new THREE.MeshBasicMaterial({ color: 0x93c5fd, transparent: true, opacity: 0.5 })
+      for (let sg = 0; sg < 35; sg++) {
+        const gMesh = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), granMat)
+        gMesh.position.set((Math.random() - 0.5) * 4.5, (Math.random() - 0.5) * 3.5, (Math.random() - 0.5) * 3.5)
+        gMesh.userData = { angle: Math.random() * Math.PI * 2, r: 1.2 + Math.random() * 1.5, speed: 0.008 + Math.random() * 0.012 }
+        cellRig.add(gMesh)
+        streamingGranules.push(gMesh)
+      }
+
       function applyCellState() {
         const isPlant = params.cellType === 0
+        const isCutaway = params.cutaway >= 0.5
         plantWallMesh.visible = isPlant
+        plantBorderMesh.visible = isPlant
         animalMembraneMesh.visible = !isPlant
         chloroGroup.visible = isPlant
         vacuoleMesh.visible = isPlant
+        centrosomeGroup.visible = !isPlant
+
+        if (!isCutaway) {
+          plantWallMesh.material.opacity = 0.95
+          animalMembraneMesh.material.opacity = 0.92
+        } else {
+          plantWallMesh.material.opacity = 0.55
+          animalMembraneMesh.material.opacity = 0.45
+        }
 
         const zFactor = params.zoomLevel || 1.0
         cellRig.scale.set(zFactor, zFactor, zFactor)
@@ -5633,10 +5834,10 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const raycaster = new THREE.Raycaster()
       const mouse = new THREE.Vector2()
 
-      function handleDblClick(e: MouseEvent) {
+      function triggerRaycast(clientX: number, clientY: number) {
         const rect = renderer.domElement.getBoundingClientRect()
-        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
-        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+        mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1
 
         raycaster.setFromCamera(mouse, camera)
         const hits = raycaster.intersectObjects(interactableMeshes, true)
@@ -5648,12 +5849,41 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         }
       }
 
+      function handleDblClick(e: MouseEvent) {
+        triggerRaycast(e.clientX, e.clientY)
+      }
+
+      function handleTouchEnd(e: TouchEvent) {
+        if (e.changedTouches.length === 0) return
+        const t = e.changedTouches[0]
+        triggerRaycast(t.clientX, t.clientY)
+      }
+
       renderer.domElement.addEventListener('dblclick', handleDblClick)
+      renderer.domElement.addEventListener('touchend', handleTouchEnd)
 
       function animate() {
         animId = requestAnimationFrame(animate)
         controls.update()
-        cellRig.rotation.y += 0.003
+        cellRig.rotation.y += 0.0025
+
+        // Dynamic ATP synthesis pulses
+        const atpScale = 1.0 + Math.sin(Date.now() * 0.008) * 0.35
+        atpSparks.forEach(s => s.scale.setScalar(atpScale))
+
+        // Cytoplasmic cyclosis streaming
+        streamingGranules.forEach(g => {
+          g.userData.angle += g.userData.speed
+          g.position.x = Math.cos(g.userData.angle) * g.userData.r
+          g.position.z = Math.sin(g.userData.angle) * g.userData.r
+        })
+
+        // Golgi vesicle drift
+        vesicles.forEach((v, idx) => {
+          v.position.x += Math.sin(Date.now() * 0.001 + idx) * 0.002
+          v.position.y += Math.cos(Date.now() * 0.001 + idx) * 0.002
+        })
+
         renderer.render(scene, camera)
       }
 
@@ -5691,6 +5921,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           cancelAnimationFrame(animId)
           window.removeEventListener('resize', handleResize)
           renderer.domElement.removeEventListener('dblclick', handleDblClick)
+          renderer.domElement.removeEventListener('touchend', handleTouchEnd)
           renderer.dispose()
           if (container.contains(renderer.domElement)) {
             container.removeChild(renderer.domElement)
@@ -6300,5 +6531,714 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
     },
   },
 
+  titration_3d: {
+    type: 'titration_3d',
+    title: '3D Acid-Base Titration & Volumetric Analysis',
+    subject: 'Chemistry · Analytical & Physical',
+    concept: 'Volumetric Equivalence & Neutralization Stoichiometry',
+    description:
+      'High-precision volumetric titration setup with calibrated 50 mL class-A glass burette, dual-clamp retort stand, borosilicate Erlenmeyer conical flask, magnetic stirrer hotplate, rotating PTFE flea stir bar, stopcock valve, dynamic Phenolphthalein indicator tint transition (clear to vibrant magenta pink at equivalence pH 8.2), and digital precision pH probe.',
+    emoji: '🧪',
+    difficulty: 'Intermediate',
+    presets: [
+      { label: '🧪 Initial Acidic Analyte (0.0 mL Added, pH 1.00)', params: { titrantAdded: 0, dropRate: 1, stirrerSpeed: 400, zoomFlask: 0 } },
+      { label: '⏳ Approaching Equivalence Zone (24.0 mL Added, pH 2.69)', params: { titrantAdded: 24.0, dropRate: 1, stirrerSpeed: 500, zoomFlask: 1 } },
+      { label: '🎯 Exact Stoichiometric Endpoint (25.0 mL Added, pH 7.00)', params: { titrantAdded: 25.0, dropRate: 0, stirrerSpeed: 400, zoomFlask: 1 } },
+      { label: '🟣 Alkaline Excess Titrant (28.0 mL Added, pH 11.75)', params: { titrantAdded: 28.0, dropRate: 2, stirrerSpeed: 400, zoomFlask: 0 } },
+      { label: '🌪️ High-Speed Magnetic Vortex Demonstration (800 RPM)', params: { titrantAdded: 15.0, dropRate: 1, stirrerSpeed: 800, zoomFlask: 1 } },
+    ],
+    params: [
+      { key: 'titrantAdded', label: 'Titrant Added (mL NaOH 0.10 M)', min: 0, max: 50, step: 0.2, defaultValue: 0, unit: 'mL' },
+      { key: 'dropRate', label: 'Burette Stopcock Dispense Rate', min: 0, max: 5, step: 1, defaultValue: 1, unit: 'drops/s' },
+      { key: 'stirrerSpeed', label: 'Magnetic Stirrer Speed', min: 0, max: 1000, step: 50, defaultValue: 400, unit: 'RPM' },
+      { key: 'zoomFlask', label: 'Camera View (0: Apparatus, 1: Flask Close-Up)', min: 0, max: 1, step: 1, defaultValue: 0, unit: '' },
+    ],
+    calculateReadouts: (p) => {
+      const v = Number(p.titrantAdded ?? 0)
+      const vEq = 25.0
+      let ph = 1.0
+      if (v < vEq - 0.05) {
+        const hMol = Math.max(0.00001, (25.0 * 0.1 - v * 0.1) / (25.0 + v))
+        ph = -Math.log10(hMol)
+      } else if (v > vEq + 0.05) {
+        const ohMol = Math.max(0.00001, (v * 0.1 - 25.0 * 0.1) / (25.0 + v))
+        const pOh = -Math.log10(ohMol)
+        ph = 14.0 - pOh
+      } else {
+        ph = 7.0 + (v - vEq) * 35.0
+      }
+      const phStr = Math.min(13.6, Math.max(1.0, ph)).toFixed(2)
+      let indicator = 'Colorless (Acidic Form)'
+      if (v >= 24.6 && v <= 25.4) indicator = 'Faint Blush Pink (Equivalence Endpoint)'
+      else if (v > 25.4) indicator = 'Deep Vibrant Magenta (Alkaline Form)'
+
+      const pct = Math.min(100, Math.round((v / 25.0) * 100))
+
+      return [
+        { label: 'Solution pH', value: phStr, formula: 'pH = -log₁₀[H⁺]' },
+        { label: 'Phenolphthalein State', value: indicator },
+        { label: 'Titrant Dispensed', value: `${v.toFixed(1)} / 50.0 mL` },
+        { label: 'Neutralization Progress', value: `${pct}% of 25.0 mL` },
+      ]
+    },
+    initScene: (container, initialParams, callbacks = {}) => {
+      let params = { ...initialParams }
+      let animId: number
+      let isPlaying = true
+      let activeDissectKey: string | null = null; void activeDissectKey
+
+      const width = container.clientWidth || 800
+      const height = container.clientHeight || 500
+
+      const scene = new THREE.Scene()
+      scene.background = new THREE.Color(0x060b13)
+      scene.fog = new THREE.FogExp2(0x060b13, 0.02)
+
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
+      camera.position.set(0, 4.5, 13.5)
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true })
+      renderer.setSize(width, height)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      setupRenderer(renderer)
+      container.appendChild(renderer.domElement)
+
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.enableDamping = true
+      controls.dampingFactor = 0.05
+      controls.target.set(0, 1.8, 0)
+
+      // Lighting Setup
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.8)
+      scene.add(ambientLight)
+
+      const keyLight = new THREE.DirectionalLight(0xffffff, 1.8)
+      keyLight.position.set(8, 14, 10)
+      scene.add(keyLight)
+
+      const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.7)
+      fillLight.position.set(-8, 6, -6)
+      scene.add(fillLight)
+
+      const rimLight = new THREE.PointLight(0xf472b6, 1.2, 20)
+      rimLight.position.set(2, 1, 4)
+      scene.add(rimLight)
+
+      // Grid helper floor
+      const grid = new THREE.GridHelper(20, 20, 0x1e293b, 0x0f172a)
+      grid.position.y = -2.2
+      scene.add(grid)
+
+      const labRig = new THREE.Group()
+      scene.add(labRig)
+
+      const interactableMeshes: THREE.Object3D[] = []
+
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        burette: {
+          title: 'Class-A 50 mL Precision Volumetric Burette',
+          partName: 'Calibrated Borosilicate Glass Column',
+          role: 'Accurately dispenses standardized 0.10 M NaOH titrant drop-by-drop into the analyte flask.',
+          internalStructures: [
+            'Class-A Precision Borosilicate Glass Tube (±0.05 mL accuracy)',
+            'Permanent Ceramic 0.1 mL Graduation Ring Markings',
+            'Smooth Hydrodynamic Capillary Meniscus Interface',
+            'Sub-Millimeter Tapered Liquid Delivery Jet',
+          ],
+          description:
+            'A burette is an essential quantitative analytical instrument. The bottom of the curved meniscus must be read strictly at horizontal eye level to avoid parallax errors.',
+        },
+        flask: {
+          title: '250 mL Pyrex Erlenmeyer Conical Flask',
+          partName: 'Reaction Vessel & Analyte Solution',
+          role: 'Contains 25.0 mL of hydrochloric acid (HCl) sample combined with Phenolphthalein indicator.',
+          internalStructures: [
+            'Sloping Conical Walls (Eliminates splashing during rapid swirling)',
+            'Dynamic Phenolphthalein Chromophore Equilibrium (HIn ⇌ H⁺ + In⁻)',
+            'Central Induced Fluid Vortex Funnel',
+            'Optical Window for Sudden Endpoint Tint Transition',
+          ],
+          description:
+            'The conical geometry allows vigorous swirling and continuous magnetic agitation without splashing drops of solution onto the benchtop.',
+        },
+        stirrer: {
+          title: 'Digital High-Torque Magnetic Stirrer Hotplate',
+          partName: 'Electromagnetic Drive Platform & Stir Bar',
+          role: 'Drives the Teflon-coated magnetic flea inside the flask to ensure instantaneous, homogeneous chemical mixing.',
+          internalStructures: [
+            'Rotating Rare-Earth Neodymium Drive Magnet Array',
+            'Brushless DC Induction Motor (0 to 1200 RPM range)',
+            'Inert White Ceramic-Coated Top Chemical Plate',
+            'Digital Tachometer Speed Knob & LED Status Display',
+          ],
+          description:
+            'Continuous rapid agitation prevents localized over-concentration of base titrant, guaranteeing a sharp and reproducible equivalence point.',
+        },
+        probe: {
+          title: 'Glass Combination Potentiometric pH Electrode',
+          partName: 'Electrochemical Sensing Half-Cell',
+          role: 'Continuously monitors hydrogen ion hydronium activity [H₃O⁺] across a thin hydrated gel glass membrane.',
+          internalStructures: [
+            'Sub-Micron Hydrated Lithium Silicate Glass Bulb Membrane',
+            'Internal Ag/AgCl Reference Electrode in Saturated KCl Gel',
+            'Porous Ceramic Electrolyte Liquid Junction Diaphragm',
+            'High-Impedance Coaxial Signal Shield Cable (Nernstian EMF)',
+          ],
+          description:
+            'Generates a potential difference of ~59.16 mV per pH unit at 25 °C following the Nernst equation, feeding high-precision millivolts to the digital pH meter console.',
+        },
+        stopcock: {
+          title: 'Precision PTFE Metering Stopcock Valve',
+          partName: 'Fluoropolymer Flow Regulator',
+          role: 'Controls volumetric fluid flow from full stream down to single fractionated 0.05 mL droplets.',
+          internalStructures: [
+            'Self-Lubricating Virgin PTFE Plug Bore',
+            'Ergonomic High-Tension Crossbar Handle',
+            'Chemical-Resistant Precision Taper Seal Ring',
+          ],
+          description:
+            'Unlike traditional ground-glass valves, chemically inert PTFE plugs require no grease lubricant, preventing hydrocarbon contamination of standard solutions.',
+        },
+      }
+
+      // 1. Heavy Retort Stand (Cast Iron Base + Stainless Steel Rod)
+      const baseGeo = new THREE.BoxGeometry(4.8, 0.35, 6.4)
+      const baseMat = new THREE.MeshStandardMaterial({
+        color: 0x1e293b,
+        metalness: 0.75,
+        roughness: 0.35,
+      })
+      const standBase = new THREE.Mesh(baseGeo, baseMat)
+      standBase.position.set(-1.4, -2.0, 0.4)
+      labRig.add(standBase)
+
+      // Base non-slip rubber feet
+      for (const [fx, fz] of [[-2.1, -1.8], [2.1, -1.8], [-2.1, 2.6], [2.1, 2.6]]) {
+        const footGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.1, 16)
+        const footMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 })
+        const foot = new THREE.Mesh(footGeo, footMat)
+        foot.position.set(-1.4 + fx, -2.2, 0.4 + fz)
+        labRig.add(foot)
+      }
+
+      // Vertical Stainless Steel Rod
+      const rodGeo = new THREE.CylinderGeometry(0.12, 0.12, 10.5, 24)
+      const rodMat = new THREE.MeshStandardMaterial({
+        color: 0x94a3b8,
+        metalness: 0.95,
+        roughness: 0.15,
+      })
+      const rodMesh = new THREE.Mesh(rodGeo, rodMat)
+      rodMesh.position.set(-3.0, 3.2, 0.4)
+      labRig.add(rodMesh)
+
+      // Top decorative chrome end cap
+      const capGeo = new THREE.SphereGeometry(0.18, 16, 16)
+      const capMesh = new THREE.Mesh(capGeo, rodMat)
+      capMesh.position.set(-3.0, 8.45, 0.4)
+      labRig.add(capMesh)
+
+      // 2. Bosshead Clamps (Holding Burette and pH Probe)
+      function createBossheadClamp(yPos: number, xReach: number, zReach: number = 0) {
+        const clampGroup = new THREE.Group()
+        clampGroup.position.set(-3.0, yPos, 0.4)
+
+        // Bosshead junction block
+        const blockGeo = new THREE.BoxGeometry(0.45, 0.45, 0.45)
+        const blockMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.3 })
+        const block = new THREE.Mesh(blockGeo, blockMat)
+        clampGroup.add(block)
+
+        // Tightening thumbscrew
+        const screwGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.4, 12)
+        const screwHeadGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.1, 16)
+        const screw = new THREE.Mesh(screwGeo, rodMat)
+        screw.rotation.z = Math.PI / 2
+        screw.position.set(-0.3, 0, 0)
+        clampGroup.add(screw)
+        const sHead = new THREE.Mesh(screwHeadGeo, rodMat)
+        sHead.rotation.z = Math.PI / 2
+        sHead.position.set(-0.5, 0, 0)
+        clampGroup.add(sHead)
+
+        // Extension arm rod
+        const armLength = Math.hypot(xReach, zReach)
+        const armGeo = new THREE.CylinderGeometry(0.07, 0.07, armLength, 16)
+        const arm = new THREE.Mesh(armGeo, rodMat)
+        arm.rotation.z = -Math.PI / 2
+        arm.position.set(armLength / 2, 0, zReach / 2)
+        clampGroup.add(arm)
+
+        // 3-prong clamp jaws at the end
+        const jawGroup = new THREE.Group()
+        jawGroup.position.set(xReach, 0, zReach)
+
+        const ringGeo = new THREE.TorusGeometry(0.35, 0.06, 12, 24, Math.PI * 1.5)
+        const ringMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.7, roughness: 0.4 })
+        const ring = new THREE.Mesh(ringGeo, ringMat)
+        ring.rotation.x = Math.PI / 2
+        jawGroup.add(ring)
+
+        clampGroup.add(jawGroup)
+        return clampGroup
+      }
+
+      // Clamp 1 for Burette
+      labRig.add(createBossheadClamp(5.5, 3.0, 0))
+      // Clamp 2 lower brace for Burette
+      labRig.add(createBossheadClamp(2.8, 3.0, 0))
+      // Clamp 3 for pH probe (reaching to the right)
+      labRig.add(createBossheadClamp(1.6, 3.7, 0.5))
+
+      // 3. Digital Magnetic Stirrer Base
+      const stirrerGroup = new THREE.Group()
+      stirrerGroup.position.set(0, -1.5, 0.4)
+      labRig.add(stirrerGroup)
+
+      const stirrerBodyGeo = new THREE.BoxGeometry(3.2, 0.9, 3.8)
+      const stirrerBodyMat = new THREE.MeshStandardMaterial({
+        color: 0x0f172a,
+        metalness: 0.6,
+        roughness: 0.4,
+      })
+      const stirrerBody = new THREE.Mesh(stirrerBodyGeo, stirrerBodyMat)
+      stirrerBody.name = 'stirrer'
+      stirrerGroup.add(stirrerBody)
+      interactableMeshes.push(stirrerBody)
+
+      // Ceramic Top Plate (White)
+      const topPlateGeo = new THREE.BoxGeometry(2.9, 0.12, 3.2)
+      const topPlateMat = new THREE.MeshStandardMaterial({
+        color: 0xf8fafc,
+        metalness: 0.2,
+        roughness: 0.15,
+      })
+      const topPlate = new THREE.Mesh(topPlateGeo, topPlateMat)
+      topPlate.position.y = 0.51
+      topPlate.name = 'stirrer'
+      stirrerGroup.add(topPlate)
+      interactableMeshes.push(topPlate)
+
+      // Speed control knob
+      const knobGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.25, 24)
+      const knobMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.8, roughness: 0.2 })
+      const knob = new THREE.Mesh(knobGeo, knobMat)
+      knob.rotation.x = Math.PI / 2
+      knob.position.set(0.7, -0.1, 1.95)
+      stirrerGroup.add(knob)
+
+      // Stirrer LED display screen
+      const dispGeo = new THREE.PlaneGeometry(1.0, 0.4)
+      const dispMat = new THREE.MeshBasicMaterial({ color: 0x0284c7 })
+      const dispMesh = new THREE.Mesh(dispGeo, dispMat)
+      dispMesh.position.set(-0.6, -0.1, 1.91)
+      stirrerGroup.add(dispMesh)
+
+      // Power indicator LED (Glowing Green)
+      const ledGeo = new THREE.SphereGeometry(0.06, 12, 12)
+      const ledMat = new THREE.MeshBasicMaterial({ color: 0x22c55e })
+      const led = new THREE.Mesh(ledGeo, ledMat)
+      led.position.set(-1.2, -0.1, 1.92)
+      stirrerGroup.add(led)
+
+      // 4. Calibrated 50 mL Glass Burette Assembly
+      const buretteGroup = new THREE.Group()
+      buretteGroup.position.set(0, 4.4, 0.4)
+      labRig.add(buretteGroup)
+
+      // Outer borosilicate glass tube
+      const buretteGlassGeo = new THREE.CylinderGeometry(0.24, 0.24, 6.2, 32, 1, true)
+      const buretteGlassMat = new THREE.MeshPhysicalMaterial({
+        color: 0xbae6fd,
+        transparent: true,
+        opacity: 0.35,
+        roughness: 0.05,
+        transmission: 0.85,
+        ior: 1.47,
+        side: THREE.DoubleSide,
+      })
+      const buretteGlass = new THREE.Mesh(buretteGlassGeo, buretteGlassMat)
+      buretteGlass.name = 'burette'
+      buretteGroup.add(buretteGlass)
+      interactableMeshes.push(buretteGlass)
+
+      // Liquid column inside burette (0.1 M NaOH clear solution)
+      const buretteLiqGeo = new THREE.CylinderGeometry(0.21, 0.21, 5.8, 24)
+      const buretteLiqMat = new THREE.MeshStandardMaterial({
+        color: 0xe0f2fe,
+        transparent: true,
+        opacity: 0.6,
+        roughness: 0.1,
+      })
+      const buretteLiqMesh = new THREE.Mesh(buretteLiqGeo, buretteLiqMat)
+      buretteLiqMesh.position.y = 0
+      buretteGroup.add(buretteLiqMesh)
+
+      // Graduation tick rings along the burette tube (25 rings representing marks)
+      const tickMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 })
+      for (let i = 0; i <= 24; i++) {
+        const isMajor = i % 5 === 0
+        const tickGeo = new THREE.RingGeometry(0.241, 0.252, 24)
+        const tick = new THREE.Mesh(tickGeo, tickMat)
+        tick.rotation.x = Math.PI / 2
+        tick.position.y = -2.7 + i * (5.4 / 24)
+        tick.scale.set(isMajor ? 1.05 : 0.98, isMajor ? 1.05 : 0.98, 1)
+        buretteGroup.add(tick)
+      }
+
+      // Precision PTFE Stopcock Valve
+      const stopcockGroup = new THREE.Group()
+      stopcockGroup.position.set(0, -3.2, 0)
+      buretteGroup.add(stopcockGroup)
+
+      const valveBodyGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.6, 16)
+      const valveBodyMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.4 })
+      const valveBody = new THREE.Mesh(valveBodyGeo, valveBodyMat)
+      valveBody.rotation.z = Math.PI / 2
+      valveBody.name = 'stopcock'
+      stopcockGroup.add(valveBody)
+      interactableMeshes.push(valveBody)
+
+      // Stopcock turning T-handle (White/Blue Teflon)
+      const handleGeo = new THREE.BoxGeometry(0.12, 0.7, 0.25)
+      const handleMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.3, roughness: 0.3 })
+      const stopcockHandle = new THREE.Mesh(handleGeo, handleMat)
+      stopcockHandle.position.set(0.35, 0, 0)
+      stopcockHandle.name = 'stopcock'
+      stopcockGroup.add(stopcockHandle)
+      interactableMeshes.push(stopcockHandle)
+
+      // Tapered delivery jet capillary tip below stopcock
+      const tipGeo = new THREE.ConeGeometry(0.14, 0.6, 24, 1, true)
+      const tipMesh = new THREE.Mesh(tipGeo, buretteGlassMat)
+      tipMesh.rotation.x = Math.PI
+      tipMesh.position.set(0, -0.6, 0)
+      tipMesh.name = 'burette'
+      stopcockGroup.add(tipMesh)
+      interactableMeshes.push(tipMesh)
+
+      // 5. Borosilicate Erlenmeyer Flask sitting on the stirrer plate
+      const flaskGroup = new THREE.Group()
+      flaskGroup.position.set(0, -0.92, 0.4)
+      labRig.add(flaskGroup)
+
+      // Conical Flask Body (Glass)
+      const flaskConeGeo = new THREE.CylinderGeometry(0.55, 1.45, 1.8, 32, 1, true)
+      const flaskGlassMat = new THREE.MeshPhysicalMaterial({
+        color: 0xbae6fd,
+        transparent: true,
+        opacity: 0.38,
+        roughness: 0.08,
+        transmission: 0.9,
+        ior: 1.47,
+        side: THREE.DoubleSide,
+      })
+      const flaskCone = new THREE.Mesh(flaskConeGeo, flaskGlassMat)
+      flaskCone.position.y = 0.9
+      flaskCone.name = 'flask'
+      flaskGroup.add(flaskCone)
+      interactableMeshes.push(flaskCone)
+
+      // Flask Cylindrical Neck
+      const flaskNeckGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.75, 32, 1, true)
+      const flaskNeck = new THREE.Mesh(flaskNeckGeo, flaskGlassMat)
+      flaskNeck.position.y = 2.15
+      flaskNeck.name = 'flask'
+      flaskGroup.add(flaskNeck)
+      interactableMeshes.push(flaskNeck)
+
+      // Flask Flared Rim
+      const rimGeo = new THREE.TorusGeometry(0.57, 0.05, 16, 32)
+      const rimMesh = new THREE.Mesh(rimGeo, flaskGlassMat)
+      rimMesh.rotation.x = Math.PI / 2
+      rimMesh.position.y = 2.52
+      flaskGroup.add(rimMesh)
+
+      // Flask Base Disc
+      const flaskBaseGeo = new THREE.CircleGeometry(1.45, 32)
+      const flaskBase = new THREE.Mesh(flaskBaseGeo, flaskGlassMat)
+      flaskBase.rotation.x = -Math.PI / 2
+      flaskBase.position.y = 0.02
+      flaskGroup.add(flaskBase)
+
+      // Liquid Analyte Solution inside flask (HCl + Indicator)
+      const liquidGeo = new THREE.CylinderGeometry(0.85, 1.4, 0.95, 32)
+      const liquidMat = new THREE.MeshStandardMaterial({
+        color: 0xf0fdf4,
+        transparent: true,
+        opacity: 0.55,
+        roughness: 0.1,
+        metalness: 0.1,
+      })
+      const liquidMesh = new THREE.Mesh(liquidGeo, liquidMat)
+      liquidMesh.position.y = 0.5
+      liquidMesh.name = 'flask'
+      flaskGroup.add(liquidMesh)
+      interactableMeshes.push(liquidMesh)
+
+      // Liquid Meniscus Top Surface
+      const meniscusGeo = new THREE.CircleGeometry(0.85, 32)
+      const meniscusMat = new THREE.MeshStandardMaterial({
+        color: 0xf0fdf4,
+        transparent: true,
+        opacity: 0.65,
+        roughness: 0.05,
+      })
+      const meniscusMesh = new THREE.Mesh(meniscusGeo, meniscusMat)
+      meniscusMesh.rotation.x = -Math.PI / 2
+      meniscusMesh.position.y = 0.98
+      flaskGroup.add(meniscusMesh)
+
+      // Rotating Teflon Magnetic Stir Bar ("Flea") at bottom of flask
+      const stirBarGeo = new THREE.CapsuleGeometry(0.08, 0.45, 8, 16)
+      const stirBarMat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 0.25,
+        metalness: 0.1,
+      })
+      const stirBar = new THREE.Mesh(stirBarGeo, stirBarMat)
+      stirBar.rotation.x = Math.PI / 2
+      stirBar.position.set(0, 0.1, 0)
+      stirBar.name = 'stirrer'
+      flaskGroup.add(stirBar)
+      interactableMeshes.push(stirBar)
+
+      // 6. Falling Titrant Droplets
+      const DROP_COUNT = 6
+      const dropGeo = new THREE.SphereGeometry(0.065, 12, 12)
+      const dropMat = new THREE.MeshStandardMaterial({
+        color: 0x38bdf8,
+        transparent: true,
+        opacity: 0.8,
+        roughness: 0.1,
+      })
+      const droplets: THREE.Mesh[] = []
+      for (let i = 0; i < DROP_COUNT; i++) {
+        const drop = new THREE.Mesh(dropGeo, dropMat)
+        drop.position.set(0, 0.5 - i * 0.4, 0.4)
+        drop.scale.set(0.8, 1.4, 0.8)
+        labRig.add(drop)
+        droplets.push(drop)
+      }
+
+      // 7. Glass Combination pH Electrode Probe
+      const probeGroup = new THREE.Group()
+      probeGroup.position.set(0.7, 0.35, 0.6)
+      probeGroup.rotation.z = -0.15
+      labRig.add(probeGroup)
+
+      // Black probe shaft
+      const probeShaftGeo = new THREE.CylinderGeometry(0.09, 0.09, 2.8, 20)
+      const probeShaftMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 })
+      const probeShaft = new THREE.Mesh(probeShaftGeo, probeShaftMat)
+      probeShaft.name = 'probe'
+      probeGroup.add(probeShaft)
+      interactableMeshes.push(probeShaft)
+
+      // Blue glass sensing bulb
+      const bulbGeo = new THREE.SphereGeometry(0.11, 16, 16)
+      const bulbMat = new THREE.MeshStandardMaterial({
+        color: 0x38bdf8,
+        roughness: 0.1,
+        metalness: 0.3,
+        emissive: 0x0284c7,
+        emissiveIntensity: 0.4,
+      })
+      const probeBulb = new THREE.Mesh(bulbGeo, bulbMat)
+      probeBulb.position.y = -1.45
+      probeBulb.name = 'probe'
+      probeGroup.add(probeBulb)
+      interactableMeshes.push(probeBulb)
+
+      // Coaxial cable running from probe top
+      const cableCurve = new THREE.QuadraticBezierCurve3(
+        new THREE.Vector3(0, 1.4, 0),
+        new THREE.Vector3(1.6, 2.8, 0.5),
+        new THREE.Vector3(2.6, 0.8, 1.2)
+      )
+      const cableGeo = new THREE.TubeGeometry(cableCurve, 20, 0.04, 8, false)
+      const cableMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8 })
+      const cableMesh = new THREE.Mesh(cableGeo, cableMat)
+      probeGroup.add(cableMesh)
+
+      // Benchtop pH Meter Console
+      const meterGroup = new THREE.Group()
+      meterGroup.position.set(3.4, -1.5, 1.8)
+      meterGroup.rotation.y = -0.4
+      labRig.add(meterGroup)
+
+      const meterBodyGeo = new THREE.BoxGeometry(2.0, 0.7, 1.8)
+      const meterBodyMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4, metalness: 0.5 })
+      const meterBody = new THREE.Mesh(meterBodyGeo, meterBodyMat)
+      meterBody.name = 'probe'
+      meterGroup.add(meterBody)
+      interactableMeshes.push(meterBody)
+
+      // Meter Screen
+      const mScreenGeo = new THREE.PlaneGeometry(1.2, 0.5)
+      const mScreenMat = new THREE.MeshBasicMaterial({ color: 0x0369a1 })
+      const mScreen = new THREE.Mesh(mScreenGeo, mScreenMat)
+      mScreen.rotation.x = -Math.PI / 6
+      mScreen.position.set(0, 0.36, 0.2)
+      meterGroup.add(mScreen)
+
+      // Raycaster for inspection
+      const raycaster = new THREE.Raycaster()
+      const mouse = new THREE.Vector2()
+
+      function handleDblClick(e: MouseEvent) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        if (hits.length > 0) {
+          const key = hits[0].object.name || 'burette'
+          activeDissectKey = key
+          const card = DISSECT_CARDS[key] || DISSECT_CARDS.burette
+          callbacks.onInspectPart?.(card)
+        }
+      }
+
+      renderer.domElement.addEventListener('dblclick', handleDblClick)
+
+      let stirAngle = 0
+      let dropTimer = 0
+
+      function animate() {
+        animId = requestAnimationFrame(animate)
+        controls.update()
+
+        const titrantV = Number(params.titrantAdded ?? 0)
+        const rate = Number(params.dropRate ?? 1)
+        const speed = Number(params.stirrerSpeed ?? 400)
+        const isZoom = params.zoomFlask === 1
+
+        // Smooth camera tween for zoom
+        const targetCamY = isZoom ? 1.2 : 4.5
+        const targetCamZ = isZoom ? 7.5 : 13.5
+        const targetLookY = isZoom ? 0.3 : 1.8
+        camera.position.y += (targetCamY - camera.position.y) * 0.05
+        camera.position.z += (targetCamZ - camera.position.z) * 0.05
+        controls.target.y += (targetLookY - controls.target.y) * 0.05
+
+        // Burette Liquid Height calculation (0 to 50 mL)
+        // 50 mL corresponds to empty burette
+        const buretteRemainFrac = Math.max(0.04, 1.0 - titrantV / 50.0)
+        buretteLiqMesh.scale.y = buretteRemainFrac
+        buretteLiqMesh.position.y = -2.9 * (1.0 - buretteRemainFrac)
+
+        // Stopcock handle position (turns when titrant is actively dispensing)
+        if (rate > 0 && titrantV < 50) {
+          stopcockHandle.rotation.x = Math.PI / 4 + Math.sin(Date.now() * 0.005) * 0.1
+        } else {
+          stopcockHandle.rotation.x = 0
+        }
+
+        // Calculate pH and dynamic Phenolphthalein color
+        let currentPh = 1.0
+        const vEq = 25.0
+        if (titrantV < vEq - 0.05) {
+          const hMol = Math.max(0.00001, (25.0 * 0.1 - titrantV * 0.1) / (25.0 + titrantV))
+          currentPh = -Math.log10(hMol)
+        } else if (titrantV > vEq + 0.05) {
+          const ohMol = Math.max(0.00001, (titrantV * 0.1 - 25.0 * 0.1) / (25.0 + titrantV))
+          const pOh = -Math.log10(ohMol)
+          currentPh = 14.0 - pOh
+        } else {
+          currentPh = 7.0 + (titrantV - vEq) * 35.0
+        }
+        currentPh = Math.min(13.6, Math.max(1.0, currentPh))
+
+        // Color transition:
+        // Clear/Faint-blue at pH < 8.0 -> Blush-Pink at pH 8.2 -> Vibrant Deep Magenta at pH > 8.4
+        if (currentPh < 8.0) {
+          liquidMat.color.setHex(0xf0fdf4)
+          meniscusMat.color.setHex(0xf0fdf4)
+          liquidMat.opacity = 0.5
+        } else if (currentPh < 8.4) {
+          // Soft equivalence pink
+          liquidMat.color.setHex(0xf472b6)
+          meniscusMat.color.setHex(0xf472b6)
+          liquidMat.opacity = 0.65
+        } else {
+          // Vibrant deep magenta pink
+          liquidMat.color.setHex(0xec4899)
+          meniscusMat.color.setHex(0xdb2777)
+          liquidMat.opacity = 0.75
+        }
+
+        // Stirrer flea rotation
+        if (speed > 0) {
+          stirAngle += (speed / 60) * 0.15
+          stirBar.rotation.y = stirAngle
+          // Stirrer knob rotation
+          knob.rotation.z = (speed / 1000) * (Math.PI * 1.5)
+        }
+
+        // Droplet animation
+        if (isPlaying && rate > 0 && titrantV < 50) {
+          dropTimer += 0.03 * rate
+          droplets.forEach((drop, idx) => {
+            const dropProgress = (dropTimer + idx / DROP_COUNT) % 1.0
+            drop.visible = true
+            // Fall from burette tip (y = 0.6) down to liquid surface (y = -0.42)
+            drop.position.y = 0.6 - dropProgress * 1.02
+            // At bottom, slight ripple scale
+            if (dropProgress > 0.85) {
+              drop.scale.set(1.4, 0.4, 1.4)
+            } else {
+              drop.scale.set(0.8, 1.4, 0.8)
+            }
+          })
+        } else {
+          droplets.forEach((drop) => {
+            drop.visible = false
+          })
+        }
+
+        renderer.render(scene, camera)
+      }
+
+      animate()
+
+      const handleResize = () => {
+        const w = container.clientWidth || 800
+        const h = container.clientHeight || 500
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+        renderer.setSize(w, h)
+      }
+      window.addEventListener('resize', handleResize)
+
+      return {
+        updateParams: (newParams: Record<string, number>) => {
+          params = { ...newParams }
+        },
+        setPlaying: (playing: boolean) => {
+          isPlaying = playing
+        },
+        reset: () => {
+          activeDissectKey = null
+          callbacks.onInspectPart?.(null)
+          controls.reset()
+        },
+        closeDissection: () => {
+          activeDissectKey = null
+          callbacks.onInspectPart?.(null)
+        },
+        dispose: () => {
+          cancelAnimationFrame(animId)
+          window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('dblclick', handleDblClick)
+          renderer.dispose()
+          if (container.contains(renderer.domElement)) {
+            container.removeChild(renderer.domElement)
+          }
+        },
+      }
+    },
+  },
 }
 

@@ -303,9 +303,16 @@ def get_three_js_engine(title: str, subject: str, formula: str, params: list[dic
     const titleStr = {json.dumps(title)}.toLowerCase();
     const subjectStr = {json.dumps(subject)}.toLowerCase();
 
-    const isElectrochem = titleStr.includes('redox') || titleStr.includes('cell') || titleStr.includes('titration') || 
-                          titleStr.includes('electrolysis') || titleStr.includes('cu') || titleStr.includes('zinc') || 
-                          titleStr.includes('acid') || titleStr.includes('solution') || subjectStr.includes('chem');
+    const isTitration = titleStr.includes('titrat') || titleStr.includes('ph') || titleStr.includes('neutraliz') || 
+                        titleStr.includes('acid') || titleStr.includes('base');
+
+    const isMolecular = titleStr.includes('molecule') || titleStr.includes('bond') || titleStr.includes('vsepr') || 
+                        titleStr.includes('orbital') || titleStr.includes('bohr') || titleStr.includes('crystal') || 
+                        titleStr.includes('lattice') || titleStr.includes('atom') || titleStr.includes('electron') ||
+                        titleStr.includes('periodic');
+
+    const isElectrochem = titleStr.includes('electro') || titleStr.includes('galvanic') || titleStr.includes('voltaic') || 
+                          titleStr.includes('battery') || titleStr.includes('redox') || titleStr.includes('electrolysis');
 
     const isCircuit = titleStr.includes('ohm') || titleStr.includes('circuit') || titleStr.includes('resistor') || 
                       titleStr.includes('voltage') || titleStr.includes('current') || titleStr.includes('induction') || 
@@ -327,7 +334,11 @@ def get_three_js_engine(title: str, subject: str, formula: str, params: list[dic
     const isBio = titleStr.includes('bio') || titleStr.includes('dna') || titleStr.includes('enzyme') || 
                   titleStr.includes('cell') || titleStr.includes('membrane') || subjectStr.includes('bio');
 
-    if (isElectrochem) {{
+    if (isTitration) {{
+      build3DTitration(scene, p);
+    }} else if (isMolecular) {{
+      build3DMolecular(scene, p);
+    }} else if (isElectrochem) {{
       build3DElectrochemistry(scene, p);
     }} else if (isCircuit) {{
       build3DCircuits(scene, p);
@@ -344,7 +355,196 @@ def get_three_js_engine(title: str, subject: str, formula: str, params: list[dic
     }}
   }}
 
-  // 1. 3D Electrochemistry: Dual Pyrex Beakers, Electrodes, Salt Bridge, Multimeter, Bubbles & Electrons
+  // 1A. 3D Acid-Base Titration: Retort Stand, Calibrated Glass Burette, Stopcock, Erlenmeyer Flask, Droplets & pH Probe
+  function build3DTitration(scene, p) {{
+    const group = new THREE.Group();
+    anim3DObjects = {{ type: 'titration', droplets: [] }};
+
+    const metalMat = new THREE.MeshStandardMaterial({{ color: 0x334155, metalness: 0.85, roughness: 0.25 }});
+    const glassMat = new THREE.MeshPhysicalMaterial({{
+      color: 0xe0f2fe, transmission: 0.92, opacity: 0.45, transparent: true,
+      roughness: 0.08, metalness: 0.05, depthWrite: false, side: THREE.DoubleSide
+    }});
+
+    // 1. Heavy Cast-Iron Retort Stand Base Plate
+    const base = new THREE.Mesh(new THREE.BoxGeometry(9.0, 0.45, 6.5), metalMat);
+    base.position.set(-1.0, -4.2, 0);
+    group.add(base);
+
+    // 2. Vertical Stainless Steel Support Rod
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 14.5, 16), metalMat);
+    rod.position.set(-3.8, 2.5, 0);
+    group.add(rod);
+
+    // 3. Dual Ring Clamps holding Burette
+    const clamp1 = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.35, 0.5), metalMat);
+    clamp1.position.set(-2.2, 4.5, 0);
+    group.add(clamp1);
+
+    const clamp2 = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.35, 0.5), metalMat);
+    clamp2.position.set(-2.2, 1.2, 0);
+    group.add(clamp2);
+
+    // 4. Calibrated 50mL Glass Burette Tube
+    const buretteTube = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 8.8, 24, 1, true), glassMat);
+    buretteTube.position.set(-0.6, 3.2, 0);
+    group.add(buretteTube);
+
+    // Burette Graduations (Tick Marks)
+    const tickMat = new THREE.MeshBasicMaterial({{ color: 0x38bdf8, transparent: true, opacity: 0.7 }});
+    for (let k = 0; k < 18; k++) {{
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.33, 0.02, 6, 20), tickMat);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.set(-0.6, -0.6 + k * 0.42, 0);
+      group.add(ring);
+    }}
+
+    // Burette Titrant (Liquid Column inside)
+    const titrantGeo = new THREE.CylinderGeometry(0.30, 0.30, 7.6, 20);
+    const titrantMat = new THREE.MeshStandardMaterial({{ color: 0xbae6fd, transparent: true, opacity: 0.65, roughness: 0.1 }});
+    const titrantMesh = new THREE.Mesh(titrantGeo, titrantMat);
+    titrantMesh.position.set(-0.6, 3.4, 0);
+    group.add(titrantMesh);
+    anim3DObjects.titrantCol = titrantMesh;
+
+    // 5. Glass Stopcock Valve (Rotating Key)
+    const stopcock = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 1.2, 16), metalMat);
+    stopcock.rotation.z = Math.PI / 2;
+    stopcock.position.set(-0.6, -1.3, 0);
+    group.add(stopcock);
+
+    // Tapered Delivery Nozzle Tip
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.8, 16), glassMat);
+    tip.rotation.x = Math.PI;
+    tip.position.set(-0.6, -1.8, 0);
+    group.add(tip);
+
+    // 6. Falling Titrant Droplets
+    const dropGeo = new THREE.SphereGeometry(0.08, 10, 10);
+    const dropMat = new THREE.MeshBasicMaterial({{ color: 0x67e8f9, transparent: true, opacity: 0.85 }});
+    for (let d = 0; d < 6; d++) {{
+      const drop = new THREE.Mesh(dropGeo, dropMat);
+      drop.position.set(-0.6, -2.1 - d * 0.28, 0);
+      drop.userData = {{ speed: 0.06 + Math.random() * 0.03 }};
+      group.add(drop);
+      anim3DObjects.droplets.push(drop);
+    }}
+
+    // 7. Borosilicate Erlenmeyer Flask
+    const neckGeo = new THREE.CylinderGeometry(0.75, 0.75, 1.2, 24, 1, true);
+    const neck = new THREE.Mesh(neckGeo, glassMat);
+    neck.position.set(-0.6, -2.4, 0);
+    group.add(neck);
+
+    const bodyGeo = new THREE.CylinderGeometry(0.75, 2.8, 2.5, 32, 1, true);
+    const body = new THREE.Mesh(bodyGeo, glassMat);
+    body.position.set(-0.6, -3.2, 0);
+    group.add(body);
+
+    const flaskBase = new THREE.Mesh(new THREE.CylinderGeometry(2.8, 2.8, 0.15, 32), glassMat);
+    flaskBase.position.set(-0.6, -4.4, 0);
+    group.add(flaskBase);
+
+    // 8. Analyte Liquid inside Flask with Phenolphthalein Indicator Transition
+    const fluidGeo = new THREE.CylinderGeometry(1.6, 2.75, 1.8, 32);
+    const fluidMat = new THREE.MeshStandardMaterial({{
+      color: 0xf1f5f9,
+      transparent: true,
+      opacity: 0.75,
+      roughness: 0.15
+    }});
+    const fluidMesh = new THREE.Mesh(fluidGeo, fluidMat);
+    fluidMesh.position.set(-0.6, -3.5, 0);
+    group.add(fluidMesh);
+    anim3DObjects.titrationFluid = fluidMesh;
+
+    // 9. Magnetic Stirrer Base & Rotating White PTFE Bar
+    const stirPlate = new THREE.Mesh(new THREE.BoxGeometry(6.2, 0.5, 6.2), new THREE.MeshStandardMaterial({{ color: 0x1e293b, roughness: 0.4 }}));
+    stirPlate.position.set(-0.6, -4.3, 0);
+    group.add(stirPlate);
+
+    const stirBar = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.9, 12, 16), new THREE.MeshStandardMaterial({{ color: 0xffffff, roughness: 0.2 }}));
+    stirBar.rotation.x = Math.PI / 2;
+    stirBar.position.set(-0.6, -4.3, 0);
+    group.add(stirBar);
+    anim3DObjects.stirBar = stirBar;
+
+    // 10. Digital pH Electrode Probe Dipped into Flask
+    const probe = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 4.0, 16), new THREE.MeshStandardMaterial({{ color: 0x0284c7, metalness: 0.5 }}));
+    probe.position.set(0.6, -2.4, 0.4);
+    probe.rotation.z = -0.22;
+    group.add(probe);
+
+    scene.add(group);
+  }}
+
+  // 1B. 3D Molecular Geometry & Chemical Bonding (VSEPR, Orbitals & Crystal Lattice)
+  function build3DMolecular(scene, p) {{
+    const group = new THREE.Group();
+    anim3DObjects = {{ type: 'molecular', atoms: [], bonds: [] }};
+
+    // Central Atom (Oxygen / Carbon / Nitrogen)
+    const centralMat = new THREE.MeshStandardMaterial({{ color: 0xef4444, roughness: 0.25, metalness: 0.2 }});
+    const centralAtom = new THREE.Mesh(new THREE.SphereGeometry(1.15, 32, 32), centralMat);
+    centralAtom.position.set(0, 0, 0);
+    group.add(centralAtom);
+
+    // Ligand Atoms (e.g. Hydrogens / Chlorines in Bent or Tetrahedral VSEPR)
+    const ligandMat = new THREE.MeshStandardMaterial({{ color: 0xf8fafc, roughness: 0.2, metalness: 0.1 }});
+    const bondMat = new THREE.MeshStandardMaterial({{ color: 0x94a3b8, metalness: 0.6, roughness: 0.3 }});
+
+    // 4 Ligands at tetrahedral / bent angles
+    const ligandCoords = [
+      new THREE.Vector3(2.4, -0.8, 0.5),
+      new THREE.Vector3(-2.4, -0.8, 0.5),
+      new THREE.Vector3(0, 2.2, -0.8),
+      new THREE.Vector3(0, -1.2, -2.2)
+    ];
+
+    ligandCoords.forEach((coord, i) => {{
+      const lig = new THREE.Mesh(new THREE.SphereGeometry(0.65, 24, 24), ligandMat);
+      lig.position.copy(coord);
+      group.add(lig);
+      anim3DObjects.atoms.push(lig);
+
+      // Bond Cylinder connecting Central Atom to Ligand
+      const dir = coord.clone().normalize();
+      const bondLen = coord.length();
+      const bondGeo = new THREE.CylinderGeometry(0.14, 0.14, bondLen, 16);
+      bondGeo.translate(0, bondLen / 2, 0);
+      const bondMesh = new THREE.Mesh(bondGeo, bondMat);
+      bondMesh.position.set(0, 0, 0);
+      bondMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+      group.add(bondMesh);
+      anim3DObjects.bonds.push(bondMesh);
+    }});
+
+    // Glowing Electron Orbital Density Cloud (Translucent Isosurface)
+    const cloudMat = new THREE.MeshPhysicalMaterial({{
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.32,
+      roughness: 0.1,
+      transmission: 0.8,
+      side: THREE.DoubleSide
+    }});
+    const cloud = new THREE.Mesh(new THREE.SphereGeometry(3.6, 32, 32), cloudMat);
+    group.add(cloud);
+    anim3DObjects.cloud = cloud;
+
+    // Electron Orbiting Particles
+    const eOrbMat = new THREE.MeshBasicMaterial({{ color: 0xfacc15 }});
+    for (let k = 0; k < 12; k++) {{
+      const eDot = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), eOrbMat);
+      eDot.userData = {{ phase: k * (Math.PI / 6), r: 2.8 + (k % 2) * 0.8, speed: 1.5 + (k % 3) * 0.5 }};
+      group.add(eDot);
+      anim3DObjects.atoms.push(eDot);
+    }}
+
+    scene.add(group);
+  }}
+
+  // 1C. 3D Electrochemistry: Dual Pyrex Beakers, Electrodes, Salt Bridge, Multimeter, Bubbles & Electrons
   function build3DElectrochemistry(scene, p) {{
     const group = new THREE.Group();
     anim3DObjects = {{ type: 'electrochem', bubbles: [], electrons: [] }};
@@ -1016,7 +1216,49 @@ def get_three_js_engine(title: str, subject: str, formula: str, params: list[dic
 
     const type = anim3DObjects.type;
 
-    if (type === 'electrochem') {{
+    if (type === 'titration') {{
+      // 1. Dripping titrant droplets into Erlenmeyer flask
+      if (anim3DObjects.droplets) {{
+        anim3DObjects.droplets.forEach(d => {{
+          d.position.y -= dt * 4.5;
+          if (d.position.y < -3.6) {{
+            d.position.y = -1.8;
+          }}
+        }});
+      }}
+      // 2. Rotating magnetic stir bar and liquid vortex
+      if (anim3DObjects.stirBar) {{
+        anim3DObjects.stirBar.rotation.y += dt * 18.0;
+      }}
+      // 3. Dynamic Phenolphthalein color transition
+      if (anim3DObjects.titrationFluid) {{
+        const vAdded = p.vAdded || p.volume || 18;
+        const vEq = p.vEq || 25;
+        const isPink = vAdded >= vEq - 0.2;
+        const targetColor = isPink ? new THREE.Color(0xec4899) : new THREE.Color(0xf1f5f9);
+        anim3DObjects.titrationFluid.material.color.lerp(targetColor, 0.15);
+        anim3DObjects.titrationFluid.material.opacity = isPink ? 0.85 : 0.65;
+      }}
+    }} else if (type === 'molecular') {{
+      // 1. Electron orbital particles orbiting central atom
+      if (anim3DObjects.atoms) {{
+        anim3DObjects.atoms.forEach(a => {{
+          if (a.userData && a.userData.phase !== undefined) {{
+            a.userData.phase += dt * a.userData.speed;
+            a.position.x = Math.cos(a.userData.phase) * a.userData.r;
+            a.position.z = Math.sin(a.userData.phase) * a.userData.r;
+            a.position.y = Math.sin(a.userData.phase * 2) * 0.8;
+          }}
+        }});
+      }}
+      // 2. Thermal vibrational bond stretch
+      if (anim3DObjects.bonds) {{
+        const vib = 1.0 + Math.sin(time * 12.0) * 0.035;
+        anim3DObjects.bonds.forEach(b => {{
+          b.scale.set(1.0, vib, 1.0);
+        }});
+      }}
+    }} else if (type === 'electrochem') {{
       // 1. Electron particles stream from Zn to Cu along wire
       if (anim3DObjects.electrons && anim3DObjects.wireCurve) {{
         const cuConc = p.cu_conc || p.concentration || 1.0;

@@ -48,6 +48,17 @@ const FALLBACK_CATALOG: CatalogSimulationItem[] = [
     default_params: { alphaEnergy: 5.0, foilThickness: 1.0, zoomNucleus: 0 },
   },
   {
+    id: 'sim_titration_3d',
+    title: '3D Acid-Base Titration & Volumetric Analysis',
+    subject: 'Chemistry',
+    category: 'Analytical & Physical Chemistry',
+    emoji: '🧪',
+    difficulty: 'Intermediate',
+    description: 'Precision volumetric burette, Erlenmeyer flask, rotating magnetic stirrer flea, dynamic Phenolphthalein color transition, and digital pH electrode probe.',
+    builtin_type: 'titration_3d',
+    default_params: { titrantAdded: 0, dropRate: 1, stirrerSpeed: 400, zoomFlask: 0 },
+  },
+  {
     id: 'sim_projectile_3d',
     title: '3D Projectile Motion Cannon & Field',
     subject: 'Physics',

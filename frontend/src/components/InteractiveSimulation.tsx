@@ -58,6 +58,11 @@ const TYPE_3D_MAPPING: Record<string, string> = {
   rutherford_atom: 'rutherford_atom_3d',
   rutherford_atom_3d: 'rutherford_atom_3d',
   gold_foil: 'rutherford_atom_3d',
+  titration: 'titration_3d',
+  titration_3d: 'titration_3d',
+  acid_base_titration: 'titration_3d',
+  titration_curve: 'titration_3d',
+  volumetric_titration: 'titration_3d',
 }
 
 function Icon({ name }: { name: 'zoom' | 'close' }) {

@@ -14,6 +14,7 @@ export type SimulationType =
   | 'cell_biology_3d'
   | 'ac_generator_3d'
   | 'rutherford_atom_3d'
+  | 'titration_3d'
   | 'periodic_trends'
   | 'pendulum'
   | 'ohms_law'
