@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import type { SimulationData, CatalogSimulationItem } from '../simulations/types'
 import { InteractiveSimulation } from './InteractiveSimulation'
+import { API_BASE } from '../api'
 
 const FALLBACK_CATALOG: CatalogSimulationItem[] = [
   {
@@ -435,9 +436,9 @@ export function VirtualLabModal({ onClose, onSendToChat, onOpenVoiceLabPartner }
 
   // Fetch live catalog from backend on mount
   useEffect(() => {
-    fetch('/api/simulations/catalog')
+    fetch(`${API_BASE}/api/simulations/catalog`)
       .then((res) => {
-        if (!res.ok) return fetch('/simulations/catalog')
+        if (!res.ok) return fetch(`${API_BASE}/simulations/catalog`)
         return res
       })
       .then((res) => (res.ok ? res.json() : null))
@@ -521,7 +522,7 @@ export function VirtualLabModal({ onClose, onSendToChat, onOpenVoiceLabPartner }
     // Otherwise, fetch / generate custom HTML simulation from backend
     setLoadingSimId(item.id)
     try {
-      const res = await fetch(`/api/simulations/catalog/${item.id}`)
+      const res = await fetch(`${API_BASE}/api/simulations/catalog/${item.id}`)
       if (!res.ok) {
         throw new Error(`Server returned status ${res.status}`)
       }
@@ -534,7 +535,7 @@ export function VirtualLabModal({ onClose, onSendToChat, onOpenVoiceLabPartner }
     } catch (err: any) {
       // Fallback: try generating custom simulation endpoint
       try {
-        const genRes = await fetch('/api/simulations/generate', {
+        const genRes = await fetch(`${API_BASE}/api/simulations/generate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -568,7 +569,7 @@ export function VirtualLabModal({ onClose, onSendToChat, onOpenVoiceLabPartner }
     setCustomGenPrompt(topic)
 
     try {
-      const res = await fetch('/api/simulations/generate', {
+      const res = await fetch(`${API_BASE}/api/simulations/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
