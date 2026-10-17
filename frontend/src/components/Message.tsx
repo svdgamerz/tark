@@ -202,6 +202,7 @@ export function MessageView({
   onOpenMathSandbox,
   onOpenScratchpad,
   onOpenMolecularViewer,
+  onOpenVoiceLabPartner,
   onOpenMasteryGraph,
   userQuestion,
 }: {
@@ -222,6 +223,7 @@ export function MessageView({
   onOpenMathSandbox?: () => void
   onOpenScratchpad?: (contextText?: string) => void
   onOpenMolecularViewer?: () => void
+  onOpenVoiceLabPartner?: () => void
   onOpenMasteryGraph?: () => void
 }) {
   const isUser = message.role === 'user'
@@ -265,28 +267,34 @@ export function MessageView({
   // Contextual Smart STEM Tool Detection
   const combinedContext = `${userQuestion || ''} ${displayText}`.toLowerCase()
 
+  const isHomeworkScratchpadEligible = Boolean(
+    onOpenScratchpad &&
+    !isUser &&
+    /\b(homework|assignment|do my homework|need to do.*homework|solve.*homework|homework problem|my homework|check my homework|scratchpad|check my steps|where did i go wrong|find my mistake|is my answer correct|spot the error|i got .* but|my working|derivation mistake|wrong answer|step by step check|check my work|calculation error|slip[- ]up)\b/i.test(combinedContext)
+  )
+
   const isMath3DEligible = Boolean(
     onOpenMathSandbox &&
     !isUser &&
-    /\b(3d surface|vector field|gradient field|divergence|curl|saddle point|paraboloid|tangent plane|multivariable|partial derivative|electric field lines|dipole field|flux integral|level curves?|3d curve|z\s*=\s*)\b/i.test(combinedContext)
+    /\b(3d surface|vector field|gradient field|divergence|curl|saddle point|paraboloid|tangent plane|multivariable|partial derivative|electric field lines|dipole field|flux integral|level curves?|3d curve|plot in 3d|visualize in 3d|3d math|3d graph|z\s*=\s*)\b/i.test(combinedContext)
   )
 
   const isMolecularEligible = Boolean(
     onOpenMolecularViewer &&
     !isUser &&
-    /\b(molecular geometry|crystal lattice|vsepr|hybridization|sp3|sp2|unit cell|fcc|bcc|nacl lattice|benzene ring|caffeine molecule|aspirin|h2o structure|tetrahedral|octahedral|ball[- ]and[- ]stick|space[- ]filling|van der waals radius|electronegativity difference|dipole moment)\b/i.test(combinedContext)
+    /\b(molecular geometry|crystal lattice|vsepr|hybridization|sp3|sp2|unit cell|fcc|bcc|nacl lattice|benzene ring|caffeine molecule|aspirin|h2o structure|tetrahedral|octahedral|ball[- ]and[- ]stick|space[- ]filling|van der waals radius|electronegativity difference|dipole moment|3d molecule|3d crystal|molecular structure|crystal structure)\b/i.test(combinedContext)
   )
 
-  const isErrorSpotterEligible = Boolean(
-    onOpenScratchpad &&
+  const isVoiceLabPartnerEligible = Boolean(
+    onOpenVoiceLabPartner &&
     !isUser &&
-    /\b(where did i go wrong|check my steps|find my mistake|is my answer correct|spot the error|i got .* but|my working|derivation mistake|wrong answer|step by step check|slip[- ]up)\b/i.test(combinedContext)
+    /\b(lab partner|voice lab|hands[- ]free lab|talk to me during experiment|voice assistant for lab|be my lab partner|voice mode for lab|audio lab guidance|voice experiment)\b/i.test(combinedContext)
   )
 
   const isMasteryEligible = Boolean(
     onOpenMasteryGraph &&
     !isUser &&
-    /\b(syllabus progress|skill tree|knowledge graph|concept mastery|weak areas|what should i study next|exam readiness|chapter mastery)\b/i.test(combinedContext)
+    /\b(syllabus progress|skill tree|knowledge graph|concept mastery|weak areas|what should i study|what to study next|exam readiness|chapter mastery|study roadmap|learning path|diagnostic graph)\b/i.test(combinedContext)
   )
 
   async function handleToggleSimulation() {
@@ -815,8 +823,20 @@ export function MessageView({
               )}
 
               {/* Contextual Smart STEM Tool Action Cards */}
-              {!isUser && (isMath3DEligible || isMolecularEligible || isErrorSpotterEligible || isMasteryEligible) && (
+              {!isUser && (isHomeworkScratchpadEligible || isMath3DEligible || isMolecularEligible || isVoiceLabPartnerEligible || isMasteryEligible) && (
                 <div className="smart-tool-cards-container">
+                  {isHomeworkScratchpadEligible && (
+                    <div className="smart-tool-card error-tool-card">
+                      <span className="stc-icon">✍️</span>
+                      <div className="stc-content">
+                        <strong>Homework Scratchpad & Error Spotter</strong>
+                        <span>Solve homework step-by-step or check calculations to spot mistakes instantly</span>
+                      </div>
+                      <button type="button" className="stc-action-btn" onClick={() => onOpenScratchpad?.(userQuestion)}>
+                        Open Homework Scratchpad ➔
+                      </button>
+                    </div>
+                  )}
                   {isMath3DEligible && (
                     <div className="smart-tool-card math-tool-card">
                       <span className="stc-icon">📐</span>
@@ -834,22 +854,29 @@ export function MessageView({
                       <span className="stc-icon">🔬</span>
                       <div className="stc-content">
                         <strong>3D Molecular & Crystal Viewer</strong>
-                        <span>Inspect real-time atomic geometry, orbitals, and unit cell lattices</span>
+                        <span>Inspect real-time atomic geometry, bond angles, orbitals, and unit cell lattices</span>
                       </div>
                       <button type="button" className="stc-action-btn" onClick={() => onOpenMolecularViewer?.()}>
                         Inspect Molecule ➔
                       </button>
                     </div>
                   )}
-                  {isErrorSpotterEligible && (
-                    <div className="smart-tool-card error-tool-card">
-                      <span className="stc-icon">✍️</span>
+                  {isVoiceLabPartnerEligible && (
+                    <div className="smart-tool-card" style={{
+                      borderColor: 'rgba(56, 189, 248, 0.35)',
+                      background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.12) 0%, rgba(15, 23, 42, 0.7) 100%)',
+                    }}>
+                      <span className="stc-icon">🎙️</span>
                       <div className="stc-content">
-                        <strong>Error Spotter & Scratchpad</strong>
-                        <span>Diagnose line-by-line algebraic or conceptual mistakes</span>
+                        <strong>Voice Lab Partner (Hands-Free)</strong>
+                        <span>Run laboratory experiments hands-free with real-time spoken guidance</span>
                       </div>
-                      <button type="button" className="stc-action-btn" onClick={() => onOpenScratchpad?.(userQuestion)}>
-                        Spot Errors ➔
+                      <button type="button" className="stc-action-btn" style={{
+                        background: 'rgba(56, 189, 248, 0.2)',
+                        color: '#38bdf8',
+                        borderColor: 'rgba(56, 189, 248, 0.4)',
+                      }} onClick={() => onOpenVoiceLabPartner?.()}>
+                        Launch Lab Partner ➔
                       </button>
                     </div>
                   )}
@@ -858,7 +885,7 @@ export function MessageView({
                       <span className="stc-icon">🌳</span>
                       <div className="stc-content">
                         <strong>Concept Mastery Skill Tree</strong>
-                        <span>Review your syllabus progression and prerequisite pathways</span>
+                        <span>Review your syllabus progression, diagnostic mastery, and learning pathways</span>
                       </div>
                       <button type="button" className="stc-action-btn" onClick={() => onOpenMasteryGraph?.()}>
                         View Skill Tree ➔

@@ -821,6 +821,20 @@ export default function App() {
     const hasAttachments = Boolean(attachment || attachedFiles.length > 0)
     if ((!clean && !hasAttachments) || busy) return
 
+    // Smart Proactive Tool Launcher on explicit student intent
+    const lowerClean = clean.toLowerCase()
+    if (/\b(i need to do (my )?homework|need to do (my )?homework|help (me )?with (my )?homework|open (my )?homework|open scratchpad|open error spotter|check (my )?homework)\b/i.test(lowerClean)) {
+      setShowScratchpad(true)
+    } else if (/\b(open 3d math|open math sandbox|visualize in 3d math|plot in 3d math)\b/i.test(lowerClean)) {
+      setShowMathSandbox(true)
+    } else if (/\b(open 3d molecule|open molecular viewer|view molecule in 3d)\b/i.test(lowerClean)) {
+      setShowMolecularViewer(true)
+    } else if (/\b(open lab partner|be my lab partner|start voice lab|hands[- ]free lab partner)\b/i.test(lowerClean)) {
+      setShowVoiceLabPartner(true)
+    } else if (/\b(open skill tree|show my skill tree|open mastery graph|show my syllabus map)\b/i.test(lowerClean)) {
+      setShowMasteryGraph(true)
+    }
+
     if (gated && guestCount >= GUEST_LIMIT) {
       setAuthReason(
         `You've used your ${GUEST_LIMIT} free messages. Sign in to keep learning with Tark.`,
@@ -1289,6 +1303,7 @@ export default function App() {
                   onOpenMathSandbox={() => setShowMathSandbox(true)}
                   onOpenScratchpad={() => setShowScratchpad(true)}
                   onOpenMolecularViewer={() => setShowMolecularViewer(true)}
+                  onOpenVoiceLabPartner={() => setShowVoiceLabPartner(true)}
                   onOpenMasteryGraph={() => setShowMasteryGraph(true)}
                   onEdit={
                     m.role === 'user' && !busy
@@ -1461,80 +1476,6 @@ export default function App() {
                     <div className="ami-text">
                       <strong>Upload Folder</strong>
                       <small>Entire study folder or chapter</small>
-                    </div>
-                  </button>
-                  <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)', margin: '6px 4px' }} />
-                  <div style={{ padding: '4px 10px', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.05em' }}>
-                    STEM Tools & Sandboxes
-                  </div>
-                  <button
-                    type="button"
-                    className="attach-menu-item"
-                    onClick={() => {
-                      setShowAttachMenu(false)
-                      setShowMathSandbox(true)
-                    }}
-                  >
-                    <span className="ami-icon">📐</span>
-                    <div className="ami-text">
-                      <strong>3D Math & Multivariable Sandbox</strong>
-                      <small>Surfaces, vectors & calculus curves</small>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className="attach-menu-item"
-                    onClick={() => {
-                      setShowAttachMenu(false)
-                      setShowScratchpad(true)
-                    }}
-                  >
-                    <span className="ami-icon">✍️</span>
-                    <div className="ami-text">
-                      <strong>Error Spotter & Scratchpad</strong>
-                      <small>Diagnose step-by-step calculation mistakes</small>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className="attach-menu-item"
-                    onClick={() => {
-                      setShowAttachMenu(false)
-                      setShowMolecularViewer(true)
-                    }}
-                  >
-                    <span className="ami-icon">🔬</span>
-                    <div className="ami-text">
-                      <strong>3D Molecular & Crystal Viewer</strong>
-                      <small>Interactive orbital & crystal lattices</small>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className="attach-menu-item"
-                    onClick={() => {
-                      setShowAttachMenu(false)
-                      setShowVoiceLabPartner(true)
-                    }}
-                  >
-                    <span className="ami-icon">🎙️</span>
-                    <div className="ami-text">
-                      <strong>Voice Lab Partner</strong>
-                      <small>Hands-free voice tutor for experiments</small>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className="attach-menu-item"
-                    onClick={() => {
-                      setShowAttachMenu(false)
-                      setShowMasteryGraph(true)
-                    }}
-                  >
-                    <span className="ami-icon">🌳</span>
-                    <div className="ami-text">
-                      <strong>Concept Mastery Skill Tree</strong>
-                      <small>Syllabus learning paths & diagnostics</small>
                     </div>
                   </button>
                 </div>
