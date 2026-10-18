@@ -130,7 +130,7 @@ export function Sidebar({
         </nav>
 
         <div className="sidebar-foot">
-          <button className="progress-btn" onClick={onOpenVirtualLab} title="Explore interactive science & math simulations in Virtual Lab">
+          <button id="virtual-lab-sidebar-btn" className="progress-btn" onClick={onOpenVirtualLab} title="Explore interactive science & math simulations in Virtual Lab">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M10 2v7.31M14 2v7.31M8.5 2h7M14 9.3a6.5 6.5 0 1 1-4 0" />
               <path d="M5.52 16h12.96" />

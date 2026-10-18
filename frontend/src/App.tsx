@@ -1167,6 +1167,7 @@ export default function App() {
           <div className="topbar-right">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginRight: '8px' }}>
               <button
+                id="virtual-lab-topbar-btn"
                 type="button"
                 onClick={() => setShowVirtualLab(true)}
                 title="Virtual Science & Math Lab"
