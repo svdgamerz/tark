@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type { SimulationParam, SimulationReadout } from './types'
 
 export interface DissectInfo {
@@ -3029,6 +3030,61 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       rvBadge.position.set(-2.8, 1.8, 0.4)
       rightHeartGroup.add(rvBadge)
 
+      // Load Realistic Medical-Grade Blender GLTF Heart
+      const gltfLoader = new GLTFLoader()
+      let realisticHeartRoot: THREE.Group | null = null
+      gltfLoader.load(
+        '/models/heart_realistic.glb',
+        (gltf) => {
+          realisticHeartRoot = gltf.scene
+          realisticHeartRoot.scale.setScalar(1.35)
+          realisticHeartRoot.position.set(0, -0.2, 0)
+          heartRig.add(realisticHeartRoot)
+
+          const blenderLeft = realisticHeartRoot.getObjectByName('Left_Heart')
+          const blenderRight = realisticHeartRoot.getObjectByName('Right_Heart')
+          if (blenderLeft) leftHeartGroup.add(blenderLeft)
+          if (blenderRight) rightHeartGroup.add(blenderRight)
+
+          // Hide low-poly procedural fallback meshes once high-poly Blender model loads
+          lvPostMesh.visible = false
+          lvApexMesh.visible = false
+          lvAntMesh.visible = false
+          lvCavity.visible = false
+          lvCutFace.visible = false
+          rvPostMesh.visible = false
+          rvAntMesh.visible = false
+          rvCavity.visible = false
+          rvCutFace.visible = false
+          raMesh.visible = false
+          raAuricle.visible = false
+          aortaMesh.visible = false
+          ptMesh.visible = false
+          svcMesh.visible = false
+          ivcMesh.visible = false
+          fatMesh.visible = false
+          ladMesh.visible = false
+          gcvMesh.visible = false
+
+          realisticHeartRoot.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+              child.castShadow = true
+              child.receiveShadow = true
+              const n = child.name.toLowerCase()
+              if (n.includes('left') || n.includes('lv') || n.includes('mitral')) registerPart(child, 'lv')
+              else if (n.includes('right') || n.includes('rv') || n.includes('tricuspid')) registerPart(child, 'rv')
+              else if (n.includes('aorta')) registerPart(child, 'aorta')
+              else if (n.includes('pulmonary')) registerPart(child, 'pulmonary')
+              else if (n.includes('vena') || n.includes('atrium')) registerPart(child, 'ra')
+            }
+          })
+        },
+        undefined,
+        (err) => {
+          console.warn('Blender realistic heart fallback to procedural:', err)
+        }
+      )
+
       // Raycaster for Mouse Double-Click and Mobile Double-Tap
       const raycaster = new THREE.Raycaster()
       const mouse = new THREE.Vector2()
@@ -3170,6 +3226,10 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           lvAntMesh.scale.set(0.9 * ventScale, 1.45 * (2 - ventScale), 0.9 * ventScale)
           rvPostMesh.scale.set(1.05 * ventScale, 1.35 * (2 - ventScale), 0.85 * ventScale)
           rvAntMesh.scale.set(1.05 * ventScale, 1.35 * (2 - ventScale), 0.85 * ventScale)
+
+          if (realisticHeartRoot) {
+            realisticHeartRoot.scale.set(1.35 * ventScale, 1.35 * (2 - ventScale), 1.35 * ventScale)
+          }
 
           // Dynamic Valve Leaflets flapping in sync with cardiac cycle
           const valveOpenAngle = isVentBeat ? 0.06 : 0.65
@@ -5415,6 +5475,52 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
       specGroup.visible = false
 
+      // Load Realistic Medical-Grade Blender GLTF Eye
+      const eyeGltfLoader = new GLTFLoader()
+      let realisticEyeRoot: THREE.Group | null = null
+      eyeGltfLoader.load(
+        '/models/eye_realistic.glb',
+        (gltf) => {
+          realisticEyeRoot = gltf.scene
+          realisticEyeRoot.scale.setScalar(1.28)
+          realisticEyeRoot.position.set(0, 0, 0)
+          eyeRig.add(realisticEyeRoot)
+
+          // Hide low-poly procedural fallback meshes
+          scleraMesh.visible = false
+          vesselsGroup.visible = false
+          corneaMesh.visible = false
+          limbusMesh.visible = false
+          irisMesh.visible = false
+          pupilMesh.visible = false
+          lensMesh.visible = false
+          zonulesGroup.visible = false
+          ciliaryMesh.visible = false
+          retinaMesh.visible = false
+          foveaMesh.visible = false
+          nerveMesh.visible = false
+          arteryMesh.visible = false
+
+          realisticEyeRoot.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+              child.castShadow = true
+              child.receiveShadow = true
+              const n = child.name.toLowerCase()
+              if (n.includes('lens')) { child.name = 'lens'; interactableMeshes.push(child) }
+              else if (n.includes('cornea')) { child.name = 'cornea'; interactableMeshes.push(child) }
+              else if (n.includes('iris') || n.includes('pupil')) { child.name = 'iris'; interactableMeshes.push(child) }
+              else if (n.includes('retina') || n.includes('fovea')) { child.name = 'retina'; interactableMeshes.push(child) }
+              else if (n.includes('nerve')) { child.name = 'optic_nerve'; interactableMeshes.push(child) }
+              else if (n.includes('sclera')) { child.name = 'sclera'; interactableMeshes.push(child) }
+            }
+          })
+        },
+        undefined,
+        (err) => {
+          console.warn('Blender realistic eye fallback to procedural:', err)
+        }
+      )
+
       function updateRays() {
         const uCm = params.objectDist
         const objZ = 4.8 + Math.min(22, (uCm / 180) * 18)
@@ -5434,6 +5540,19 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
         // Suspensory zonule relaxation with accommodation
         zonulesGroup.scale.setScalar(1.0 - params.accommodation * 0.08)
+
+        if (realisticEyeRoot) {
+          const specFrame = realisticEyeRoot.getObjectByName('Spectacles_Frame')
+          if (specFrame) specFrame.visible = params.correctiveLens > 0
+          const bLens = realisticEyeRoot.getObjectByName('Crystalline_Lens')
+          if (bLens) {
+            bLens.scale.set(1.0, 1.0, 0.42 + params.accommodation * 0.35)
+          }
+          const bZonules = realisticEyeRoot.getObjectByName('Zonules_Group')
+          if (bZonules) {
+            bZonules.scale.setScalar(1.0 - params.accommodation * 0.08)
+          }
+        }
 
         // Sclera and Sagittal section toggle (splitView)
         const isSplit = params.splitView >= 0.5
