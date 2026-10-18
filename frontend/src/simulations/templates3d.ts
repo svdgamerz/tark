@@ -5483,6 +5483,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         (gltf) => {
           realisticEyeRoot = gltf.scene
           realisticEyeRoot.scale.setScalar(1.28)
+          realisticEyeRoot.rotation.y = Math.PI
           realisticEyeRoot.position.set(0, 0, 0)
           eyeRig.add(realisticEyeRoot)
 
