@@ -6079,15 +6079,56 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         streamingGranules.push(gMesh)
       }
 
+      // Load Realistic Medical-Grade Blender GLTF Cell
+      const cellGltfLoader = new GLTFLoader()
+      let realisticCellRoot: THREE.Group | null = null
+      cellGltfLoader.load(
+        '/3d_models/cell_realistic.glb',
+        (gltf) => {
+          realisticCellRoot = gltf.scene
+          realisticCellRoot.scale.setScalar(1.05)
+          cellRig.add(realisticCellRoot)
+
+          // Hide procedural low-poly organelles when Blender model is present
+          animalMembraneMesh.visible = false
+          nucleusMesh.visible = false
+          nucleolusMesh.visible = false
+          mitoGroup.visible = false
+          erGroup.visible = false
+          golgiGroup.visible = false
+          centrosomeGroup.visible = false
+          peroxGroup.visible = false
+
+          realisticCellRoot.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+              child.castShadow = true
+              child.receiveShadow = true
+              const n = child.name.toLowerCase()
+              if (n.includes('membrane')) { child.name = 'wall'; interactableMeshes.push(child) }
+              else if (n.includes('nucleus') || n.includes('nucleolus')) { child.name = 'nucleus'; interactableMeshes.push(child) }
+              else if (n.includes('mito')) { child.name = 'mitochondria'; interactableMeshes.push(child) }
+              else if (n.includes('er_') || n.includes('ribo')) { child.name = 'endoplasmic_reticulum'; interactableMeshes.push(child) }
+              else if (n.includes('golgi')) { child.name = 'golgi'; interactableMeshes.push(child) }
+              else if (n.includes('centriole')) { child.name = 'centrosome'; interactableMeshes.push(child) }
+            }
+          })
+        },
+        undefined,
+        (err) => {
+          console.warn('Blender realistic cell fallback to procedural:', err)
+        }
+      )
+
       function applyCellState() {
         const isPlant = params.cellType === 0
         const isCutaway = params.cutaway >= 0.5
         plantWallMesh.visible = isPlant
         plantBorderMesh.visible = isPlant
-        animalMembraneMesh.visible = !isPlant
+        animalMembraneMesh.visible = !isPlant && !realisticCellRoot
+        if (realisticCellRoot) realisticCellRoot.visible = !isPlant
         chloroGroup.visible = isPlant
         vacuoleMesh.visible = isPlant
-        centrosomeGroup.visible = !isPlant
+        centrosomeGroup.visible = !isPlant && !realisticCellRoot
 
         if (!isCutaway) {
           plantWallMesh.material.opacity = 0.95
