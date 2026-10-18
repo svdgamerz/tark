@@ -3034,7 +3034,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const gltfLoader = new GLTFLoader()
       let realisticHeartRoot: THREE.Group | null = null
       gltfLoader.load(
-        '/models/heart_realistic.glb',
+        '/3d_models/heart_realistic.glb',
         (gltf) => {
           realisticHeartRoot = gltf.scene
           realisticHeartRoot.scale.setScalar(1.35)
@@ -5479,7 +5479,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const eyeGltfLoader = new GLTFLoader()
       let realisticEyeRoot: THREE.Group | null = null
       eyeGltfLoader.load(
-        '/models/eye_realistic.glb',
+        '/3d_models/eye_realistic.glb',
         (gltf) => {
           realisticEyeRoot = gltf.scene
           realisticEyeRoot.scale.setScalar(1.28)

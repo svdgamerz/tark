@@ -351,7 +351,7 @@ for obj in bpy.data.objects:
         obj.select_set(False)
 
 # Export GLTF / GLB
-output_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "public", "models", "heart_realistic.glb"))
+output_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "public", "3d_models", "heart_realistic.glb"))
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
 bpy.ops.export_scene.gltf(
