@@ -2407,6 +2407,30 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           internalStructures: ['Thick Myocardial Wall (Left Ventricle ~15 mm)', 'Thin Myocardial Wall (Right Ventricle ~4 mm)', 'Muscular Interventricular Septum', 'Bicuspid (Mitral) & Tricuspid Valves', 'Papillary Muscles & Chordae Tendineae'],
           description: 'The heart has split along the coronal septum. Notice the profound thickness difference: the Left Ventricle has 3x thicker muscular walls to generate 120 mmHg systolic pressure to supply the entire body, whereas the Right Ventricle only pumps against 25 mmHg pulmonary resistance.',
         },
+        mitral: {
+          title: 'Bicuspid (Mitral) Valve & Chordae Tendineae',
+          partName: 'Atrioventricular Valve of Left Heart (Left AV Valve)',
+          role: 'Prevents backflow of high-pressure oxygenated blood from the Left Ventricle into the Left Atrium during ventricular systole',
+          bloodType: 'Oxygenated',
+          internalStructures: ['Anterior & Posterior Cusps (Leaflets)', 'Fibrous Annulus Ring', 'Tendinous Cords (Chordae Tendineae)', 'Papillary Muscles'],
+          description: 'The mitral valve is subjected to the highest pressure gradients in the human body (~120 mmHg). Strong fibrous chordae tendineae act like parachute guy-wires, anchoring leaflet margins to muscular papillary pillars to prevent regurgitation into the left atrium.',
+        },
+        tricuspid: {
+          title: 'Tricuspid Valve & Right Ventricular Papillary Complex',
+          partName: 'Right Atrioventricular Valve (3 Cusps)',
+          role: 'Ensures unidirectional flow of venous blood from the Right Atrium into the Right Ventricle during diastole',
+          bloodType: 'Deoxygenated',
+          internalStructures: ['Anterior, Posterior & Septal Cusps', 'Moderator Band (Septomarginal Trabecula)', 'Right Papillary Muscles', 'Chordae Tendineae'],
+          description: 'The tricuspid valve features three distinct fibrous cusps. The moderator band carries the right bundle branch of the electrical conduction system directly across the cavity to the anterior papillary muscle for coordinated contraction.',
+        },
+        coronary: {
+          title: 'Coronary Arterial Circulation · Myocardial Perfusion',
+          partName: 'Right & Left Coronary Arterial Network',
+          role: 'Delivers oxygen-rich arterial blood directly to the hardworking myocardium during ventricular diastole',
+          bloodType: 'Oxygenated',
+          internalStructures: ['Right Coronary Artery (RCA)', 'Left Anterior Descending (LAD / "Widowmaker")', 'Coronary Sulcus Fat Cushion', 'Great Cardiac Vein'],
+          description: 'The heart muscle cannot extract oxygen directly from blood inside its chambers; it relies on coronary arteries branching off the aortic sinuses of Valsalva. Unlike all other systemic arteries, coronary perfusion peaks during ventricular diastole when heart muscle relaxes.',
+        },
         la: {
           title: 'Left Atrium (Atrium Sinistrum) · Interior Dissected',
           partName: 'Oxygenated Receiving Chamber',
@@ -2588,12 +2612,14 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       leftHeartGroup.add(lvCutFace)
 
       // Trabeculae Carneae Muscular Columns lining LV interior
+      const trabMeshes: THREE.Mesh[] = []
       for (let t = 0; t < 6; t++) {
         const trabGeo = new THREE.CylinderGeometry(0.12, 0.18, 1.8, 8)
         const trabMesh = new THREE.Mesh(trabGeo, myoMatLeft)
         trabMesh.position.set(0.6 + (t % 3) * 0.45, -1.2 + (t > 2 ? 0.8 : 0), -0.35)
         trabMesh.rotation.z = (t - 2.5) * 0.15
         leftHeartGroup.add(trabMesh)
+        trabMeshes.push(trabMesh)
       }
 
       // Papillary Muscles anchored inside LV posterior floor
@@ -2607,6 +2633,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       leftHeartGroup.add(pap2)
 
       // Fibrous Chordae Tendineae ("Heart Strings")
+      const cordMeshes: THREE.Mesh[] = []
       for (let c = 0; c < 8; c++) {
         const cordGeo = new THREE.CylinderGeometry(0.035, 0.035, 1.25, 6)
         cordGeo.translate(0, 0.62, 0)
@@ -2619,6 +2646,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           new THREE.Vector3(Math.cos(angle) * 0.35, 1.0, Math.sin(angle) * 0.35).normalize()
         )
         leftHeartGroup.add(cordMesh)
+        cordMeshes.push(cordMesh)
       }
 
       // Mitral (Bicuspid) Valve Leaflets across LV inlet
@@ -2659,6 +2687,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         new THREE.Vector3(-0.4, 0.5, -0.8),
         new THREE.Vector3(-0.4, -0.4, -0.8),
       ]
+      const pvMeshes: THREE.Object3D[] = []
       pvOffsets.forEach((pvOff) => {
         const pvGeo = new THREE.CylinderGeometry(0.24, 0.26, 1.4, 12)
         pvGeo.translate(0, 0.7, 0)
@@ -2666,12 +2695,14 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         pvMesh.position.copy(laMesh.position).add(pvOff)
         pvMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), pvOff.clone().normalize())
         leftHeartGroup.add(pvMesh)
+        pvMeshes.push(pvMesh)
 
         // Glowing red intake ostium
         const ostium = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.05, 8, 16), new THREE.MeshBasicMaterial({ color: 0xfca5a5 }))
         ostium.position.copy(pvMesh.position)
         ostium.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), pvOff.clone().normalize())
         leftHeartGroup.add(ostium)
+        pvMeshes.push(ostium)
       })
 
       // Ascending Aorta & Iconic Aortic Arch
@@ -2694,6 +2725,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         { start: new THREE.Vector3(0.1, 5.3, -0.4), dir: new THREE.Vector3(-0.1, 1.5, 0.1) },
         { start: new THREE.Vector3(0.6, 5.2, -0.7), dir: new THREE.Vector3(0.2, 1.4, -0.1) },
       ]
+      const archMeshes: THREE.Mesh[] = []
       archBranches.forEach((b) => {
         const bGeo = new THREE.CylinderGeometry(0.17, 0.21, 1.6, 12)
         bGeo.translate(0, 0.8, 0)
@@ -2701,6 +2733,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         bMesh.position.copy(b.start)
         bMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.dir.clone().normalize())
         leftHeartGroup.add(bMesh)
+        archMeshes.push(bMesh)
       })
 
       // Systemic Oxygenated Blood Flow Particles (travel along left heart half)
@@ -3033,6 +3066,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       // Load Realistic Medical-Grade Blender GLTF Heart
       const gltfLoader = new GLTFLoader()
       let realisticHeartRoot: THREE.Group | null = null
+      let blenderLeft: THREE.Object3D | null = null
+      let blenderRight: THREE.Object3D | null = null
+
       gltfLoader.load(
         '/3d_models/heart_realistic.glb',
         (gltf) => {
@@ -3041,12 +3077,20 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           realisticHeartRoot.position.set(0, -0.2, 0)
           heartRig.add(realisticHeartRoot)
 
-          const blenderLeft = realisticHeartRoot.getObjectByName('Left_Heart')
-          const blenderRight = realisticHeartRoot.getObjectByName('Right_Heart')
-          if (blenderLeft) leftHeartGroup.add(blenderLeft)
-          if (blenderRight) rightHeartGroup.add(blenderRight)
+          blenderLeft = realisticHeartRoot.getObjectByName('Left_Heart') || null
+          blenderRight = realisticHeartRoot.getObjectByName('Right_Heart') || null
+          if (blenderLeft) {
+            blenderLeft.scale.setScalar(1.35)
+            blenderLeft.position.set(0, -0.2, 0)
+            leftHeartGroup.add(blenderLeft)
+          }
+          if (blenderRight) {
+            blenderRight.scale.setScalar(1.35)
+            blenderRight.position.set(0, -0.2, 0)
+            rightHeartGroup.add(blenderRight)
+          }
 
-          // Hide low-poly procedural fallback meshes once high-poly Blender model loads
+          // Permanently hide all low-poly procedural fallback meshes once high-poly Blender model loads
           lvPostMesh.visible = false
           lvApexMesh.visible = false
           lvAntMesh.visible = false
@@ -3065,19 +3109,46 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           fatMesh.visible = false
           ladMesh.visible = false
           gcvMesh.visible = false
+          slicePlaneMesh.visible = false
+          laserLine.visible = false
+          pap1.visible = false
+          pap2.visible = false
+          mitralCusp1.visible = false
+          mitralCusp2.visible = false
+          triCusp1.visible = false
+          triCusp2.visible = false
+          saMesh.visible = false
+          saPulseMesh.visible = false
+          laMesh.visible = false
+          laAuricle.visible = false
+          rpaMesh.visible = false
+          lpaMesh.visible = false
+          trabMeshes.forEach(m => m.visible = false)
+          cordMeshes.forEach(m => m.visible = false)
+          pvMeshes.forEach(m => m.visible = false)
+          archMeshes.forEach(m => m.visible = false)
 
-          realisticHeartRoot.traverse((child) => {
+          const setupHeartChild = (child: THREE.Object3D) => {
             if (child instanceof THREE.Mesh) {
               child.castShadow = true
               child.receiveShadow = true
               const n = child.name.toLowerCase()
-              if (n.includes('left') || n.includes('lv') || n.includes('mitral')) registerPart(child, 'lv')
-              else if (n.includes('right') || n.includes('rv') || n.includes('tricuspid')) registerPart(child, 'rv')
-              else if (n.includes('aorta')) registerPart(child, 'aorta')
-              else if (n.includes('pulmonary')) registerPart(child, 'pulmonary')
-              else if (n.includes('vena') || n.includes('atrium')) registerPart(child, 'ra')
+              if (n.includes('mitral') || n.includes('chord')) registerPart(child, 'mitral')
+              else if (n.includes('tricuspid')) registerPart(child, 'tricuspid')
+              else if (n.includes('coronary') || n.includes('lad') || n.includes('rca')) registerPart(child, 'coronary')
+              else if (n.includes('left_ventricle') || n.includes('lv_')) registerPart(child, 'lv')
+              else if (n.includes('right_ventricle') || n.includes('rv_')) registerPart(child, 'rv')
+              else if (n.includes('left_atrium') || n.includes('left_auricle') || n.includes('pv')) registerPart(child, 'la')
+              else if (n.includes('right_atrium') || n.includes('right_auricle') || n.includes('vena') || n.includes('svc') || n.includes('ivc')) registerPart(child, 'ra')
+              else if (n.includes('aorta') || n.includes('carotid') || n.includes('subclavian') || n.includes('brachiocephalic') || n.includes('sinus')) registerPart(child, 'aorta')
+              else if (n.includes('pulmonary') || n.includes('conus')) registerPart(child, 'pulmonary')
+              else registerPart(child, n.includes('left') ? 'lv' : 'rv')
             }
-          })
+          }
+
+          if (blenderLeft) blenderLeft.traverse(setupHeartChild)
+          if (blenderRight) blenderRight.traverse(setupHeartChild)
+          realisticHeartRoot.traverse(setupHeartChild)
         },
         undefined,
         (err) => {
@@ -3085,7 +3156,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         }
       )
 
-      // Raycaster for Mouse Double-Click and Mobile Double-Tap
+      // Raycaster for Mouse Click, Hover, and Mobile Tap
       const raycaster = new THREE.Raycaster()
       const mouse = new THREE.Vector2()
 
@@ -3112,11 +3183,35 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
             callbacks.onInspectPart?.(isSplit ? DISSECT_CARDS.split : null)
           }
         } else {
-          // Double-tapped background: toggle Left/Right split
+          // Clicked background: toggle Left/Right split
           isSplit = !isSplit
           activeDissectId = isSplit ? 'split' : null
           callbacks.onInspectPart?.(isSplit ? DISSECT_CARDS.split : null)
         }
+      }
+
+      // Single-click tracking (supports drag to orbit without triggering accidental dissection)
+      let ptrStartX = 0
+      let ptrStartY = 0
+      function handlePointerDown(e: PointerEvent) {
+        ptrStartX = e.clientX
+        ptrStartY = e.clientY
+      }
+
+      function handlePointerUp(e: PointerEvent) {
+        const dist = Math.hypot(e.clientX - ptrStartX, e.clientY - ptrStartY)
+        if (dist < 6) {
+          triggerRaycast(e.clientX, e.clientY)
+        }
+      }
+
+      function handlePointerMove(e: PointerEvent) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        renderer.domElement.style.cursor = hits.length > 0 ? 'pointer' : 'default'
       }
 
       function handleDblClick(e: MouseEvent) {
@@ -3133,6 +3228,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         lastTouchTime = now
       }
 
+      renderer.domElement.addEventListener('pointerdown', handlePointerDown)
+      renderer.domElement.addEventListener('pointerup', handlePointerUp)
+      renderer.domElement.addEventListener('pointermove', handlePointerMove)
       renderer.domElement.addEventListener('dblclick', handleDblClick)
       renderer.domElement.addEventListener('touchend', handleTouchEnd)
 
@@ -3159,33 +3257,49 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         leftHeartGroup.rotation.y = -splitProgress * 0.18
         leftHeartGroup.position.z = -splitProgress * 0.2
 
-        // Anterior ventricle shells fade smoothly as coronal interior opens (no awkward hinged flaps)
-        lvAntMesh.position.z = splitProgress * 0.35
-        const lvAntMat = lvAntMesh.material as THREE.MeshStandardMaterial
-        lvAntMat.transparent = true
-        lvAntMat.opacity = Math.max(0, 1.0 - splitProgress * 2.2)
-        lvAntMesh.visible = splitProgress < 0.55
+        // When realistic Blender model is present, prevent procedural fallback meshes from ever reappearing
+        if (!realisticHeartRoot) {
+          // Anterior ventricle shells fade smoothly as coronal interior opens (procedural fallback only)
+          lvAntMesh.position.z = splitProgress * 0.35
+          const lvAntMat = lvAntMesh.material as THREE.MeshStandardMaterial
+          lvAntMat.transparent = true
+          lvAntMat.opacity = Math.max(0, 1.0 - splitProgress * 2.2)
+          lvAntMesh.visible = splitProgress < 0.55
 
-        rvAntMesh.position.z = splitProgress * 0.35
-        const rvAntMat = rvAntMesh.material as THREE.MeshStandardMaterial
-        rvAntMat.transparent = true
-        rvAntMat.opacity = Math.max(0, 1.0 - splitProgress * 2.2)
-        rvAntMesh.visible = splitProgress < 0.55
+          rvAntMesh.position.z = splitProgress * 0.35
+          const rvAntMat = rvAntMesh.material as THREE.MeshStandardMaterial
+          rvAntMat.transparent = true
+          rvAntMat.opacity = Math.max(0, 1.0 - splitProgress * 2.2)
+          rvAntMesh.visible = splitProgress < 0.55
 
-        // Fade anterior sulcus fat, LAD vessels, and cut faces
-        fatMesh.visible = splitProgress < 0.25
-        ladMesh.visible = splitProgress < 0.25
-        gcvMesh.visible = splitProgress < 0.25
-        lvCutFace.visible = splitProgress > 0.04
-        rvCutFace.visible = splitProgress > 0.04
+          // Fade anterior sulcus fat, LAD vessels, and cut faces
+          fatMesh.visible = splitProgress < 0.25
+          ladMesh.visible = splitProgress < 0.25
+          gcvMesh.visible = splitProgress < 0.25
+          lvCutFace.visible = splitProgress > 0.04
+          rvCutFace.visible = splitProgress > 0.04
+        } else {
+          lvAntMesh.visible = false
+          rvAntMesh.visible = false
+          fatMesh.visible = false
+          ladMesh.visible = false
+          gcvMesh.visible = false
+          lvCutFace.visible = false
+          rvCutFace.visible = false
+        }
 
         // Split Motion Graphics: Laser pulse and dissection sparks during separation ONLY (no persistent plane)
         const splitMidWave = Math.sin(splitProgress * Math.PI)
-        slicePlaneMesh.visible = splitProgress > 0.02 && splitProgress < 0.94
-        slicePlaneMat.opacity = splitMidWave * 0.65
-        laserLine.visible = splitProgress > 0.02 && splitProgress < 0.94
-        laserLineMat.opacity = splitMidWave * 0.95
-        laserLine.position.y = 0.5 + Math.sin(pulseTime * 14) * 3.5
+        if (!realisticHeartRoot) {
+          slicePlaneMesh.visible = splitProgress > 0.02 && splitProgress < 0.94
+          slicePlaneMat.opacity = splitMidWave * 0.65
+          laserLine.visible = splitProgress > 0.02 && splitProgress < 0.94
+          laserLineMat.opacity = splitMidWave * 0.95
+          laserLine.position.y = 0.5 + Math.sin(pulseTime * 14) * 3.5
+        } else {
+          slicePlaneMesh.visible = false
+          laserLine.visible = false
+        }
 
         // Biometric Callout Badges fade in gracefully beside each hemisphere
         const badgeAlpha = Math.max(0, Math.min(1, (splitProgress - 0.25) * 1.5))
@@ -3212,36 +3326,37 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           // 2-Phase Cardiac Cycle: Atrial Systole -> Ventricular Systole -> Diastole
           const isAtrialBeat = cyclePhase < Math.PI * 0.4
           const isVentBeat = cyclePhase >= Math.PI * 0.4 && cyclePhase < Math.PI * 1.2
-
-          const atriaContraction = isAtrialBeat ? 1.0 - Math.sin(cyclePhase * 2.5) * 0.12 : 1.0
-          laMesh.scale.set(1.05 * atriaContraction, 1.0 * atriaContraction, 1.1 * atriaContraction)
-          raMesh.scale.set(1.08 * atriaContraction, 1.1 * atriaContraction, 1.0 * atriaContraction)
+          const saWave = (Math.sin(cyclePhase) + 1.0) * 0.5
 
           const ventScale = isVentBeat
             ? 1.0 - Math.sin((cyclePhase - Math.PI * 0.4) * 1.25) * 0.14
             : 1.0 + Math.sin(cyclePhase) * 0.04
 
-          lvPostMesh.scale.set(0.9 * ventScale, 1.45 * (2 - ventScale), 0.9 * ventScale)
-          lvApexMesh.scale.set(ventScale, 2 - ventScale, ventScale)
-          lvAntMesh.scale.set(0.9 * ventScale, 1.45 * (2 - ventScale), 0.9 * ventScale)
-          rvPostMesh.scale.set(1.05 * ventScale, 1.35 * (2 - ventScale), 0.85 * ventScale)
-          rvAntMesh.scale.set(1.05 * ventScale, 1.35 * (2 - ventScale), 0.85 * ventScale)
+          if (blenderLeft) blenderLeft.scale.set(1.35 * ventScale, 1.35 * (2 - ventScale), 1.35 * ventScale)
+          if (blenderRight) blenderRight.scale.set(1.35 * ventScale, 1.35 * (2 - ventScale), 1.35 * ventScale)
 
-          if (realisticHeartRoot) {
-            realisticHeartRoot.scale.set(1.35 * ventScale, 1.35 * (2 - ventScale), 1.35 * ventScale)
+          if (!realisticHeartRoot) {
+            const atriaContraction = isAtrialBeat ? 1.0 - Math.sin(cyclePhase * 2.5) * 0.12 : 1.0
+            laMesh.scale.set(1.05 * atriaContraction, 1.0 * atriaContraction, 1.1 * atriaContraction)
+            raMesh.scale.set(1.08 * atriaContraction, 1.1 * atriaContraction, 1.0 * atriaContraction)
+
+            lvPostMesh.scale.set(0.9 * ventScale, 1.45 * (2 - ventScale), 0.9 * ventScale)
+            lvApexMesh.scale.set(ventScale, 2 - ventScale, ventScale)
+            lvAntMesh.scale.set(0.9 * ventScale, 1.45 * (2 - ventScale), 0.9 * ventScale)
+            rvPostMesh.scale.set(1.05 * ventScale, 1.35 * (2 - ventScale), 0.85 * ventScale)
+            rvAntMesh.scale.set(1.05 * ventScale, 1.35 * (2 - ventScale), 0.85 * ventScale)
+
+            // Dynamic Valve Leaflets flapping in sync with cardiac cycle
+            const valveOpenAngle = isVentBeat ? 0.06 : 0.65
+            mitralCusp1.rotation.x = valveOpenAngle
+            mitralCusp2.rotation.x = -valveOpenAngle
+            triCusp1.rotation.x = valveOpenAngle * 0.9
+            triCusp2.rotation.x = -valveOpenAngle * 0.9
+
+            // SA Node electrical conduction pulse
+            saPulseMesh.scale.setScalar(1.0 + saWave * 1.4)
+            ;(saPulseMesh.material as THREE.MeshBasicMaterial).opacity = 0.65 - saWave * 0.55
           }
-
-          // Dynamic Valve Leaflets flapping in sync with cardiac cycle
-          const valveOpenAngle = isVentBeat ? 0.06 : 0.65
-          mitralCusp1.rotation.x = valveOpenAngle
-          mitralCusp2.rotation.x = -valveOpenAngle
-          triCusp1.rotation.x = valveOpenAngle * 0.9
-          triCusp2.rotation.x = -valveOpenAngle * 0.9
-
-          // SA Node electrical conduction pulse
-          const saWave = (Math.sin(cyclePhase) + 1.0) * 0.5
-          saPulseMesh.scale.setScalar(1.0 + saWave * 1.4)
-          ;(saPulseMesh.material as THREE.MeshBasicMaterial).opacity = 0.65 - saWave * 0.55
 
           // Electrical conduction spark travels down septum
           const condProg = (cyclePhase / (Math.PI * 2)) % 1.0
@@ -3315,6 +3430,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         dispose: () => {
           cancelAnimationFrame(animId)
           window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('pointerdown', handlePointerDown)
+          renderer.domElement.removeEventListener('pointerup', handlePointerUp)
+          renderer.domElement.removeEventListener('pointermove', handlePointerMove)
           renderer.domElement.removeEventListener('dblclick', handleDblClick)
           renderer.domElement.removeEventListener('touchend', handleTouchEnd)
           renderer.dispose()
@@ -5186,18 +5304,46 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           description: 'In bright light, the pupil constricts to ~2 mm to minimize spherical aberrations and protect photoreceptors. In darkness, it dilates to ~8 mm.',
         },
         retina: {
-          title: 'Retina & Fovea Centralis · Photoreceptor Screen',
-          partName: 'Neurosensory Retina & Fovea',
-          role: 'Translates focused light photons into action potentials via 120 million Rods and 6 million Cones.',
-          internalStructures: ['Fovea Centralis (Peak Cone Density)', 'Macula Lutea', 'Rods (Scotopic/Night Vision)', 'Cones (Photopic/Color Vision)', 'Retinal Ganglion Cells'],
-          description: 'The fovea contains solely tightly packed cones with 1:1 ganglion cell wiring, delivering maximum visual acuity for reading and facial recognition.',
+          title: 'Retina · Neurosensory Photoreceptor Screen',
+          partName: 'Neurosensory Retina (Inner Nervous Tunic)',
+          role: 'Translates focused light photons into electrical action potentials via 120 million Rods and 6 million Cones.',
+          internalStructures: ['Pigment Epithelium (RPE)', 'Photoreceptor Outer Segments', 'Bipolar Interneurons', 'Retinal Ganglion Cells', 'Radiating Micro-Vessel Arcade'],
+          description: 'The retina lines the posterior two-thirds of the globe. Rods provide high sensitivity in dim light (scotopic vision), while cones deliver high-resolution color perception (photopic vision).',
+        },
+        fovea: {
+          title: 'Fovea Centralis & Macula Lutea · Peak Visual Acuity',
+          partName: 'Central Retinal Pit (Peak Cone Density)',
+          role: 'Provides sharpest 20/20 central visual acuity for reading, fine work, color discernment, and facial recognition.',
+          internalStructures: ['Foveola (Pure Cones, 0 Rods)', 'Avascular Foveal Zone (Zero Capillaries)', '1:1 Cone-to-Midget Ganglion Cell Wiring', 'Lutein & Zeaxanthin Protective Carotenoids'],
+          description: 'In the center of the macula, overlying cell layers are displaced laterally into a microscopic pit (the foveola), giving photons direct, unscattered access to elongated cone photoreceptors.',
+        },
+        choroid: {
+          title: 'Choroid · Vascular & Pigmented Uveal Coat',
+          partName: 'Choroidea (Posterior Vascular Tunic)',
+          role: 'Nourishes the outer retina with dense capillary networks and absorbs stray photons to prevent internal optical scattering.',
+          internalStructures: ['Choriocapillaris Micro-Bed', "Bruch's Membrane", 'Melanin Pigment Layer', 'Posterior Ciliary Arteries'],
+          description: 'The choroid has the highest blood flow per gram of any tissue in the body. Its dense dark melanin pigment creates a camera-obscura effect, preventing reflections that would blur the image.',
+        },
+        optic_disc: {
+          title: 'Optic Disc · Anatomical Blind Spot',
+          partName: 'Discus Nervi Optici (Lamina Cribrosa Exit)',
+          role: 'Convergence hub where ~1.2 million retinal ganglion cell axons gather to exit the eyeball and form the optic nerve.',
+          internalStructures: ['Physiological Cup', 'Lamina Cribrosa Scleral Meshwork', 'Central Retinal Artery & Vein Trunk', 'Zero Photoreceptors'],
+          description: 'Because all photoreceptors are absent at this nerve exit portal, this spot is physiologically blind. The brain seamlessly interpolates visual data from surrounding retinal areas.',
         },
         optic_nerve: {
           title: 'Optic Nerve (Cranial Nerve II)',
-          partName: 'Nervus Opticus & Central Retinal Artery',
-          role: 'Transmits over 1.2 million myelinated axons from retinal ganglion cells to the visual cortex (occipital lobe).',
-          internalStructures: ['Optic Disc (Physiological Blind Spot)', 'Central Retinal Artery & Vein', 'Myelin Sheath'],
-          description: 'Where the optic nerve exits the eyeball, there are zero photoreceptors, creating your anatomical blind spot.',
+          partName: 'Nervus Opticus & Dural Sheath',
+          role: 'Transmits over 1.2 million myelinated axons from retinal ganglion cells to the lateral geniculate nucleus and visual cortex.',
+          internalStructures: ['Central Retinal Artery & Vein', 'Myelinated Axon Bundles', 'Oligodendrocytes', 'Dura-Arachnoid Sheath'],
+          description: 'Formed by ganglion cell axons coated in myelin after passing the lamina cribrosa. Wrapped in continuous extensions of the cerebral meninges.',
+        },
+        zonules: {
+          title: 'Zonules of Zinn · Suspensory Lens Ligaments',
+          partName: 'Apparatus Suspensorius Lentis',
+          role: 'Transmits contractile tension from the ciliary ring muscles directly onto the elastic lens capsule to dynamically tune optical focal distance.',
+          internalStructures: ['Anterior Zonular Leaflets', 'Posterior Zonular Bundles', 'Equatorial Fibrillin-1 Microfibrils'],
+          description: 'A radially arranged corona of thousands of microscopic fibrillin protein cords. When ciliary muscles contract forward, zonule tension slackens, allowing the elastic lens to thicken for near reading.',
         },
         sclera: {
           title: 'Sclera · White Protective Outer Shell',
@@ -5205,6 +5351,13 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           role: 'Maintains intraocular pressure (~15 mmHg), structural spherical shape, and anchors extraocular muscles.',
           internalStructures: ['Dense Collagen Bundles', 'Episcleral Capillary Plexus', 'Tenon Capsule', 'Extraocular Muscle Insertions'],
           description: 'The opaque white of the eye transitions smoothly into the clear cornea at the sclerocorneal limbus.',
+        },
+        muscles: {
+          title: 'Extraocular Rectus Muscles & Scleral Insertions',
+          partName: 'Four Recti Muscles (Superior, Inferior, Medial, Lateral)',
+          role: 'Controls precise conjugate binocular eye tracking, elevation, depression, and saccadic fixation.',
+          internalStructures: ['Superior Rectus (CN III)', 'Inferior Rectus (CN III)', 'Medial Rectus (CN III)', 'Lateral Rectus (CN VI - Abducens)', 'Tendon of Zinn Insertions'],
+          description: 'These high-speed striated muscles have the highest motor unit innervation ratio in the human body (~1 nerve axon per 3-5 muscle fibers) for microscopic tracking precision.',
         },
       }
 
@@ -5507,12 +5660,18 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
               child.castShadow = true
               child.receiveShadow = true
               const n = child.name.toLowerCase()
-              if (n.includes('lens')) { child.name = 'lens'; interactableMeshes.push(child) }
+              if (n.includes('fovea') || n.includes('macula')) { child.name = 'fovea'; interactableMeshes.push(child) }
+              else if (n.includes('disc')) { child.name = 'optic_disc'; interactableMeshes.push(child) }
+              else if (n.includes('choroid')) { child.name = 'choroid'; interactableMeshes.push(child) }
+              else if (n.includes('retina') || n.includes('vessel')) { child.name = 'retina'; interactableMeshes.push(child) }
+              else if (n.includes('lens')) { child.name = 'lens'; interactableMeshes.push(child) }
               else if (n.includes('cornea')) { child.name = 'cornea'; interactableMeshes.push(child) }
-              else if (n.includes('iris') || n.includes('pupil')) { child.name = 'iris'; interactableMeshes.push(child) }
-              else if (n.includes('retina') || n.includes('fovea')) { child.name = 'retina'; interactableMeshes.push(child) }
-              else if (n.includes('nerve')) { child.name = 'optic_nerve'; interactableMeshes.push(child) }
-              else if (n.includes('sclera')) { child.name = 'sclera'; interactableMeshes.push(child) }
+              else if (n.includes('iris') || n.includes('pupil') || n.includes('ruff')) { child.name = 'iris'; interactableMeshes.push(child) }
+              else if (n.includes('zonule')) { child.name = 'zonules'; interactableMeshes.push(child) }
+              else if (n.includes('ciliary')) { child.name = 'ciliary'; interactableMeshes.push(child) }
+              else if (n.includes('rectus') || n.includes('muscle')) { child.name = 'muscles'; interactableMeshes.push(child) }
+              else if (n.includes('nerve') || n.includes('sheath')) { child.name = 'optic_nerve'; interactableMeshes.push(child) }
+              else if (n.includes('sclera') || n.includes('limbus')) { child.name = 'sclera'; interactableMeshes.push(child) }
             }
           })
         },
@@ -5630,6 +5789,30 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         }
       }
 
+      // Single-click tracking (supports drag to orbit without triggering accidental dissection)
+      let ptrStartX = 0
+      let ptrStartY = 0
+      function handlePointerDown(e: PointerEvent) {
+        ptrStartX = e.clientX
+        ptrStartY = e.clientY
+      }
+
+      function handlePointerUp(e: PointerEvent) {
+        const dist = Math.hypot(e.clientX - ptrStartX, e.clientY - ptrStartY)
+        if (dist < 6) {
+          triggerRaycast(e.clientX, e.clientY)
+        }
+      }
+
+      function handlePointerMove(e: PointerEvent) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        renderer.domElement.style.cursor = hits.length > 0 ? 'pointer' : 'default'
+      }
+
       function handleDblClick(e: MouseEvent) {
         triggerRaycast(e.clientX, e.clientY)
       }
@@ -5640,6 +5823,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         triggerRaycast(t.clientX, t.clientY)
       }
 
+      renderer.domElement.addEventListener('pointerdown', handlePointerDown)
+      renderer.domElement.addEventListener('pointerup', handlePointerUp)
+      renderer.domElement.addEventListener('pointermove', handlePointerMove)
       renderer.domElement.addEventListener('dblclick', handleDblClick)
       renderer.domElement.addEventListener('touchend', handleTouchEnd)
 
@@ -5684,6 +5870,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         dispose: () => {
           cancelAnimationFrame(animId)
           window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('pointerdown', handlePointerDown)
+          renderer.domElement.removeEventListener('pointerup', handlePointerUp)
+          renderer.domElement.removeEventListener('pointermove', handlePointerMove)
           renderer.domElement.removeEventListener('dblclick', handleDblClick)
           renderer.domElement.removeEventListener('touchend', handleTouchEnd)
           renderer.dispose()
@@ -5757,17 +5946,24 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
       const DISSECT_CARDS: Record<string, DissectInfo> = {
         nucleus: {
-          title: 'Cell Nucleus & Nucleolus · Genetic Command Center',
-          partName: 'Nucleus, Chromatin & Nucleolus',
-          role: 'Houses linear chromosomal DNA; coordinates transcription, DNA replication, and ribosome biogenesis.',
-          internalStructures: ['Double-membrane Nuclear Envelope with Pores', 'Heterochromatin & Euchromatin', 'Dense Nucleolus (rRNA transcription)'],
+          title: 'Cell Nucleus & Chromatin · Genetic Command Center',
+          partName: 'Nucleus, Chromatin Architecture & Nuclear Pores',
+          role: 'Houses linear chromosomal DNA; coordinates transcription, DNA replication, and gene expression.',
+          internalStructures: ['Double-membrane Nuclear Envelope with Octagonal Pores', 'Heterochromatin & Euchromatin Loops', 'Nucleoplasm Fluid'],
           description: 'The nuclear envelope features selective octagonal nuclear pore complexes regulating RNA and protein transit between nucleoplasm and cytoplasm.',
+        },
+        nucleolus: {
+          title: 'Nucleolus · Ribosome Biogenesis Factory',
+          partName: 'Dense Subnuclear Organelle (Agranular & Granular Zones)',
+          role: 'Transcribes ribosomal RNA (rRNA) and orchestrates assembly of pre-ribosomal subunits (40S and 60S).',
+          internalStructures: ['Fibrillar Centers (rDNA genes)', 'Dense Fibrillar Component', 'Granular Component (Preribosomes)'],
+          description: 'The nucleolus is non-membrane-bound, formed by phase separation around nucleolar organizer regions (NORs) of chromosomes.',
         },
         mitochondria: {
           title: 'Mitochondrion · Cellular Powerhouse',
           partName: 'Double-Membrane Mitochondria with Folded Cristae',
           role: 'Produces >90% of cellular ATP via Krebs cycle and the electron transport chain (Oxidative Phosphorylation).',
-          internalStructures: ['Outer Porin Membrane', 'Folded Inner Cristae Sheets', 'Mitochondrial Matrix (Mitochondrial DNA & Ribosomes)', 'F1F0 ATP Synthase Complexes'],
+          internalStructures: ['Outer Porin Membrane', 'Folded Inner Cristae Sheets', 'Mitochondrial Matrix (mtDNA & 70S Ribosomes)', 'F1F0 ATP Synthase Complexes'],
           description: 'The extensive folding of cristae expands the surface area available for complexes I–IV and rotating F1F0 ATP synthase motors.',
         },
         chloroplast: {
@@ -5784,6 +5980,13 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           internalStructures: ['Membrane Lamellae / Cisternae', 'Membrane-bound Ribosome Granules (Golden Beads)', 'Tubular Smooth Lumen'],
           description: 'Polypeptides synthesized by ribosomes thread directly into the ER lumen for post-translational folding and chaperone quality control.',
         },
+        ribosomes: {
+          title: 'Ribosomes · Protein Translation Nanomachines',
+          partName: '80S Ribonucleoprotein Complex (40S + 60S Subunits)',
+          role: 'Decodes mRNA codons and catalyzes peptide bond formation to assemble polypeptide chains.',
+          internalStructures: ['Small 40S Subunit (mRNA decoding)', 'Large 60S Subunit (Peptidyl transferase center)', 'A, P, and E tRNA Binding Sites'],
+          description: 'Free ribosomes synthesize cytosolic proteins, while ER-bound ribosomes synthesize membrane proteins and secretable enzymes.',
+        },
         golgi: {
           title: 'Golgi Apparatus · Post Office of the Cell',
           partName: 'Golgi Cisternal Stack & Secretory Vesicles',
@@ -5791,12 +5994,33 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           internalStructures: ['Cis-Golgi Receiving Face', 'Medial Cisternae', 'Trans-Golgi Network (Exit/Budding vesicles)'],
           description: 'Proteins arrive from the rough ER in transport vesicles, pass sequentially through cisternae for glycosylation, and bud off in targeted vesicles.',
         },
+        centrosome: {
+          title: 'Centrosome & Centrioles · MTOC Architecture',
+          partName: 'Microtubule Organizing Center (MTOC)',
+          role: 'Nucleates and organizes the mitotic spindle apparatus during cell division and anchors the cytoskeleton.',
+          internalStructures: ['Orthogonal Centriole Pair (9 Triplet Microtubules)', 'Pericentriolar Material (PCM)', 'Gamma-Tubulin Ring Complexes'],
+          description: 'Contains a mother and daughter centriole barrel arranged perpendicularly, critical for accurate chromosome segregation during mitosis.',
+        },
+        lysosomes: {
+          title: 'Lysosome · Catabolic Recycling Center',
+          partName: 'Acidic Hydrolase Degradation Organelle',
+          role: 'Degrades cellular debris, worn-out organelles (autophagy), and engulfed pathogens via >50 hydrolytic enzymes.',
+          internalStructures: ['V-ATPase Proton Pump (pH ~4.8)', 'Glycosylated Lysosomal Membrane (LAMPs)', 'Acid Hydrolase Enzymes (Proteases, Nucleases)'],
+          description: 'The internal pH of ~4.8 is strictly maintained by active proton pumping to optimize acid hydrolase activity and prevent cytoplasmic autodigestion.',
+        },
         vacuole: {
           title: 'Central Vacuole / Sap Vacuole',
           partName: 'Tonoplast & Central Vacuole',
           role: 'Maintains turgor pressure against the cell wall, stores water, pigments, and hydrolytic enzymes.',
           internalStructures: ['Tonoplast Semipermeable Membrane', 'Cell Sap Solution (Hypertonic)', 'Enzymatic Reservoirs'],
           description: 'In plant cells, osmotic water influx into the central vacuole creates hydrostatic turgor pressure, keeping herbaceous plant stems upright.',
+        },
+        membrane: {
+          title: 'Plasma Membrane · Selective Barrier',
+          partName: 'Phospholipid Bilayer & Fluid Mosaic',
+          role: 'Encloses cytoplasm, regulates selective solute transport, and mediates intercellular signaling and receptor reception.',
+          internalStructures: ['Hydrophilic Phosphate Heads', 'Hydrophobic Fatty Acid Tails', 'Transmembrane Transport Channels', 'Cholesterol Fluidity Buffers'],
+          description: 'The dynamic fluid mosaic bilayer maintains resting membrane potential (-70 mV) and controls osmolarity and nutrient uptake.',
         },
         wall: {
           title: 'Cellulose Cell Wall · Rigid Exoskeleton',
@@ -6104,12 +6328,15 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
               child.castShadow = true
               child.receiveShadow = true
               const n = child.name.toLowerCase()
-              if (n.includes('membrane')) { child.name = 'wall'; interactableMeshes.push(child) }
-              else if (n.includes('nucleus') || n.includes('nucleolus')) { child.name = 'nucleus'; interactableMeshes.push(child) }
-              else if (n.includes('mito')) { child.name = 'mitochondria'; interactableMeshes.push(child) }
-              else if (n.includes('er_') || n.includes('ribo')) { child.name = 'endoplasmic_reticulum'; interactableMeshes.push(child) }
-              else if (n.includes('golgi')) { child.name = 'golgi'; interactableMeshes.push(child) }
-              else if (n.includes('centriole')) { child.name = 'centrosome'; interactableMeshes.push(child) }
+              if (n.includes('nucleolus')) { child.name = 'nucleolus'; interactableMeshes.push(child) }
+              else if (n.includes('nucleus') || n.includes('chromatin') || n.includes('pore')) { child.name = 'nucleus'; interactableMeshes.push(child) }
+              else if (n.includes('mito') || n.includes('crista')) { child.name = 'mitochondria'; interactableMeshes.push(child) }
+              else if (n.includes('ribo')) { child.name = 'ribosomes'; interactableMeshes.push(child) }
+              else if (n.includes('er_') || n.includes('cisterna')) { child.name = 'er'; interactableMeshes.push(child) }
+              else if (n.includes('golgi') || n.includes('vesicle')) { child.name = 'golgi'; interactableMeshes.push(child) }
+              else if (n.includes('centriole') || n.includes('centrosome')) { child.name = 'centrosome'; interactableMeshes.push(child) }
+              else if (n.includes('lyso')) { child.name = 'lysosomes'; interactableMeshes.push(child) }
+              else if (n.includes('membrane') || n.includes('wall')) { child.name = 'membrane'; interactableMeshes.push(child) }
             }
           })
         },
@@ -6162,6 +6389,30 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         }
       }
 
+      // Single-click tracking (supports drag to orbit without triggering accidental dissection)
+      let ptrStartX = 0
+      let ptrStartY = 0
+      function handlePointerDown(e: PointerEvent) {
+        ptrStartX = e.clientX
+        ptrStartY = e.clientY
+      }
+
+      function handlePointerUp(e: PointerEvent) {
+        const dist = Math.hypot(e.clientX - ptrStartX, e.clientY - ptrStartY)
+        if (dist < 6) {
+          triggerRaycast(e.clientX, e.clientY)
+        }
+      }
+
+      function handlePointerMove(e: PointerEvent) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        renderer.domElement.style.cursor = hits.length > 0 ? 'pointer' : 'default'
+      }
+
       function handleDblClick(e: MouseEvent) {
         triggerRaycast(e.clientX, e.clientY)
       }
@@ -6172,6 +6423,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         triggerRaycast(t.clientX, t.clientY)
       }
 
+      renderer.domElement.addEventListener('pointerdown', handlePointerDown)
+      renderer.domElement.addEventListener('pointerup', handlePointerUp)
+      renderer.domElement.addEventListener('pointermove', handlePointerMove)
       renderer.domElement.addEventListener('dblclick', handleDblClick)
       renderer.domElement.addEventListener('touchend', handleTouchEnd)
 
@@ -6233,6 +6487,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         dispose: () => {
           cancelAnimationFrame(animId)
           window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('pointerdown', handlePointerDown)
+          renderer.domElement.removeEventListener('pointerup', handlePointerUp)
+          renderer.domElement.removeEventListener('pointermove', handlePointerMove)
           renderer.domElement.removeEventListener('dblclick', handleDblClick)
           renderer.domElement.removeEventListener('touchend', handleTouchEnd)
           renderer.dispose()

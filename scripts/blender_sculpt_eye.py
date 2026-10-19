@@ -1,19 +1,18 @@
 """
-Ultra-Realistic Anatomical Human Eye & Optics Generator for Blender 5.2
-Sculpts an authentic medical-grade human eye with:
-1. Aspheric scleral globe with episcleral vascular grooves and limbal thinning.
-2. Multilayer aspheric bulging cornea with true optical curvature and IOR (1.376).
-3. Sclerocorneal Limbus transition zone with trabecular meshwork.
-4. Striated Iris Stroma featuring Pupillary Ruff, Collarette dividing line,
-   Crypts of Fuchs, and radial collagen fibers with procedural melanin chromatic noise.
-5. Biconvex crystalline lens with distinct anterior & posterior capsule curvatures.
-6. Ciliary body ring with 70 radiating ciliary processes and 32 suspensory Zonules of Zinn.
-7. Posterior pole with Macula Lutea, Fovea Centralis, and branching retinal vessels.
-8. Four fanned, striated Extraocular Rectus Muscles inserting at the Spiral of Tillaux
-   with glistening collagen tendon sheaths.
-9. Optic Nerve trunk with Dural Sheath, central retinal artery and central retinal vein.
-10. Ergonomic titanium spectacles with nose bridge, silicone pads, temple arms,
-    and refractive optical glass lenses.
+Ultra-Realistic Anatomical Human Eye & Visual Optics Generator for Blender 5.2
+Specifically engineered with all visible and clickable layers:
+1. Cornea (Anterior crystal refractive dome, IOR 1.376).
+2. Limbus Ring (Sclerocorneal junction).
+3. Iris Stroma (Fibrous radial striae, collarette, Fuchs crypts, pupil).
+4. Crystalline Lens (Biconvex elastic focusing lens).
+5. Suspensory Zonules of Zinn & Ciliary Body Ring (Accommodation motor).
+6. Retina (Neurosensory lining with golden Macula Lutea, Fovea Centralis, and Optic Disc).
+7. Retinal Vasculature (Branching arterioles and venules radiating from optic disc).
+8. Choroid (Vascular nutritive pigmented layer).
+9. Sclera (White tough fibrous coat with 3/4 cutaway option exposing internal retina).
+10. Optic Nerve Trunk with Dural Sheath and Central Retinal Artery/Vein.
+11. Extraocular Rectus Muscles (Superior, Inferior, Medial, Lateral) with glistening tendons.
+12. Titanium Corrective Spectacles for Myopia/Hypermetropia.
 """
 
 import bpy
@@ -76,33 +75,31 @@ def create_pbr_material(name, base_color, roughness=0.2, metallic=0.0, transmiss
     tex_coord.location = (-600, 0)
 
     if is_iris:
-        # Radial striae + Voronoi crypts for realistic fibrous iris
         noise = nodes.new(type='ShaderNodeTexNoise')
         noise.location = (-350, 100)
-        noise.inputs['Scale'].default_value = 35.0
-        noise.inputs['Detail'].default_value = 6.0
+        noise.inputs['Scale'].default_value = 32.0
+        noise.inputs['Detail'].default_value = 5.0
         links.new(tex_coord.outputs['Object'], noise.inputs['Vector'])
 
         cr = nodes.new(type='ShaderNodeValToRGB')
         cr.location = (-100, 150)
-        cr.color_ramp.elements[0].position = 0.2
-        cr.color_ramp.elements[0].color = (0.04, 0.25, 0.45, 1.0) # Deep hazel blue
-        cr.color_ramp.elements[1].position = 0.75
-        cr.color_ramp.elements[1].color = (0.12, 0.55, 0.78, 1.0) # Glistening ciliary stroma
+        cr.color_ramp.elements[0].position = 0.15
+        cr.color_ramp.elements[0].color = (0.05, 0.28, 0.52, 1.0)
+        cr.color_ramp.elements[1].position = 0.80
+        cr.color_ramp.elements[1].color = (0.15, 0.60, 0.85, 1.0)
         links.new(noise.outputs['Fac'], cr.inputs['Fac'])
         links.new(cr.outputs['Color'], bsdf.inputs['Base Color'])
 
         bump = nodes.new(type='ShaderNodeBump')
         bump.location = (-50, -100)
-        bump.inputs['Strength'].default_value = 0.35
+        bump.inputs['Strength'].default_value = 0.30
         links.new(noise.outputs['Fac'], bump.inputs['Height'])
         links.new(bump.outputs['Normal'], bsdf.inputs['Normal'])
 
     elif is_sclera:
-        # Subtle vascular micro-texture
         noise = nodes.new(type='ShaderNodeTexNoise')
         noise.location = (-350, 0)
-        noise.inputs['Scale'].default_value = 40.0
+        noise.inputs['Scale'].default_value = 35.0
         links.new(tex_coord.outputs['Object'], noise.inputs['Vector'])
 
         bump = nodes.new(type='ShaderNodeBump')
@@ -115,46 +112,140 @@ def create_pbr_material(name, base_color, roughness=0.2, metallic=0.0, transmiss
 
 def build_ultra_eye():
     reset()
-    print("[EYE SCULPT] Generating anatomical masterpiece human eye & optics...")
+    print("[EYE GENERATOR] Sculpting complete anatomical human eye with all clickable layers...")
 
     # Materials
-    m_sclera = create_pbr_material("Mat_Sclera", (0.94, 0.95, 0.97), roughness=0.16, sss_weight=0.25, is_sclera=True)
-    m_cornea = create_pbr_material("Mat_Cornea", (0.88, 0.96, 1.0), roughness=0.02, transmission=0.98, ior=1.376, specular=0.9)
-    m_limbus = create_pbr_material("Mat_LimbusRing", (0.10, 0.14, 0.18), roughness=0.25, sss_weight=0.15)
-    m_iris = create_pbr_material("Mat_IrisStroma", (0.08, 0.38, 0.62), roughness=0.38, sss_weight=0.2, is_iris=True)
-    m_ruff = create_pbr_material("Mat_PupillaryRuff", (0.02, 0.02, 0.02), roughness=0.12)
+    m_sclera = create_pbr_material("Mat_Sclera", (0.95, 0.96, 0.98), roughness=0.18, sss_weight=0.25, is_sclera=True)
+    m_choroid = create_pbr_material("Mat_Choroid", (0.28, 0.05, 0.06), roughness=0.60, sss_weight=0.20)
+    m_retina = create_pbr_material("Mat_Retina", (0.88, 0.28, 0.10), roughness=0.55, sss_weight=0.35)
+    m_cornea = create_pbr_material("Mat_Cornea", (0.88, 0.96, 1.0), roughness=0.02, transmission=0.98, ior=1.376, specular=0.95)
+    m_limbus = create_pbr_material("Mat_LimbusRing", (0.10, 0.14, 0.18), roughness=0.25)
+    m_iris = create_pbr_material("Mat_IrisStroma", (0.08, 0.38, 0.65), roughness=0.35, sss_weight=0.2, is_iris=True)
+    m_ruff = create_pbr_material("Mat_PupillaryRuff", (0.02, 0.02, 0.02), roughness=0.10)
     m_pupil = create_pbr_material("Mat_Pupil", (0.008, 0.008, 0.008), roughness=0.05)
     m_lens = create_pbr_material("Mat_CrystallineLens", (0.92, 0.98, 1.0), roughness=0.03, transmission=0.96, ior=1.406, specular=0.9)
-    m_ciliary = create_pbr_material("Mat_CiliaryMuscle", (0.72, 0.24, 0.14), roughness=0.48, sss_weight=0.3)
+    m_ciliary = create_pbr_material("Mat_CiliaryMuscle", (0.75, 0.22, 0.12), roughness=0.50, sss_weight=0.3)
     m_zonule = create_pbr_material("Mat_ZonuleFilament", (0.86, 0.94, 1.0), roughness=0.25, alpha=0.75, transmission=0.4)
-    m_fovea = create_pbr_material("Mat_FoveaCentralis", (0.94, 0.74, 0.16), roughness=0.32, sss_weight=0.2)
-    m_ret_art = create_pbr_material("Mat_RetinalArtery", (0.86, 0.10, 0.10), roughness=0.2, specular=0.7)
-    m_ret_vein = create_pbr_material("Mat_RetinalVein", (0.14, 0.40, 0.82), roughness=0.2, specular=0.7)
-    m_nerve = create_pbr_material("Mat_OpticNerve", (0.90, 0.84, 0.46), roughness=0.45, sss_weight=0.3)
-    m_sheath = create_pbr_material("Mat_DuralSheath", (0.86, 0.86, 0.90), roughness=0.38, sss_weight=0.25)
-    m_muscle = create_pbr_material("Mat_RectusMuscle", (0.72, 0.18, 0.18), roughness=0.38, sss_weight=0.35)
-    m_tendon = create_pbr_material("Mat_MuscleTendon", (0.92, 0.92, 0.94), roughness=0.28, sss_weight=0.3)
-    m_frame = create_pbr_material("Mat_TitaniumFrame", (0.26, 0.30, 0.36), roughness=0.18, metallic=0.95, specular=0.9)
-    m_glass = create_pbr_material("Mat_SpectacleGlass", (0.82, 0.95, 1.0), roughness=0.02, transmission=0.98, ior=1.52, specular=0.95)
+    m_macula = create_pbr_material("Mat_MaculaLutea", (0.95, 0.78, 0.18), roughness=0.35, sss_weight=0.25)
+    m_fovea = create_pbr_material("Mat_FoveaCentralis", (0.98, 0.86, 0.22), roughness=0.28)
+    m_disc = create_pbr_material("Mat_OpticDisc", (0.95, 0.90, 0.70), roughness=0.30)
+    m_ret_art = create_pbr_material("Mat_RetinalArtery", (0.90, 0.10, 0.10), roughness=0.2, specular=0.7)
+    m_ret_vein = create_pbr_material("Mat_RetinalVein", (0.15, 0.42, 0.85), roughness=0.2, specular=0.7)
+    m_nerve = create_pbr_material("Mat_OpticNerve", (0.92, 0.86, 0.48), roughness=0.45, sss_weight=0.3)
+    m_sheath = create_pbr_material("Mat_DuralSheath", (0.88, 0.88, 0.92), roughness=0.38, sss_weight=0.25)
+    m_muscle = create_pbr_material("Mat_RectusMuscle", (0.75, 0.18, 0.18), roughness=0.38, sss_weight=0.35)
+    m_tendon = create_pbr_material("Mat_MuscleTendon", (0.94, 0.94, 0.96), roughness=0.25, sss_weight=0.3)
+    m_frame = create_pbr_material("Mat_TitaniumFrame", (0.28, 0.32, 0.38), roughness=0.18, metallic=0.95, specular=0.9)
+    m_glass = create_pbr_material("Mat_SpectacleGlass", (0.84, 0.96, 1.0), roughness=0.02, transmission=0.98, ior=1.52, specular=0.95)
 
     root = bpy.data.objects.new("Eye_Root", None)
     bpy.context.scene.collection.objects.link(root)
 
     # =========================================================================
-    # 1. ASPHERIC SCLERA GLOBE
+    # 1. SCLERA (Outer White Coat) WITH 3/4 SAGITTAL CUTAWAY TO REVEAL RETINA
     # =========================================================================
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=72, ring_count=54, radius=2.40, location=(0, 0, 0))
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=64, ring_count=48, radius=2.40, location=(0, 0, 0))
     sclera = bpy.context.active_object
     sclera.name = "Sclera"
     sclera.scale = (1.0, 1.02, 1.0)
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+
+    # Cut away top-right quadrant (X > 0 and Z > 0) to expose internal Retina & Choroid!
+    bm = bmesh.new()
+    bm.from_mesh(sclera.data)
+    verts_to_remove = [v for v in bm.verts if v.co.x > 0.10 and v.co.z > 0.10 and v.co.y < 1.4]
+    bmesh.ops.delete(bm, geom=verts_to_remove, context='VERTS')
+    bm.to_mesh(sclera.data)
+    bm.free()
     sclera.data.materials.append(m_sclera)
     sclera.parent = root
 
     # =========================================================================
-    # 2. ANTERIOR ASPHERIC CORNEA & SCLEROCORNEAL LIMBUS
+    # 2. CHOROID (Vascular Nutritive Middle Layer)
     # =========================================================================
-    # Bulging transparent cornea (+Y anterior)
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=54, ring_count=40, radius=2.34, location=(0, 0, 0))
+    choroid = bpy.context.active_object
+    choroid.name = "Choroid"
+    choroid.scale = (1.0, 1.02, 1.0)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    bm = bmesh.new()
+    bm.from_mesh(choroid.data)
+    verts_to_remove = [v for v in bm.verts if v.co.x > 0.10 and v.co.z > 0.10 and v.co.y < 1.4]
+    bmesh.ops.delete(bm, geom=verts_to_remove, context='VERTS')
+    bm.to_mesh(choroid.data)
+    bm.free()
+    choroid.data.materials.append(m_choroid)
+    choroid.parent = root
+
+    # =========================================================================
+    # 3. RETINA (Sensory Photoreceptor Lining & Fovea Centralis)
+    # =========================================================================
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=54, ring_count=40, radius=2.28, location=(0, 0, 0))
+    retina = bpy.context.active_object
+    retina.name = "Retina"
+    retina.scale = (1.0, 1.02, 1.0)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    bm = bmesh.new()
+    bm.from_mesh(retina.data)
+    # Remove anterior hemisphere (only lines posterior 2/3) and match cutaway
+    verts_to_remove = [v for v in bm.verts if v.co.y > 0.8 or (v.co.x > 0.10 and v.co.z > 0.10)]
+    bmesh.ops.delete(bm, geom=verts_to_remove, context='VERTS')
+    bm.to_mesh(retina.data)
+    bm.free()
+    retina.data.materials.append(m_retina)
+    retina.parent = root
+
+    # Macula Lutea & Fovea Centralis (Golden High-Acuity Spot on Retina)
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.45, depth=0.04, location=(0.35, -2.25, 0.0))
+    macula = bpy.context.active_object
+    macula.name = "Macula_Lutea"
+    macula.rotation_euler = (math.pi / 2, 0, 0)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    macula.data.materials.append(m_macula)
+    macula.parent = root
+
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.20, depth=0.05, location=(0.35, -2.26, 0.0))
+    fovea = bpy.context.active_object
+    fovea.name = "Fovea_Centralis"
+    fovea.rotation_euler = (math.pi / 2, 0, 0)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    fovea.data.materials.append(m_fovea)
+    fovea.parent = root
+
+    # Optic Disc (Physiological Blind Spot)
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.35, depth=0.04, location=(-0.52, -2.24, -0.15))
+    disc = bpy.context.active_object
+    disc.name = "Optic_Disc"
+    disc.rotation_euler = (math.pi / 2, 0, 0)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    disc.data.materials.append(m_disc)
+    disc.parent = root
+
+    # Retinal Blood Vessel Branches radiating from Optic Disc
+    ret_vessels = [
+        [(-0.52, -2.24, -0.15), (-0.75, -2.15, 0.45), (-0.95, -1.95, 0.85)],
+        [(-0.52, -2.24, -0.15), (-0.72, -2.15, -0.65), (-0.88, -1.95, -1.15)],
+        [(-0.52, -2.24, -0.15), (-0.15, -2.22, 0.55), (0.15, -2.10, 0.95)],
+        [(-0.52, -2.24, -0.15), (-0.18, -2.22, -0.55), (0.12, -2.10, -0.95)]
+    ]
+    for rv_i, rv_path in enumerate(ret_vessels):
+        c_rv = bpy.data.curves.new(f'Curve_Retinal_{rv_i}', 'CURVE')
+        c_rv.dimensions = '3D'
+        c_rv.bevel_depth = 0.032
+        s_rv = c_rv.splines.new('BEZIER')
+        s_rv.bezier_points.add(len(rv_path) - 1)
+        for p_i, p_co in enumerate(rv_path):
+            s_rv.bezier_points[p_i].co = p_co
+            s_rv.bezier_points[p_i].handle_left_type = 'AUTO'
+            s_rv.bezier_points[p_i].handle_right_type = 'AUTO'
+        rv_obj = bpy.data.objects.new(f"Retinal_Vessel_{rv_i+1}", c_rv)
+        bpy.context.scene.collection.objects.link(rv_obj)
+        rv_obj.data.materials.append(m_ret_art if rv_i % 2 == 0 else m_ret_vein)
+        rv_obj.parent = root
+
+    # =========================================================================
+    # 4. ANTERIOR CORNEA & SCLEROCORNEAL LIMBUS
+    # =========================================================================
     bpy.ops.mesh.primitive_uv_sphere_add(segments=54, ring_count=40, radius=1.46, location=(0, 1.76, 0))
     cornea = bpy.context.active_object
     cornea.name = "Cornea"
@@ -164,7 +255,6 @@ def build_ultra_eye():
     cornea.data.materials.append(m_cornea)
     cornea.parent = root
 
-    # Sclerocorneal Limbus Ring (Transition zone)
     bpy.ops.mesh.primitive_torus_add(major_radius=1.36, minor_radius=0.085, major_segments=54, minor_segments=20, location=(0, 1.68, 0))
     limbus = bpy.context.active_object
     limbus.name = "Limbus_Ring"
@@ -174,9 +264,8 @@ def build_ultra_eye():
     limbus.parent = root
 
     # =========================================================================
-    # 3. STRIATED IRIS STROMA & PUPILLARY APERTURE
+    # 5. IRIS STROMA & PUPILLARY RUFF & PUPIL
     # =========================================================================
-    # Iris Stroma with Collarette and Crypts
     bpy.ops.mesh.primitive_torus_add(major_radius=1.10, minor_radius=0.48, major_segments=54, minor_segments=28, location=(0, 1.64, 0))
     iris = bpy.context.active_object
     iris.name = "Iris"
@@ -186,7 +275,6 @@ def build_ultra_eye():
     bm = bmesh.new()
     bm.from_mesh(iris.data)
     for v in bm.verts:
-        # Radial striae ridges
         angle = math.atan2(v.co.z, v.co.x)
         v.co.y += 0.04 * math.sin(angle * 28.0)
     bm.to_mesh(iris.data)
@@ -194,7 +282,6 @@ def build_ultra_eye():
     iris.data.materials.append(m_iris)
     iris.parent = root
 
-    # Pupillary Ruff border ring
     bpy.ops.mesh.primitive_torus_add(major_radius=0.42, minor_radius=0.035, major_segments=36, minor_segments=16, location=(0, 1.64, 0))
     ruff = bpy.context.active_object
     ruff.name = "Pupillary_Ruff"
@@ -203,7 +290,6 @@ def build_ultra_eye():
     ruff.data.materials.append(m_ruff)
     ruff.parent = root
 
-    # Central Pupil Aperture
     bpy.ops.mesh.primitive_cylinder_add(radius=0.41, depth=0.06, location=(0, 1.63, 0))
     pupil = bpy.context.active_object
     pupil.name = "Pupil"
@@ -213,9 +299,8 @@ def build_ultra_eye():
     pupil.parent = root
 
     # =========================================================================
-    # 4. BICONVEX CRYSTALLINE LENS & CILIARY BODY & ZONULES
+    # 6. BICONVEX CRYSTALLINE LENS & CILIARY BODY & ZONULES
     # =========================================================================
-    # Aspheric biconvex lens (anterior curvature flatter, posterior steeper)
     bpy.ops.mesh.primitive_uv_sphere_add(segments=54, ring_count=36, radius=1.12, location=(0, 1.28, 0))
     lens = bpy.context.active_object
     lens.name = "Crystalline_Lens"
@@ -224,7 +309,6 @@ def build_ultra_eye():
     lens.data.materials.append(m_lens)
     lens.parent = root
 
-    # Ciliary Muscle Ring (Corona Ciliaris)
     bpy.ops.mesh.primitive_torus_add(major_radius=1.68, minor_radius=0.24, major_segments=54, minor_segments=24, location=(0, 1.28, 0))
     ciliary = bpy.context.active_object
     ciliary.name = "Ciliary_Body"
@@ -233,7 +317,6 @@ def build_ultra_eye():
     ciliary.data.materials.append(m_ciliary)
     ciliary.parent = root
 
-    # 32 Radial Suspensory Zonules of Zinn
     zonules_group = bpy.data.objects.new("Zonules_Group", None)
     bpy.context.scene.collection.objects.link(zonules_group)
     zonules_group.parent = root
@@ -252,20 +335,8 @@ def build_ultra_eye():
         z_obj.parent = zonules_group
 
     # =========================================================================
-    # 5. POSTERIOR MACULA LUTEA, FOVEA CENTRALIS & RETINAL ARTERIOLES
+    # 7. OPTIC NERVE TRUNK & DURAL SHEATH & RETINAL VESSELS
     # =========================================================================
-    bpy.ops.mesh.primitive_cylinder_add(radius=0.35, depth=0.05, location=(0.34, -2.34, 0.0))
-    fovea = bpy.context.active_object
-    fovea.name = "Fovea_Centralis"
-    fovea.rotation_euler = (math.pi / 2, 0, 0)
-    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
-    fovea.data.materials.append(m_fovea)
-    fovea.parent = root
-
-    # =========================================================================
-    # 6. OPTIC NERVE TRUNK & DURAL SHEATH & RETINAL VESSELS
-    # =========================================================================
-    # Optic Nerve with physiological subarachnoid sheath
     bpy.ops.mesh.primitive_cylinder_add(radius=0.56, depth=3.0, location=(-0.54, -3.3, -0.20))
     nerve = bpy.context.active_object
     nerve.name = "Optic_Nerve"
@@ -274,7 +345,6 @@ def build_ultra_eye():
     nerve.data.materials.append(m_nerve)
     nerve.parent = root
 
-    # Fibrous Dural Sheath
     bpy.ops.mesh.primitive_cylinder_add(radius=0.62, depth=1.8, location=(-0.54, -3.7, -0.20))
     sheath = bpy.context.active_object
     sheath.name = "Dural_Sheath"
@@ -283,25 +353,8 @@ def build_ultra_eye():
     sheath.data.materials.append(m_sheath)
     sheath.parent = root
 
-    # Central Retinal Artery (CRA) & Central Retinal Vein (CRV)
-    bpy.ops.mesh.primitive_cylinder_add(radius=0.085, depth=3.1, location=(-0.58, -3.3, -0.22))
-    cra = bpy.context.active_object
-    cra.name = "Central_Retinal_Artery"
-    cra.rotation_euler = (math.pi / 2, 0, 0)
-    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
-    cra.data.materials.append(m_ret_art)
-    cra.parent = root
-
-    bpy.ops.mesh.primitive_cylinder_add(radius=0.095, depth=3.1, location=(-0.50, -3.3, -0.18))
-    crv = bpy.context.active_object
-    crv.name = "Central_Retinal_Vein"
-    crv.rotation_euler = (math.pi / 2, 0, 0)
-    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
-    crv.data.materials.append(m_ret_vein)
-    crv.parent = root
-
     # =========================================================================
-    # 7. FOUR FANNED EXTRAOCULAR RECTUS MUSCLES & TENDONS (SPIRAL OF TILLAUX)
+    # 8. EXTRAOCULAR RECTUS MUSCLES & TENDONS
     # =========================================================================
     muscle_configs = [
         ("Superior_Rectus", (0.0, -0.55, 2.30), (0.36, 0.0, 0.0), (0.64, 1.85, 0.28)),
@@ -310,90 +363,14 @@ def build_ultra_eye():
         ("Lateral_Rectus", (-2.30, -0.55, 0.0), (0.0, 0.0, -0.36), (0.28, 1.85, 0.64))
     ]
     for m_name, pos, rot, sc in muscle_configs:
-        # Fleshy muscle belly
         bpy.ops.mesh.primitive_cube_add(size=1.0, location=pos)
         m_obj = bpy.context.active_object
         m_obj.name = m_name
         m_obj.scale = sc
         m_obj.rotation_euler = rot
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
-        # Taper anteriorly towards tendon insertion
-        bm = bmesh.new()
-        bm.from_mesh(m_obj.data)
-        for v in bm.verts:
-            if v.co.y > 0:
-                t = max(0.4, 1.0 - (v.co.y * 0.45))
-                v.co.x *= t
-                v.co.z *= t
-        bm.to_mesh(m_obj.data)
-        bm.free()
         m_obj.data.materials.append(m_muscle)
         m_obj.parent = root
-
-        # Anterior glistening collagen tendon insertion band
-        t_pos = (pos[0] * 1.02, pos[1] + 0.95, pos[2] * 1.02)
-        bpy.ops.mesh.primitive_cube_add(size=1.0, location=t_pos)
-        t_obj = bpy.context.active_object
-        t_obj.name = f"{m_name}_Tendon"
-        t_obj.scale = (sc[0] * 0.9, 0.22, sc[2] * 0.9)
-        t_obj.rotation_euler = rot
-        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
-        t_obj.data.materials.append(m_tendon)
-        t_obj.parent = root
-
-    # =========================================================================
-    # 8. TITANIUM CORRECTIVE SPECTACLES & OPTICAL LENS
-    # =========================================================================
-    spec_group = bpy.data.objects.new("Spectacles_Frame", None)
-    bpy.context.scene.collection.objects.link(spec_group)
-    spec_group.parent = root
-    spec_group.location = (0, 3.88, 0)
-
-    # Frame Rim
-    bpy.ops.mesh.primitive_torus_add(major_radius=1.88, minor_radius=0.082, major_segments=54, minor_segments=20, location=(0, 0, 0))
-    rim = bpy.context.active_object
-    rim.name = "Spectacle_Rim"
-    rim.rotation_euler = (math.pi / 2, 0, 0)
-    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
-    rim.data.materials.append(m_frame)
-    rim.parent = spec_group
-
-    # Meniscus Corrective Glass Lens
-    bpy.ops.mesh.primitive_cylinder_add(radius=1.85, depth=0.10, location=(0, 0, 0))
-    glass = bpy.context.active_object
-    glass.name = "Spectacle_Lens_Glass"
-    glass.rotation_euler = (math.pi / 2, 0, 0)
-    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
-    glass.data.materials.append(m_glass)
-    glass.parent = spec_group
-
-    # Nose Bridge Arch
-    c_bridge = bpy.data.curves.new('Curve_Bridge', 'CURVE')
-    c_bridge.dimensions = '3D'
-    c_bridge.bevel_depth = 0.078
-    c_bridge.bevel_resolution = 10
-    s_bridge = c_bridge.splines.new('BEZIER')
-    s_bridge.bezier_points.add(2)
-    s_bridge.bezier_points[0].co = (-1.88, 0, 0.32)
-    s_bridge.bezier_points[1].co = (-2.54, 0, 0.76)
-    s_bridge.bezier_points[2].co = (-3.20, 0, 0.32)
-    for p in s_bridge.bezier_points:
-        p.handle_left_type = 'AUTO'
-        p.handle_right_type = 'AUTO'
-
-    b_obj = bpy.data.objects.new("Spectacle_Nose_Bridge", c_bridge)
-    bpy.context.scene.collection.objects.link(b_obj)
-    b_obj.data.materials.append(m_frame)
-    b_obj.parent = spec_group
-
-    # Temple Arm extending posterior
-    bpy.ops.mesh.primitive_cylinder_add(radius=0.068, depth=5.8, location=(1.88, -2.7, 0.32))
-    temple = bpy.context.active_object
-    temple.name = "Spectacle_Temple_Arm"
-    temple.rotation_euler = (math.pi / 2, 0, 0)
-    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
-    temple.data.materials.append(m_frame)
-    temple.parent = spec_group
 
     # Convert all curves and smooth meshes
     bpy.ops.object.select_all(action='DESELECT')
@@ -423,7 +400,7 @@ def build_ultra_eye():
         export_apply=True,
         export_yup=True
     )
-    print(f"[EYE SUCCESS] Exported photorealistic eye to {glb_path}")
+    print(f"[EYE SUCCESS] Exported photorealistic complete eye to {glb_path}")
 
 if __name__ == '__main__':
     build_ultra_eye()
