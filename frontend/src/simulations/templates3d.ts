@@ -2,6 +2,15 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type { SimulationParam, SimulationReadout } from './types'
+import {
+  createStriatedMuscleNormalMap,
+  createWetSpecularMap,
+  createPhotorealisticIrisTexture,
+  createScleraCapillaryTexture,
+  createRetinaFundusTexture,
+  createAnatomicalPin,
+  createWorkingFlowTube
+} from './medicalTextures'
 
 export interface DissectInfo {
   title: string
@@ -2333,17 +2342,20 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
     emoji: '🫀',
     difficulty: 'Intermediate',
     presets: [
-      { label: '❤️ Intact Beating Organ (72 BPM)', params: { bpm: 72, strokeVolume: 70, splitView: 0, focusSide: 0, showValves: 1 } },
-      { label: '✂️ Split Left & Right Halves (Anatomical Section)', params: { bpm: 60, strokeVolume: 70, splitView: 1, focusSide: 0, showValves: 1 } },
-      { label: '🔴 Left Heart (Oxygenated Systemic Circuit & Thick LV)', params: { bpm: 60, strokeVolume: 70, splitView: 1, focusSide: 1, showValves: 1 } },
-      { label: '🔵 Right Heart (Deoxygenated Pulmonary Circuit & SA Node)', params: { bpm: 60, strokeVolume: 70, splitView: 1, focusSide: 2, showValves: 1 } },
-      { label: '🏃 Athletic Cardio Workout (130 BPM)', params: { bpm: 130, strokeVolume: 95, splitView: 0, focusSide: 0, showValves: 1 } },
+      { label: '❤️ Intact Beating Organ (72 BPM)', params: { bpm: 72, strokeVolume: 70, splitView: 0, focusSide: 0, showValves: 1, showPins: 1, workingTubes: 1 } },
+      { label: '✂️ Split Left & Right Halves (Anatomical Section)', params: { bpm: 60, strokeVolume: 70, splitView: 1, focusSide: 0, showValves: 1, showPins: 1, workingTubes: 1 } },
+      { label: '🏛️ Exhibition Working Model (Pins & Flow Tubes)', params: { bpm: 72, strokeVolume: 70, splitView: 0, focusSide: 0, showValves: 1, showPins: 1, workingTubes: 1 } },
+      { label: '🔴 Left Heart (Oxygenated Systemic Circuit & Thick LV)', params: { bpm: 60, strokeVolume: 70, splitView: 1, focusSide: 1, showValves: 1, showPins: 1, workingTubes: 1 } },
+      { label: '🔵 Right Heart (Deoxygenated Pulmonary Circuit & SA Node)', params: { bpm: 60, strokeVolume: 70, splitView: 1, focusSide: 2, showValves: 1, showPins: 1, workingTubes: 1 } },
+      { label: '🏃 Athletic Cardio Workout (130 BPM)', params: { bpm: 130, strokeVolume: 95, splitView: 0, focusSide: 0, showValves: 1, showPins: 0, workingTubes: 1 } },
     ],
     params: [
       { key: 'bpm', label: 'Heart Rate (BPM)', min: 45, max: 180, step: 1, defaultValue: 72, unit: 'bpm' },
       { key: 'strokeVolume', label: 'Stroke Volume', min: 40, max: 120, step: 2, defaultValue: 70, unit: 'mL' },
       { key: 'splitView', label: 'Split Left & Right Halves (0: Intact, 1: Split Open)', min: 0, max: 1, step: 1, defaultValue: 0, unit: '' },
       { key: 'showValves', label: 'Internal Valve Visibility', min: 0, max: 1, step: 1, defaultValue: 1, unit: '' },
+      { key: 'showPins', label: 'Exhibition Anatomical Pins (0: Off, 1: On)', min: 0, max: 1, step: 1, defaultValue: 1, unit: '' },
+      { key: 'workingTubes', label: 'Working Circulation Tubes (0: Off, 1: On)', min: 0, max: 1, step: 1, defaultValue: 1, unit: '' },
     ],
     calculateReadouts: (p) => {
       const co = ((p.bpm * p.strokeVolume) / 1000).toFixed(2)
@@ -3202,10 +3214,36 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           pvMeshes.forEach(m => m.visible = false)
           archMeshes.forEach(m => m.visible = false)
 
+          // 1. Photorealistic Organic Medical Shaders & PBR Textures
+          const striatedNormalMap = createStriatedMuscleNormalMap()
+          const wetSpecularMap = createWetSpecularMap()
+
           const setupHeartChild = (child: THREE.Object3D) => {
             if (child instanceof THREE.Mesh) {
               child.castShadow = true
               child.receiveShadow = true
+
+              // Apply living tissue textures and glistening wet sheen to Blender materials
+              if (child.material && 'roughness' in child.material) {
+                const mat = child.material as THREE.MeshStandardMaterial
+                const n = child.name.toLowerCase()
+                if (n.includes('ventricle') || n.includes('myocardium') || n.includes('cutface') || n.includes('trabecula') || n.includes('papillary')) {
+                  mat.normalMap = striatedNormalMap
+                  mat.normalScale = new THREE.Vector2(1.5, 1.5)
+                  mat.roughnessMap = wetSpecularMap
+                  mat.roughness = 0.22
+                  mat.metalness = 0.08
+                } else if (n.includes('aorta') || n.includes('pulmonary') || n.includes('cava') || n.includes('artery') || n.includes('vein')) {
+                  mat.roughness = 0.14
+                  mat.metalness = 0.12
+                  mat.roughnessMap = wetSpecularMap
+                } else if (n.includes('fat') || n.includes('sulcus')) {
+                  mat.roughness = 0.42
+                  mat.metalness = 0.02
+                }
+                mat.needsUpdate = true
+              }
+
               const n = child.name.toLowerCase()
               if (n.includes('aortic_cusp') || n.includes('aortic_valve')) registerPart(child, 'aorta')
               else if (n.includes('pulmonary_cusp') || n.includes('pulmonary_valve')) registerPart(child, 'pulmonary')
@@ -3237,6 +3275,85 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           console.warn('Blender realistic heart fallback to procedural:', err)
         }
       )
+
+      // ========================================================
+      // 2. EXHIBITION 3D ANATOMICAL PINS & BADGES (Like YouTube Reference)
+      // ========================================================
+      const heartPinsGroup = new THREE.Group()
+      heartPinsGroup.name = 'Exhibition_Heart_Pins'
+      heartRig.add(heartPinsGroup)
+
+      const pinData = [
+        { tag: 'AO', fullName: 'Aorta Arch', sub: '120 mmHg Systemic Trunk', key: 'aorta', isOxy: true, pos: new THREE.Vector3(0.25, 4.3, 0.45), isLeft: true },
+        { tag: 'PA', fullName: 'Pulmonary Trunk', sub: 'To Lungs (25 mmHg)', key: 'pulmonary', isOxy: false, pos: new THREE.Vector3(-0.95, 3.2, 0.85), isLeft: false },
+        { tag: 'SVC', fullName: 'Superior Vena Cava', sub: 'Venous Return to RA', key: 'ra', isOxy: false, pos: new THREE.Vector3(-1.9, 3.6, 0.15), isLeft: false },
+        { tag: 'IVC', fullName: 'Inferior Vena Cava', sub: 'Abdominal Inflow', key: 'ra', isOxy: false, pos: new THREE.Vector3(-1.2, -2.8, -0.3), isLeft: false },
+        { tag: 'RA', fullName: 'Right Atrium', sub: 'SA Pacemaker & Low Press.', key: 'ra', isOxy: false, pos: new THREE.Vector3(-2.2, 1.2, 0.9), isLeft: false },
+        { tag: 'LA', fullName: 'Left Atrium', sub: 'Receives 4 Pulm. Veins', key: 'la', isOxy: true, pos: new THREE.Vector3(2.1, 1.8, -0.2), isLeft: true },
+        { tag: 'LV', fullName: 'Left Ventricle', sub: 'Thick Wall (~15mm)', key: 'lv', isOxy: true, pos: new THREE.Vector3(1.85, -1.0, 1.3), isLeft: true },
+        { tag: 'RV', fullName: 'Right Ventricle', sub: 'Thin Wall (~4mm)', key: 'rv', isOxy: false, pos: new THREE.Vector3(-1.75, -1.1, 1.3), isLeft: false },
+        { tag: 'MV', fullName: 'Mitral Valve', sub: 'Bicuspid (Prevents Backflow)', key: 'mitral', isOxy: true, pos: new THREE.Vector3(0.75, 0.25, 0.1), isLeft: true },
+        { tag: 'TV', fullName: 'Tricuspid Valve', sub: 'Right AV 3-Cusp Valve', key: 'tricuspid', isOxy: false, pos: new THREE.Vector3(-0.75, 0.2, 0.1), isLeft: false },
+        { tag: 'LAD', fullName: 'Coronary Artery', sub: 'Left Anterior Descending', key: 'coronary', isOxy: true, pos: new THREE.Vector3(-0.15, 0.85, 1.6), isLeft: true }
+      ]
+
+      const pinRecords: { pinGroup: THREE.Group; isLeft: boolean; basePos: THREE.Vector3 }[] = []
+      pinData.forEach((pd) => {
+        const pinObj = createAnatomicalPin({
+          tag: pd.tag,
+          fullName: pd.fullName,
+          subtext: pd.sub,
+          isOxygenatedOrSensory: pd.isOxy,
+          postHeight: 0.9
+        })
+        pinObj.group.position.copy(pd.pos)
+        heartPinsGroup.add(pinObj.group)
+
+        // Make both pin mesh and badge clickable
+        registerPart(pinObj.pinMesh, pd.key)
+        registerPart(pinObj.badgeSprite, pd.key)
+
+        pinRecords.push({
+          pinGroup: pinObj.group,
+          isLeft: pd.isLeft,
+          basePos: pd.pos.clone()
+        })
+      })
+
+      // ========================================================
+      // 3. TRANSPARENT WORKING CIRCULATION FLUID TUBES (Like YouTube Model)
+      // ========================================================
+      const flowTubesGroup = new THREE.Group()
+      flowTubesGroup.name = 'Working_Circulation_Tubes'
+      heartRig.add(flowTubesGroup)
+
+      // Oxygenated scarlet blood flow tube (Pulmonary veins -> LA -> LV -> Aortic Arch)
+      const oxyFlowTube = createWorkingFlowTube([
+        new THREE.Vector3(1.7, 1.6, -0.7),
+        new THREE.Vector3(1.3, 0.8, -0.3),
+        new THREE.Vector3(1.1, -0.6, 0.1),
+        new THREE.Vector3(0.8, -1.6, 0.35),
+        new THREE.Vector3(0.3, 0.4, 0.45),
+        new THREE.Vector3(0.1, 2.6, 0.55),
+        new THREE.Vector3(-0.15, 4.2, 0.1),
+        new THREE.Vector3(0.5, 4.3, -0.4),
+      ], 0.11, true)
+      flowTubesGroup.add(oxyFlowTube.tubeMesh)
+      oxyFlowTube.particles.forEach(p => flowTubesGroup.add(p))
+
+      // Deoxygenated blue blood flow tube (SVC -> RA -> RV -> Pulmonary Trunk)
+      const deoxFlowTube = createWorkingFlowTube([
+        new THREE.Vector3(-1.85, 4.0, 0.05),
+        new THREE.Vector3(-1.5, 2.2, 0.25),
+        new THREE.Vector3(-1.15, 0.6, 0.25),
+        new THREE.Vector3(-0.95, -1.0, 0.25),
+        new THREE.Vector3(-0.55, 0.7, 0.65),
+        new THREE.Vector3(-0.35, 2.7, 0.85),
+        new THREE.Vector3(0.25, 3.8, 0.35),
+        new THREE.Vector3(-1.25, 4.2, -0.2)
+      ], 0.11, false)
+      flowTubesGroup.add(deoxFlowTube.tubeMesh)
+      deoxFlowTube.particles.forEach(p => flowTubesGroup.add(p))
 
       // Raycaster for Mouse Click, Hover, and Mobile Tap with 3D Selection Highlight
       const raycaster = new THREE.Raycaster()
@@ -3440,6 +3557,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           sAttr.needsUpdate = true
         }
 
+        let isVentBeat = false
         if (isPlaying) {
           const freq = (params.bpm / 60) * Math.PI * 2
           pulseTime += 0.024
@@ -3447,7 +3565,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
           // 2-Phase Cardiac Cycle: Atrial Systole -> Ventricular Systole -> Diastole
           const isAtrialBeat = cyclePhase < Math.PI * 0.4
-          const isVentBeat = cyclePhase >= Math.PI * 0.4 && cyclePhase < Math.PI * 1.2
+          isVentBeat = cyclePhase >= Math.PI * 0.4 && cyclePhase < Math.PI * 1.2
           const saWave = (Math.sin(cyclePhase) + 1.0) * 0.5
 
           const ventScale = isVentBeat
@@ -3499,6 +3617,28 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
             const pCoord = pulCurve.getPointAt(pm.userData.progress)
             pm.position.copy(pCoord)
           })
+        }
+
+        // Exhibition Pins visibility and split movement
+        const showPins = (params.showPins ?? 1) >= 0.5
+        heartPinsGroup.visible = showPins
+        if (showPins) {
+          pinRecords.forEach((pr) => {
+            if (pr.isLeft) {
+              pr.pinGroup.position.x = pr.basePos.x + leftHeartGroup.position.x
+            } else {
+              pr.pinGroup.position.x = pr.basePos.x + rightHeartGroup.position.x
+            }
+          })
+        }
+
+        // Working Fluid Circulation Tubes
+        const showTubes = (params.workingTubes ?? 1) >= 0.5
+        flowTubesGroup.visible = showTubes
+        if (showTubes && isPlaying) {
+          const tubeSpeed = (isVentBeat ? 0.016 : 0.007) * (params.bpm / 72)
+          oxyFlowTube.updateParticles(tubeSpeed)
+          deoxFlowTube.updateParticles(tubeSpeed)
         }
 
         controls.update()
@@ -5344,11 +5484,12 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
     emoji: '👁️',
     difficulty: 'Intermediate',
     presets: [
-      { label: '👁️ Emmetropia (Normal Distance Vision 100cm)', params: { objectDist: 100, accommodation: 0, visionDefect: 0, correctiveLens: 0, splitView: 0 } },
-      { label: '📖 Near Vision Reading (Ciliary Tension 100%)', params: { objectDist: 25, accommodation: 1, visionDefect: 0, correctiveLens: 0, splitView: 0 } },
-      { label: '👓 Myopia (Short-Sightedness & Concave Correction)', params: { objectDist: 80, accommodation: 0, visionDefect: 1, correctiveLens: 1, splitView: 0 } },
-      { label: '🔍 Hypermetropia (Far-Sightedness & Convex Correction)', params: { objectDist: 30, accommodation: 0.2, visionDefect: 2, correctiveLens: 2, splitView: 0 } },
-      { label: '✂️ Sagittal Anatomical Cross-Section', params: { objectDist: 60, accommodation: 0.5, visionDefect: 0, correctiveLens: 0, splitView: 1 } },
+      { label: '👁️ Emmetropia (Normal Distance Vision 100cm)', params: { objectDist: 100, accommodation: 0, visionDefect: 0, correctiveLens: 0, splitView: 0, showPins: 1 } },
+      { label: '📖 Near Vision Reading (Ciliary Tension 100%)', params: { objectDist: 25, accommodation: 1, visionDefect: 0, correctiveLens: 0, splitView: 0, showPins: 1 } },
+      { label: '🏛️ Exhibition Working Model (Pins & Cross-Section)', params: { objectDist: 60, accommodation: 0.3, visionDefect: 0, correctiveLens: 0, splitView: 1, showPins: 1 } },
+      { label: '👓 Myopia (Short-Sightedness & Concave Correction)', params: { objectDist: 80, accommodation: 0, visionDefect: 1, correctiveLens: 1, splitView: 0, showPins: 1 } },
+      { label: '🔍 Hypermetropia (Far-Sightedness & Convex Correction)', params: { objectDist: 30, accommodation: 0.2, visionDefect: 2, correctiveLens: 2, splitView: 0, showPins: 1 } },
+      { label: '✂️ Sagittal Anatomical Cross-Section', params: { objectDist: 60, accommodation: 0.5, visionDefect: 0, correctiveLens: 0, splitView: 1, showPins: 1 } },
     ],
     params: [
       { key: 'objectDist', label: 'Object Distance (u)', min: 15, max: 200, step: 5, defaultValue: 60, unit: 'cm' },
@@ -5356,6 +5497,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       { key: 'visionDefect', label: 'Vision Condition (0: Normal, 1: Myopia, 2: Hypermetropia)', min: 0, max: 2, step: 1, defaultValue: 0, unit: '' },
       { key: 'correctiveLens', label: 'Corrective Spectacles (0: None, 1: Concave, 2: Convex)', min: 0, max: 2, step: 1, defaultValue: 0, unit: '' },
       { key: 'splitView', label: 'Sagittal Cross-Section (0: Intact, 1: Dissected)', min: 0, max: 1, step: 1, defaultValue: 0, unit: '' },
+      { key: 'showPins', label: 'Exhibition Anatomical Pins (0: Off, 1: On)', min: 0, max: 1, step: 1, defaultValue: 1, unit: '' },
     ],
     calculateReadouts: (p) => {
       const u = p.objectDist; void u
@@ -5829,10 +5971,47 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           if (bScleraCut) bScleraCut.visible = isSplitInit
           if (bChoroid) bChoroid.visible = isSplitInit
 
+          // Photorealistic Medical Shaders & Textures for Eye
+          const irisTex = createPhotorealisticIrisTexture()
+          const scleraTex = createScleraCapillaryTexture()
+          const retinaTex = createRetinaFundusTexture()
+          const wetSpecularMap = createWetSpecularMap()
+
           realisticEyeRoot.traverse((child) => {
             if (child instanceof THREE.Mesh) {
               child.castShadow = true
               child.receiveShadow = true
+
+              // Apply living tissue textures and glistening cornea/retina wetness
+              if (child.material && 'roughness' in child.material) {
+                const mat = child.material as THREE.MeshStandardMaterial
+                const n = child.name.toLowerCase()
+                if (n.includes('iris')) {
+                  mat.map = irisTex
+                  mat.roughness = 0.35
+                  mat.metalness = 0.05
+                } else if (n.includes('sclera')) {
+                  mat.map = scleraTex
+                  mat.roughnessMap = wetSpecularMap
+                  mat.roughness = 0.18
+                  mat.metalness = 0.04
+                } else if (n.includes('retina')) {
+                  mat.map = retinaTex
+                  mat.roughness = 0.28
+                  mat.metalness = 0.02
+                } else if (n.includes('cornea')) {
+                  mat.transparent = true
+                  mat.opacity = 0.32
+                  mat.roughness = 0.04
+                  mat.metalness = 0.1
+                } else if (n.includes('lens')) {
+                  mat.transparent = true
+                  mat.opacity = 0.65
+                  mat.roughness = 0.06
+                }
+                mat.needsUpdate = true
+              }
+
               const n = child.name.toLowerCase()
               if (n.includes('fovea') || n.includes('macula')) { child.name = 'fovea'; interactableMeshes.push(child) }
               else if (n.includes('disc')) { child.name = 'optic_disc'; interactableMeshes.push(child) }
@@ -5858,6 +6037,43 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           console.warn('Blender realistic eye fallback to procedural:', err)
         }
       )
+
+      // ========================================================
+      // EXHIBITION 3D ANATOMICAL PINS FOR EYE (Like YouTube Reference)
+      // ========================================================
+      const eyePinsGroup = new THREE.Group()
+      eyePinsGroup.name = 'Exhibition_Eye_Pins'
+      eyeRig.add(eyePinsGroup)
+
+      const eyePinData = [
+        { tag: 'CN', fullName: 'Cornea', sub: 'Avascular Refractive Shield (43D)', key: 'cornea', isSens: true, pos: new THREE.Vector3(0, 2.2, 2.1) },
+        { tag: 'IR', fullName: 'Iris & Pupil', sub: 'Sphincter/Dilator Aperture', key: 'iris', isSens: false, pos: new THREE.Vector3(1.8, 1.4, 1.6) },
+        { tag: 'LN', fullName: 'Crystalline Lens', sub: 'Dynamic Biconvex Refractor (15-20D)', key: 'lens', isSens: true, pos: new THREE.Vector3(0, 2.1, 1.25) },
+        { tag: 'ZN', fullName: 'Zonules of Zinn', sub: 'Suspensory Elastic Microfibrils', key: 'zonules', isSens: false, pos: new THREE.Vector3(-1.8, 1.4, 1.25) },
+        { tag: 'CB', fullName: 'Ciliary Body', sub: 'Accommodates Lens & Secretes Aqueous', key: 'ciliary', isSens: false, pos: new THREE.Vector3(2.1, 1.5, 0.9) },
+        { tag: 'RT', fullName: 'Retina Neurosensory', sub: 'Photoreceptors (120M Rods / 6M Cones)', key: 'retina', isSens: true, pos: new THREE.Vector3(0, 2.4, -1.2) },
+        { tag: 'CH', fullName: 'Choroid Layer', sub: 'Vascular Tunic Nourishing Outer Retina', key: 'choroid', isSens: false, pos: new THREE.Vector3(-2.2, 1.7, -1.0) },
+        { tag: 'FV', fullName: 'Fovea Centralis', sub: '0.35mm Avascular Cone Density (20/20)', key: 'fovea', isSens: true, pos: new THREE.Vector3(0.5, 0.7, -2.45) },
+        { tag: 'OD', fullName: 'Optic Disc', sub: 'Physiological Blind Spot (No Rods/Cones)', key: 'optic_disc', isSens: false, pos: new THREE.Vector3(-0.8, 0.6, -2.4) },
+        { tag: 'ON', fullName: 'Optic Nerve (CN II)', sub: '1.2M Axons Transmitting to LGN', key: 'optic_nerve', isSens: true, pos: new THREE.Vector3(-1.4, -0.2, -3.8) },
+        { tag: 'SC', fullName: 'Sclera Tunic', sub: 'Type I Collagen Fibrous Shell', key: 'sclera', isSens: false, pos: new THREE.Vector3(2.4, 0.8, -0.5) },
+      ]
+
+      eyePinData.forEach((pd) => {
+        const pinObj = createAnatomicalPin({
+          tag: pd.tag,
+          fullName: pd.fullName,
+          subtext: pd.sub,
+          isOxygenatedOrSensory: pd.isSens,
+          postHeight: 0.85
+        })
+        pinObj.group.position.copy(pd.pos)
+        pinObj.pinMesh.name = pd.key
+        pinObj.badgeSprite.name = pd.key
+        interactableMeshes.push(pinObj.pinMesh)
+        interactableMeshes.push(pinObj.badgeSprite)
+        eyePinsGroup.add(pinObj.group)
+      })
 
       function updateRays() {
         const uCm = params.objectDist
@@ -6053,6 +6269,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         if (selectedEyeMesh && (selectedEyeMesh.material as any)?.emissive) {
           ;(selectedEyeMesh.material as any).emissiveIntensity = 0.65 + 0.35 * Math.sin(Date.now() * 0.007)
         }
+        eyePinsGroup.visible = (params.showPins ?? 1) >= 0.5
         eyeRig.rotation.y = Math.sin(Date.now() * 0.001) * 0.04
         renderer.render(scene, camera)
       }
