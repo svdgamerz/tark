@@ -500,6 +500,18 @@ export function VirtualLabModal({ onClose, onSendToChat, onOpenVoiceLabPartner }
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [activeSimulation, onClose])
 
+  useEffect(() => {
+    const handleAskAi = (e: Event) => {
+      const custom = e as CustomEvent<{ prompt: string }>
+      if (custom.detail?.prompt && onSendToChat) {
+        onSendToChat(custom.detail.prompt)
+        onClose()
+      }
+    }
+    window.addEventListener('tark:ask-ai', handleAskAi)
+    return () => window.removeEventListener('tark:ask-ai', handleAskAi)
+  }, [onSendToChat, onClose])
+
   // Filter catalog items
   const filteredCatalog = useMemo(() => {
     return catalog.filter((item) => {

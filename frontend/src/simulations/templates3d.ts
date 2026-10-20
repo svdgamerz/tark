@@ -2492,11 +2492,71 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         },
         sanode: {
           title: 'Sinoatrial (SA) Node · Heart Pacemaker',
-          partName: 'Primary Cardiac Pacemaker',
+          partName: 'Primary Cardiac Pacemaker (Keith-Flack Node)',
           role: 'Generates spontaneous, rhythmic action potentials that initiate each heartbeat and set cardiac rhythm',
           bloodType: 'Neutral',
           internalStructures: ['P-cells (Pacemaker Cells)', 'Funny Channels (If Current)', 'Bachmann Bundle Conduction Pathway', 'Crista Terminalis Junction'],
-          description: 'The SA Node generates intrinsic rhythmic depolarization pulses (~72 beats per minute). Notice the glowing golden-cyan conduction waves spreading across the atria before ventricular contraction.',
+          description: 'The SA Node generates intrinsic rhythmic depolarization pulses (~72 beats per minute). Positioned at the SVC/Right Atrium junction, it fires first to depolarize atria.',
+        },
+        sa_node: {
+          title: 'Sinoatrial (SA) Node · Natural Pacemaker',
+          partName: 'SA Nodal Crescent (Keith-Flack Node)',
+          role: 'Generates spontaneous rhythmic action potentials (60–100 bpm) driven by hyperpolarization-activated "funny" sodium currents (If).',
+          internalStructures: ['P-Cells (Pale Pacemaker Cells)', 'Interatrial Conduction Pathways (Bachmann Bundle)', 'Internodal Tracts (Thorel, Wenckebach)'],
+          description: 'Positioned subepicardially at the junction of the superior vena cava and right atrium. Fires first to depolarize both atria simultaneously.',
+        },
+        av_node: {
+          title: 'Atrioventricular (AV) Node · Delay Gateway',
+          partName: 'AV Node (Aschoff-Tawara Node)',
+          role: 'Introduces a crucial 0.12-second physiological delay, allowing atrial systole to finish filling ventricles before ventricular contraction.',
+          internalStructures: ["Koch's Triangle Boundary", 'Slow-Conduction Nodal Fibers', 'Transition into Bundle of His'],
+          description: 'Acts as an electrical safety gate that protects ventricles from rapid atrial flutter or fibrillation.',
+        },
+        purkinje: {
+          title: 'Purkinje Fiber Conduction Arborization',
+          partName: 'Subendocardial Purkinje Network & Moderator Band',
+          role: 'Conducts electrical impulses at an astonishing 4 m/s (6x faster than ordinary myocardium) for synchronized apex-to-base ventricular pumping.',
+          internalStructures: ['Septomarginal Trabecula (Moderator Band)', 'Left and Right Bundle Branches', 'Subendocardial Terminal Network'],
+          description: 'Ensures ventricular myocardial contraction begins at the apex and wrings upward toward the outflow tracts (aorta and pulmonary trunk).',
+        },
+        aortic_valve: {
+          title: 'Aortic Semilunar Valve (Tricuspid Cusps)',
+          partName: 'Aortic Valve & Sinuses of Valsalva',
+          role: 'Prevents regurgitation of oxygenated blood from high-pressure aorta back into Left Ventricle during diastole.',
+          bloodType: 'Oxygenated',
+          internalStructures: ['Right Coronary Cusp (gives rise to RCA)', 'Left Coronary Cusp (gives rise to LCA)', 'Posterior Non-Coronary Cusp', 'Nodules of Arantius & Lunulae'],
+          description: 'Opens during ventricular systole at 80 mmHg aortic pressure; snaps shut at 120 mmHg peak, creating the second heart sound (S2 dub).',
+        },
+        pulmonary_valve: {
+          title: 'Pulmonary Semilunar Valve',
+          partName: 'Pulmonary Valve (Anterior, Right, Left Cusps)',
+          role: 'Guards the exit of the right ventricle into the low-pressure pulmonary trunk (~25/10 mmHg).',
+          bloodType: 'Deoxygenated',
+          internalStructures: ['Anterior Semilunar Cusp', 'Right Semilunar Cusp', 'Left Semilunar Cusp', 'Conus Arteriosus Funnel'],
+          description: 'Like the aortic valve, it lacks chordae tendineae and operates purely hydrodynamically as blood flows toward the lungs.',
+        },
+        circumflex: {
+          title: 'Left Circumflex Coronary Artery (LCx)',
+          partName: 'Circumflex Branch of Left Coronary Artery',
+          role: 'Supplies oxygenated arterial blood to the lateral and posterior walls of the Left Ventricle and Left Atrium.',
+          bloodType: 'Oxygenated',
+          internalStructures: ['Atrioventricular Groove Course', 'Obtuse Marginal Branches', 'Left Marginal Artery'],
+          description: 'Branches off the left main coronary artery and curves along the coronary sulcus around the obtuse margin of the heart.',
+        },
+        coronary_sinus: {
+          title: 'Coronary Sinus (Venous Collector)',
+          partName: 'Coronary Sinus & Thebesian Valve',
+          role: 'Collects >85% of deoxygenated venous return from the cardiac myocardium and empties directly into the Right Atrium.',
+          bloodType: 'Deoxygenated',
+          internalStructures: ['Great Cardiac Vein Confluence', 'Middle Cardiac Vein', 'Small Cardiac Vein', 'Thebesian Valve of Coronary Sinus'],
+          description: 'Lies in the posterior part of the coronary sulcus between the left atrium and left ventricle.',
+        },
+        fossa_ovalis: {
+          title: 'Fossa Ovalis (Remnant of Foramen Ovale)',
+          partName: 'Interatrial Septal Depression & Limbus',
+          role: 'Fibrous remnant of the fetal foramen ovale which bypassed non-functional fetal lungs in utero.',
+          internalStructures: ['Fibrous Valve of Fossa Ovalis', 'Muscular Limbus Fossae Ovalis', 'Interatrial Septum Wall'],
+          description: 'Closes at birth when the newborn takes its first breath, dropping pulmonary resistance and raising left atrial pressure above right atrial pressure.',
         },
       }
 
@@ -3144,7 +3204,15 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
               child.castShadow = true
               child.receiveShadow = true
               const n = child.name.toLowerCase()
-              if (n.includes('mitral') || n.includes('chord')) registerPart(child, 'mitral')
+              if (n.includes('aortic_cusp') || n.includes('aortic_valve')) registerPart(child, 'aortic_valve')
+              else if (n.includes('pulmonary_cusp') || n.includes('pulmonary_valve')) registerPart(child, 'pulmonary_valve')
+              else if (n.includes('sa_node')) registerPart(child, 'sa_node')
+              else if (n.includes('av_node')) registerPart(child, 'av_node')
+              else if (n.includes('purkinje')) registerPart(child, 'purkinje')
+              else if (n.includes('circumflex') || n.includes('lcx')) registerPart(child, 'circumflex')
+              else if (n.includes('coronary_sinus') || n.includes('curve_cs')) registerPart(child, 'coronary_sinus')
+              else if (n.includes('fossa_ovalis')) registerPart(child, 'fossa_ovalis')
+              else if (n.includes('mitral') || n.includes('chord')) registerPart(child, 'mitral')
               else if (n.includes('tricuspid')) registerPart(child, 'tricuspid')
               else if (n.includes('coronary') || n.includes('lad') || n.includes('rca')) registerPart(child, 'coronary')
               else if (n.includes('left_ventricle') || n.includes('lv_')) registerPart(child, 'lv')
@@ -3167,9 +3235,28 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         }
       )
 
-      // Raycaster for Mouse Click, Hover, and Mobile Tap
+      // Raycaster for Mouse Click, Hover, and Mobile Tap with 3D Selection Highlight
       const raycaster = new THREE.Raycaster()
       const mouse = new THREE.Vector2()
+
+      let selectedMesh: THREE.Mesh | null = null
+      let origEmissiveHex: number = 0
+      let origEmissiveIntensity: number = 0
+
+      function highlightMesh(mesh: THREE.Mesh | null) {
+        if (selectedMesh && (selectedMesh.material as any)?.emissive) {
+          ;(selectedMesh.material as any).emissive.setHex(origEmissiveHex)
+          ;(selectedMesh.material as any).emissiveIntensity = origEmissiveIntensity
+          selectedMesh = null
+        }
+        if (mesh && (mesh.material as any)?.emissive) {
+          selectedMesh = mesh
+          origEmissiveHex = (mesh.material as any).emissive.getHex()
+          origEmissiveIntensity = (mesh.material as any).emissiveIntensity || 0
+          ;(mesh.material as any).emissive.setHex(0x38bdf8)
+          ;(mesh.material as any).emissiveIntensity = 0.85
+        }
+      }
 
       function triggerRaycast(clientX: number, clientY: number) {
         const rect = renderer.domElement.getBoundingClientRect()
@@ -3180,23 +3267,26 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         const hits = raycaster.intersectObjects(interactableMeshes, true)
 
         if (hits.length > 0) {
-          const hit = hits[0].object
+          const hit = hits[0].object as THREE.Mesh
           const id = hit.userData?.partId as string | undefined
 
           if (id && DISSECT_CARDS[id]) {
             activeDissectId = id
             isSplit = true
+            highlightMesh(hit)
             callbacks.onInspectPart?.(DISSECT_CARDS[id])
           } else {
             // Toggle Left/Right split
             isSplit = !isSplit
             activeDissectId = isSplit ? 'split' : null
+            highlightMesh(null)
             callbacks.onInspectPart?.(isSplit ? DISSECT_CARDS.split : null)
           }
         } else {
           // Clicked background: toggle Left/Right split
           isSplit = !isSplit
           activeDissectId = isSplit ? 'split' : null
+          highlightMesh(null)
           callbacks.onInspectPart?.(isSplit ? DISSECT_CARDS.split : null)
         }
       }
@@ -3253,6 +3343,11 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
       function animate() {
         animId = requestAnimationFrame(animate)
+
+        // Pulsating glowing highlight on selected anatomical part
+        if (selectedMesh && (selectedMesh.material as any)?.emissive) {
+          ;(selectedMesh.material as any).emissiveIntensity = 0.65 + 0.35 * Math.sin(Date.now() * 0.007)
+        }
 
         // Smooth fluid Left/Right splitting animation with cubic easing
         const targetSplit = (isSplit || params.splitView === 1 || (params.focusSide && params.focusSide > 0)) ? 1.0 : 0.0
@@ -5381,6 +5476,34 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           internalStructures: ['Superior Rectus (CN III)', 'Inferior Rectus (CN III)', 'Medial Rectus (CN III)', 'Lateral Rectus (CN VI - Abducens)', 'Tendon of Zinn Insertions'],
           description: 'These high-speed striated muscles have the highest motor unit innervation ratio in the human body (~1 nerve axon per 3-5 muscle fibers) for microscopic tracking precision.',
         },
+        anterior_chamber: {
+          title: 'Anterior Chamber & Aqueous Humor',
+          partName: 'Camera Anterior Bulbi & Aqueous Humor',
+          role: 'Filled with clear liquid produced by ciliary processes; maintains ~15 mmHg intraocular pressure and nourishes avascular cornea and lens.',
+          internalStructures: ['Trabecular Meshwork', 'Canal of Schlemm', 'Iridocorneal Drainage Angle', 'Aqueous Humor Fluid'],
+          description: 'Aqueous humor flows from the posterior chamber through the pupil into the anterior chamber, draining through the canal of Schlemm into venous circulation.',
+        },
+        vitreous: {
+          title: 'Vitreous Chamber & Hyaloid Canal',
+          partName: 'Corpus Vitreum & Hyaloid Canal of Cloquet',
+          role: 'Maintains spherical eyeball shape, presses neurosensory retina firmly against the choroid, and permits optical light passage.',
+          internalStructures: ['Hyaluronic Acid Gel Matrix', 'Type II Collagen Fibrils', 'Cloquet Hyaloid Canal (Embryonic vessel track)', 'Vitreous Base Attachment'],
+          description: 'Makes up four-fifths of the eye volume. It is 99% water and 1% collagen/hyaluronate, creating optical clarity with zero cellular scattering.',
+        },
+        obliques: {
+          title: 'Oblique Extraocular Muscles & Trochlea',
+          partName: 'Superior Oblique with Trochlea Pulley & Inferior Oblique',
+          role: 'Controls cyclotorsion (intorsion and extorsion) and aids vertical gaze stabilization during head tilts.',
+          internalStructures: ['Superior Oblique (Trochlear Nerve - CN IV)', 'Fibrous Trochlea Pulley Loop (U-shaped ring)', 'Inferior Oblique (Oculomotor Nerve - CN III)'],
+          description: 'The Superior Oblique has the longest tendon, bending sharply through the fibrocartilaginous Trochlea pulley ring before inserting beneath the superior rectus.',
+        },
+        central_vessels: {
+          title: 'Central Retinal Artery & Central Retinal Vein',
+          partName: 'Arteria & Vena Centralis Retinae',
+          role: 'Supplies oxygenated arterial blood to the inner six layers of the retina and provides venous return.',
+          internalStructures: ['Optic Nerve Axial Core Course', 'Piercing through Lamina Cribrosa', 'Superior and Inferior Arteriolar Arcades'],
+          description: 'End-artery system: occlusion of the central retinal artery leads to instant painless monocular blindness (retinal ischemia).',
+        },
       }
 
       // 1. Sclera Shell (Full intact sphere)
@@ -5685,6 +5808,10 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
               if (n.includes('fovea') || n.includes('macula')) { child.name = 'fovea'; interactableMeshes.push(child) }
               else if (n.includes('disc')) { child.name = 'optic_disc'; interactableMeshes.push(child) }
               else if (n.includes('choroid')) { child.name = 'choroid'; interactableMeshes.push(child) }
+              else if (n.includes('anterior_chamber') || n.includes('aqueous')) { child.name = 'anterior_chamber'; interactableMeshes.push(child) }
+              else if (n.includes('vitreous')) { child.name = 'vitreous'; interactableMeshes.push(child) }
+              else if (n.includes('central_retinal')) { child.name = 'central_vessels'; interactableMeshes.push(child) }
+              else if (n.includes('oblique') || n.includes('trochlea')) { child.name = 'obliques'; interactableMeshes.push(child) }
               else if (n.includes('retina') || n.includes('vessel')) { child.name = 'retina'; interactableMeshes.push(child) }
               else if (n.includes('lens')) { child.name = 'lens'; interactableMeshes.push(child) }
               else if (n.includes('cornea')) { child.name = 'cornea'; interactableMeshes.push(child) }
@@ -5796,6 +5923,25 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const raycaster = new THREE.Raycaster()
       const mouse = new THREE.Vector2()
 
+      let selectedEyeMesh: THREE.Mesh | null = null
+      let origEyeEmissiveHex: number = 0
+      let origEyeEmissiveIntensity: number = 0
+
+      function highlightEyeMesh(mesh: THREE.Mesh | null) {
+        if (selectedEyeMesh && (selectedEyeMesh.material as any)?.emissive) {
+          ;(selectedEyeMesh.material as any).emissive.setHex(origEyeEmissiveHex)
+          ;(selectedEyeMesh.material as any).emissiveIntensity = origEyeEmissiveIntensity
+          selectedEyeMesh = null
+        }
+        if (mesh && (mesh.material as any)?.emissive) {
+          selectedEyeMesh = mesh
+          origEyeEmissiveHex = (mesh.material as any).emissive.getHex()
+          origEyeEmissiveIntensity = (mesh.material as any).emissiveIntensity || 0
+          ;(mesh.material as any).emissive.setHex(0x38bdf8)
+          ;(mesh.material as any).emissiveIntensity = 0.85
+        }
+      }
+
       function triggerRaycast(clientX: number, clientY: number) {
         const rect = renderer.domElement.getBoundingClientRect()
         mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1
@@ -5804,10 +5950,15 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         raycaster.setFromCamera(mouse, camera)
         const hits = raycaster.intersectObjects(interactableMeshes, true)
         if (hits.length > 0) {
-          const key = hits[0].object.name || 'cornea'
+          const hit = hits[0].object as THREE.Mesh
+          const key = hit.name || 'cornea'
           activeDissectKey = key
+          highlightEyeMesh(hit)
           const card = DISSECT_CARDS[key] || DISSECT_CARDS.cornea
           callbacks.onInspectPart?.(card)
+        } else {
+          highlightEyeMesh(null)
+          callbacks.onInspectPart?.(null)
         }
       }
 
@@ -5855,6 +6006,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         animId = requestAnimationFrame(animate)
         controls.update()
         updateRays()
+        if (selectedEyeMesh && (selectedEyeMesh.material as any)?.emissive) {
+          ;(selectedEyeMesh.material as any).emissiveIntensity = 0.65 + 0.35 * Math.sin(Date.now() * 0.007)
+        }
         eyeRig.rotation.y = Math.sin(Date.now() * 0.001) * 0.04
         renderer.render(scene, camera)
       }
@@ -6396,6 +6550,25 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const raycaster = new THREE.Raycaster()
       const mouse = new THREE.Vector2()
 
+      let selectedCellMesh: THREE.Mesh | null = null
+      let origCellEmissiveHex: number = 0
+      let origCellEmissiveIntensity: number = 0
+
+      function highlightCellMesh(mesh: THREE.Mesh | null) {
+        if (selectedCellMesh && (selectedCellMesh.material as any)?.emissive) {
+          ;(selectedCellMesh.material as any).emissive.setHex(origCellEmissiveHex)
+          ;(selectedCellMesh.material as any).emissiveIntensity = origCellEmissiveIntensity
+          selectedCellMesh = null
+        }
+        if (mesh && (mesh.material as any)?.emissive) {
+          selectedCellMesh = mesh
+          origCellEmissiveHex = (mesh.material as any).emissive.getHex()
+          origCellEmissiveIntensity = (mesh.material as any).emissiveIntensity || 0
+          ;(mesh.material as any).emissive.setHex(0x38bdf8)
+          ;(mesh.material as any).emissiveIntensity = 0.85
+        }
+      }
+
       function triggerRaycast(clientX: number, clientY: number) {
         const rect = renderer.domElement.getBoundingClientRect()
         mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1
@@ -6404,10 +6577,15 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         raycaster.setFromCamera(mouse, camera)
         const hits = raycaster.intersectObjects(interactableMeshes, true)
         if (hits.length > 0) {
-          const key = hits[0].object.name || 'nucleus'
+          const hit = hits[0].object as THREE.Mesh
+          const key = hit.name || 'nucleus'
           activeDissectKey = key
+          highlightCellMesh(hit)
           const card = DISSECT_CARDS[key] || DISSECT_CARDS.nucleus
           callbacks.onInspectPart?.(card)
+        } else {
+          highlightCellMesh(null)
+          callbacks.onInspectPart?.(null)
         }
       }
 
@@ -6455,6 +6633,10 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         animId = requestAnimationFrame(animate)
         controls.update()
         cellRig.rotation.y += 0.0025
+
+        if (selectedCellMesh && (selectedCellMesh.material as any)?.emissive) {
+          ;(selectedCellMesh.material as any).emissiveIntensity = 0.65 + 0.35 * Math.sin(Date.now() * 0.007)
+        }
 
         // Dynamic ATP synthesis pulses
         const atpScale = 1.0 + Math.sin(Date.now() * 0.008) * 0.35

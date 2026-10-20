@@ -211,9 +211,21 @@ export function ThreeSimulationCanvas({
               </div>
               <div className="sim-3d-dissect-footer">
                 <button className="sim-3d-dissect-btn-close" onClick={handleCloseDissect}>
-                  ↺ Close Chamber Wall
+                  ↺ Close
                 </button>
-                <span className="sim-3d-dissect-hint">💡 Tap chamber again to toggle</span>
+                <button
+                  className="sim-3d-dissect-btn-ask"
+                  onClick={() => {
+                    const evt = new CustomEvent('tark:ask-ai', {
+                      detail: { prompt: `Explain the anatomical structure and clinical/physiological significance of ${inspectedPart.partName}: ${inspectedPart.role}.` }
+                    })
+                    window.dispatchEvent(evt)
+                  }}
+                  title="Ask Tark AI to explain this anatomical structure in chat"
+                >
+                  💬 Discuss with Tark
+                </button>
+                <span className="sim-3d-dissect-hint">💡 Tap to toggle</span>
               </div>
             </div>
           )}

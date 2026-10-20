@@ -11,7 +11,9 @@ Sculpts an authentic medical/cytological grade eukaryotic cell with:
 6. Polarized Golgi Apparatus with cis/trans curved cisternae stacks and budding secretory vesicles.
 7. Centrosome with orthogonal 9-triplet microtubule Centrioles (Mother & Daughter barrels).
 8. Lysosomes and Peroxisomes with dense crystalline enzymatic cores.
-9. Cytoskeletal microtubule network radiating from the centrosome.
+9. Chloroplasts with stacked thylakoid grana discs (photosynthetic plastids).
+10. Central Sap Vacuole with tonoplast membrane.
+11. Radiating Microtubule Cytoskeleton network anchoring organelles in the cytosol.
 """
 
 import bpy
@@ -22,7 +24,8 @@ import os
 OUTPUT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "public", "3d_models"))
 MODELS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models_blender"))
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-os.makedirs(MODELS_DIR, exist_ok=True)
+MODELS_DIR_PATH = MODELS_DIR
+os.makedirs(MODELS_DIR_PATH, exist_ok=True)
 
 def reset():
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -74,7 +77,6 @@ def create_pbr_material(name, base_color, roughness=0.3, metallic=0.0, transmiss
     tex_coord.location = (-600, 0)
 
     if is_membrane:
-        # Fluid mosaic lipid bilayer surface bump
         vor = nodes.new(type='ShaderNodeTexVoronoi')
         vor.location = (-350, 0)
         vor.inputs['Scale'].default_value = 55.0
@@ -94,7 +96,6 @@ def build_ultra_cell():
 
     # Materials
     m_mem = create_pbr_material("Mat_PlasmaMembrane", (0.18, 0.62, 0.72), roughness=0.32, sss_weight=0.35, is_membrane=True)
-    m_cyto = create_pbr_material("Mat_Cytosol", (0.14, 0.42, 0.62), roughness=0.45, alpha=0.32, transmission=0.6)
     m_nuc_out = create_pbr_material("Mat_NuclearOuter", (0.42, 0.20, 0.62), roughness=0.30, sss_weight=0.38)
     m_nuc_in = create_pbr_material("Mat_NuclearInner", (0.35, 0.14, 0.52), roughness=0.35, sss_weight=0.35)
     m_nucleolus = create_pbr_material("Mat_Nucleolus", (0.28, 0.08, 0.45), roughness=0.42, sss_weight=0.4)
@@ -108,12 +109,17 @@ def build_ultra_cell():
     m_vesicle = create_pbr_material("Mat_SecretoryVesicle", (0.92, 0.62, 0.20), roughness=0.25, sss_weight=0.25)
     m_centriole = create_pbr_material("Mat_CentrioleTriplet", (0.88, 0.88, 0.92), roughness=0.22, metallic=0.6)
     m_lyso = create_pbr_material("Mat_Lysosome", (0.12, 0.75, 0.65), roughness=0.25, sss_weight=0.3)
+    m_chloro = create_pbr_material("Mat_ChloroplastOuter", (0.10, 0.55, 0.22), roughness=0.28, sss_weight=0.35)
+    m_thylakoid = create_pbr_material("Mat_ThylakoidGrana", (0.15, 0.85, 0.35), roughness=0.20, specular=0.8)
+    m_vacuole = create_pbr_material("Mat_CentralVacuole", (0.20, 0.70, 0.95), roughness=0.10, transmission=0.85, alpha=0.45)
+    m_perox = create_pbr_material("Mat_Peroxisome", (0.75, 0.65, 0.15), roughness=0.25, sss_weight=0.3)
+    m_tubulin = create_pbr_material("Mat_Microtubule", (0.35, 0.75, 0.95), roughness=0.20, alpha=0.80)
 
     root = bpy.data.objects.new("Cell_Root", None)
     bpy.context.scene.collection.objects.link(root)
 
     # =========================================================================
-    # 1. 3/4 SAGITTAL CUTAWAY PLASMA MEMBRANE & CYTOSOLIC INTERIOR
+    # 1. 3/4 SAGITTAL CUTAWAY PLASMA MEMBRANE
     # =========================================================================
     bpy.ops.mesh.primitive_uv_sphere_add(segments=72, ring_count=54, radius=3.25, location=(0, 0, 0))
     cell_sphere = bpy.context.active_object
@@ -132,7 +138,6 @@ def build_ultra_cell():
     # =========================================================================
     # 2. DOUBLE-MEMBRANE NUCLEUS, PORES, CHROMATIN & NUCLEOLUS
     # =========================================================================
-    # Outer Nuclear Membrane (3/4 Cutaway)
     bpy.ops.mesh.primitive_uv_sphere_add(segments=48, ring_count=36, radius=1.28, location=(-0.68, -0.68, 0.22))
     nuc_outer = bpy.context.active_object
     nuc_outer.name = "Nucleus_Outer_Membrane"
@@ -145,7 +150,6 @@ def build_ultra_cell():
     nuc_outer.data.materials.append(m_nuc_out)
     nuc_outer.parent = root
 
-    # Inner Nuclear Membrane
     bpy.ops.mesh.primitive_uv_sphere_add(segments=48, ring_count=36, radius=1.20, location=(-0.68, -0.68, 0.22))
     nuc_inner = bpy.context.active_object
     nuc_inner.name = "Nucleus_Inner_Membrane"
@@ -165,7 +169,7 @@ def build_ultra_cell():
     nucleolus.data.materials.append(m_nucleolus)
     nucleolus.parent = root
 
-    # 16 Nuclear Pore Complexes (NPCs) along the outer envelope
+    # 16 Nuclear Pore Complexes (NPCs) along outer envelope
     for np_i in range(16):
         ang = (np_i / 16) * math.pi * 1.5 + math.pi * 0.5
         z_off = math.sin(np_i * 1.2) * 0.6
@@ -257,7 +261,6 @@ def build_ultra_cell():
         er_sheet.data.materials.append(m_er)
         er_sheet.parent = rer_group
 
-        # Golden Ribosomes studded along the cisternal surface
         for r_j in range(10):
             r_ang = (r_j / 10) * math.pi * 1.5
             rx = -0.68 + math.cos(r_ang) * (rad + 0.055)
@@ -295,12 +298,11 @@ def build_ultra_cell():
         g_obj.data.materials.append(m_golgi)
         g_obj.parent = golgi_group
 
-    # 14 Budding and detached Secretory Vesicles
-    for v_i in range(14):
+    for v_i in range(12):
         vx = 0.48 + (v_i % 4) * 0.48 + (v_i // 4) * 0.12
         vy = 1.05 + (v_i // 4) * 0.38
         vz = 0.72 + (v_i % 3) * 0.16
-        bpy.ops.mesh.primitive_uv_sphere_add(segments=14, ring_count=14, radius=0.095, location=(vx, vy, vz))
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=12, ring_count=12, radius=0.095, location=(vx, vy, vz))
         ves = bpy.context.active_object
         ves.name = f"Secretory_Vesicle_{v_i+1}"
         ves.data.materials.append(m_vesicle)
@@ -314,14 +316,12 @@ def build_ultra_cell():
     centro_group.parent = root
     centro_group.location = (-0.22, 0.22, 1.25)
 
-    # Mother Centriole (Vertical barrel)
     bpy.ops.mesh.primitive_cylinder_add(radius=0.15, depth=0.48, location=(0, 0, 0))
     c_mother = bpy.context.active_object
     c_mother.name = "Centriole_Mother"
     c_mother.data.materials.append(m_centriole)
     c_mother.parent = centro_group
 
-    # Daughter Centriole (Orthogonal at 90 degrees)
     bpy.ops.mesh.primitive_cylinder_add(radius=0.15, depth=0.48, location=(0.30, 0, 0.22))
     c_daughter = bpy.context.active_object
     c_daughter.name = "Centriole_Daughter"
@@ -330,7 +330,73 @@ def build_ultra_cell():
     c_daughter.data.materials.append(m_centriole)
     c_daughter.parent = centro_group
 
-    # 4 Lysosomes with dense enzymatic matrix
+    # Microtubule Aster Filaments radiating from Centrosome
+    for mt_i in range(8):
+        mt_ang = (mt_i / 8) * math.pi * 2
+        c_mt = bpy.data.curves.new(f'Curve_MT_{mt_i}', 'CURVE')
+        c_mt.dimensions = '3D'
+        c_mt.bevel_depth = 0.024
+        s_mt = c_mt.splines.new('BEZIER')
+        s_mt.bezier_points.add(2)
+        s_mt.bezier_points[0].co = (-0.22, 0.22, 1.25)
+        s_mt.bezier_points[1].co = (-0.22 + math.cos(mt_ang) * 1.4, 0.22 + math.sin(mt_ang) * 1.4, 0.8)
+        s_mt.bezier_points[2].co = (-0.22 + math.cos(mt_ang) * 2.4, 0.22 + math.sin(mt_ang) * 2.4, 0.1)
+        for p in s_mt.bezier_points:
+            p.handle_left_type = 'AUTO'
+            p.handle_right_type = 'AUTO'
+        mt_obj = bpy.data.objects.new(f"Microtubule_Filament_{mt_i+1}", c_mt)
+        bpy.context.scene.collection.objects.link(mt_obj)
+        mt_obj.data.materials.append(m_tubulin)
+        mt_obj.parent = root
+
+    # =========================================================================
+    # 7. CHLOROPLASTS WITH STACKED THYLAKOID GRANA DISCS
+    # =========================================================================
+    chloro_configs = [
+        ("Chloroplast_1", (1.45, 0.25, -1.25), (0.35, 0.2, 0.8)),
+        ("Chloroplast_2", (-1.85, -0.45, -1.15), (-0.4, 0.6, 0.2))
+    ]
+    for ch_name, ch_pos, ch_rot in chloro_configs:
+        ch_grp = bpy.data.objects.new(ch_name, None)
+        bpy.context.scene.collection.objects.link(ch_grp)
+        ch_grp.parent = root
+        ch_grp.location = ch_pos
+        ch_grp.rotation_euler = ch_rot
+
+        # Biconvex lens envelope
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=18, radius=0.68, location=(0, 0, 0))
+        ch_out = bpy.context.active_object
+        ch_out.name = f"{ch_name}_Envelope"
+        ch_out.scale = (1.2, 0.55, 0.85)
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+        ch_out.data.materials.append(m_chloro)
+        ch_out.parent = ch_grp
+
+        # 4 Stacks of Thylakoid Grana Discs
+        for gr_i in range(3):
+            gx = -0.32 + gr_i * 0.32
+            for disc_j in range(4):
+                gy = -0.12 + disc_j * 0.08
+                bpy.ops.mesh.primitive_cylinder_add(radius=0.14, depth=0.035, location=(gx, gy, 0))
+                disc = bpy.context.active_object
+                disc.name = f"{ch_name}_Grana_{gr_i+1}_{disc_j+1}"
+                disc.data.materials.append(m_thylakoid)
+                disc.parent = ch_grp
+
+    # =========================================================================
+    # 8. CENTRAL VACUOLE (Plant Sap Reservoir)
+    # =========================================================================
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=36, ring_count=28, radius=1.35, location=(1.10, -0.65, -0.35))
+    vacuole = bpy.context.active_object
+    vacuole.name = "Central_Vacuole"
+    vacuole.scale = (1.1, 1.25, 0.95)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    vacuole.data.materials.append(m_vacuole)
+    vacuole.parent = root
+
+    # =========================================================================
+    # 9. LYSOSOMES & PEROXISOMES
+    # =========================================================================
     lyso_pts = [(0.2, 1.4, -0.6), (-1.2, -0.2, -1.2), (1.1, -0.8, -1.0), (-0.8, 1.6, 0.4)]
     for l_i, (lx, ly, lz) in enumerate(lyso_pts):
         bpy.ops.mesh.primitive_uv_sphere_add(segments=18, ring_count=18, radius=0.22, location=(lx, ly, lz))
@@ -338,6 +404,14 @@ def build_ultra_cell():
         lyso.name = f"Lysosome_{l_i+1}"
         lyso.data.materials.append(m_lyso)
         lyso.parent = root
+
+    perox_pts = [(-0.35, -1.8, 0.65), (1.65, 0.85, -0.65)]
+    for p_i, (px, py, pz) in enumerate(perox_pts):
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=16, radius=0.20, location=(px, py, pz))
+        perox = bpy.context.active_object
+        perox.name = f"Peroxisome_{p_i+1}"
+        perox.data.materials.append(m_perox)
+        perox.parent = root
 
     # Convert all curves and smooth meshes
     bpy.ops.object.select_all(action='DESELECT')
@@ -359,39 +433,39 @@ def build_ultra_cell():
     cam = bpy.data.objects.new("RenderCam", cam_data)
     bpy.context.scene.collection.objects.link(cam)
     bpy.context.scene.camera = cam
-    cam.location = (2.2, -6.8, 1.8)
-    cam.rotation_euler = (math.radians(75), 0, math.radians(18))
+    cam.location = (2.2, -7.2, 2.2)
+    cam.rotation_euler = (math.radians(72), 0, math.radians(16))
 
     key_light = bpy.data.lights.new("KeyLight", type='AREA')
-    key_light.energy = 420
+    key_light.energy = 440
     key_light.size = 3.5
     key_obj = bpy.data.objects.new("KeyLight", key_light)
     bpy.context.scene.collection.objects.link(key_obj)
     key_obj.location = (3.5, -4.5, 4.0)
 
     fill_light = bpy.data.lights.new("FillLight", type='AREA')
-    fill_light.energy = 180
+    fill_light.energy = 200
     fill_light.size = 4.0
     fill_obj = bpy.data.objects.new("FillLight", fill_light)
     bpy.context.scene.collection.objects.link(fill_obj)
     fill_obj.location = (-4.0, -3.5, 2.5)
 
     rim_light = bpy.data.lights.new("RimLight", type='AREA')
-    rim_light.energy = 460
+    rim_light.energy = 480
     rim_light.size = 2.5
     rim_obj = bpy.data.objects.new("RimLight", rim_light)
     bpy.context.scene.collection.objects.link(rim_obj)
     rim_obj.location = (0.5, 5.0, 3.5)
 
     # Save to high-res .blend file
-    blend_path = os.path.join(MODELS_DIR, "cell_realistic.blend")
+    blend_path = os.path.join(MODELS_DIR_PATH, "cell_realistic.blend")
     bpy.ops.wm.save_as_mainfile(filepath=blend_path)
     print(f"[CELL] Saved native .blend to {blend_path}")
 
     # Render Preview PNG
     bpy.context.scene.render.resolution_x = 1024
     bpy.context.scene.render.resolution_y = 768
-    preview_path = os.path.join(MODELS_DIR, "cell_blender_preview.png")
+    preview_path = os.path.join(MODELS_DIR_PATH, "cell_blender_preview.png")
     bpy.context.scene.render.filepath = preview_path
     bpy.ops.render.render(write_still=True)
     print(f"[CELL] Rendered preview -> {preview_path}")
@@ -409,4 +483,3 @@ def build_ultra_cell():
 
 if __name__ == '__main__':
     build_ultra_cell()
-

@@ -1,21 +1,29 @@
 """
 Ultra-Realistic Anatomical Human Heart Generator for Blender 5.2
-Specifically engineered for flawless, bug-free Left & Right Coronal Splitting:
+Medical-grade anatomical modeling with bug-free Coronal Splitting (Y=0):
 1. Left_Heart group contains:
    - Left Ventricle with thick (15mm scale) trabeculated myocardial wall and hollow ventricular lumen.
    - Left Atrium & Scalloped Left Auricle.
    - 4 Pulmonary Veins (Left/Right Superior & Inferior).
    - Ascending Aorta, 3 Sinuses of Valsalva, Aortic Arch, and 3 Brachiocephalic branches.
+   - Aortic Semilunar Valve (3 cusps: Right Coronary, Left Coronary, Posterior Non-Coronary with Nodules of Arantius).
    - Bicuspid / Mitral Valve with anterior & posterior leaflets.
    - 2 Conical Papillary Muscles with branching parachute Chordae Tendineae.
    - Left half of the anterior interventricular sulcus adipose cushion and LAD artery.
+   - Left Circumflex Artery branching along the atrioventricular groove.
+   - Atrioventricular (AV) Node, Bundle of His, and Left Ventricular Purkinje conduction tree.
 2. Right_Heart group contains:
    - Right Ventricle with thin (4mm scale) crescent myocardial wall and hollow cavity.
    - Right Atrium & Triangular Right Auricle.
    - Superior Vena Cava (SVC) and Inferior Vena Cava (IVC).
    - Infundibular Conus Arteriosus and Pulmonary Trunk bifurcating into L/R Pulmonary Arteries.
+   - Pulmonary Semilunar Valve (3 cusps: Anterior, Right, Left).
    - Tricuspid Valve with 3 distinct cusps.
-   - Right half of the sulcus fat and Right Coronary Artery (RCA).
+   - Sinoatrial (SA) Node pacemaker crescent at the SVC-RA junction.
+   - Right Ventricular Purkinje fibers and Moderator Band (Septomarginal Trabecula).
+   - Coronary Sinus draining into the right atrium.
+   - Fossa Ovalis depression on the interatrial septum.
+   - Right Coronary Artery (RCA) and posterior descending branch.
 3. Both hemispheres are separated cleanly at the coronal plane (Y=0) with zero overlap,
    zero clipping, and true hollow anatomical chamber interiors.
 """
@@ -28,13 +36,14 @@ import os
 OUTPUT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "public", "3d_models"))
 MODELS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models_blender"))
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-os.makedirs(MODELS_DIR, exist_ok=True)
+MODELS_DIR_PATH = MODELS_DIR
+os.makedirs(MODELS_DIR_PATH, exist_ok=True)
 
 def reset():
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
 def create_rich_pbr_material(name, base_color, roughness=0.3, sss_weight=0.35, sss_radius=(1.0, 0.25, 0.1), 
-                             specular=0.6, transmission=0.0, ior=1.45, is_fat=False, is_valve=False):
+                             specular=0.6, transmission=0.0, ior=1.45, is_fat=False, is_valve=False, emissive=None):
     mat = bpy.data.materials.new(name=name)
     mat.use_nodes = True
     nodes = mat.node_tree.nodes
@@ -42,7 +51,7 @@ def create_rich_pbr_material(name, base_color, roughness=0.3, sss_weight=0.35, s
     nodes.clear()
 
     out = nodes.new(type='ShaderNodeOutputMaterial')
-    out.location = (600, 0)
+    out.location = (650, 0)
     
     bsdf = nodes.new(type='ShaderNodeBsdfPrincipled')
     bsdf.location = (250, 0)
@@ -59,12 +68,13 @@ def create_rich_pbr_material(name, base_color, roughness=0.3, sss_weight=0.35, s
     elif 'Specular' in bsdf.inputs:
         bsdf.inputs['Specular'].default_value = specular
 
-    if 'Subsurface Weight' in bsdf.inputs:
-        bsdf.inputs['Subsurface Weight'].default_value = sss_weight
-    elif 'Subsurface' in bsdf.inputs:
-        bsdf.inputs['Subsurface'].default_value = sss_weight
-    if 'Subsurface Radius' in bsdf.inputs:
-        bsdf.inputs['Subsurface Radius'].default_value = sss_radius
+    if sss_weight > 0:
+        if 'Subsurface Weight' in bsdf.inputs:
+            bsdf.inputs['Subsurface Weight'].default_value = sss_weight
+        elif 'Subsurface' in bsdf.inputs:
+            bsdf.inputs['Subsurface'].default_value = sss_weight
+        if 'Subsurface Radius' in bsdf.inputs:
+            bsdf.inputs['Subsurface Radius'].default_value = sss_radius
 
     if transmission > 0:
         if 'Transmission Weight' in bsdf.inputs:
@@ -72,6 +82,14 @@ def create_rich_pbr_material(name, base_color, roughness=0.3, sss_weight=0.35, s
         elif 'Transmission' in bsdf.inputs:
             bsdf.inputs['Transmission'].default_value = transmission
         mat.blend_method = 'BLEND'
+
+    if emissive:
+        if 'Emission Color' in bsdf.inputs:
+            bsdf.inputs['Emission Color'].default_value = (*emissive, 1.0)
+        elif 'Emission' in bsdf.inputs:
+            bsdf.inputs['Emission'].default_value = (*emissive, 1.0)
+        if 'Emission Strength' in bsdf.inputs:
+            bsdf.inputs['Emission Strength'].default_value = 0.85
 
     tex_coord = nodes.new(type='ShaderNodeTexCoord')
     tex_coord.location = (-600, 0)
@@ -126,7 +144,7 @@ def create_rich_pbr_material(name, base_color, roughness=0.3, sss_weight=0.35, s
 
 def build_perfect_split_heart():
     reset()
-    print("[HEART GENERATOR] Sculpting bug-free split anatomical human heart...")
+    print("[HEART GENERATOR] Sculpting state-of-the-art medical-grade human heart...")
 
     # Materials
     m_myo_l = create_rich_pbr_material("Mat_LV_Myocardium", (0.58, 0.08, 0.09), roughness=0.25, sss_weight=0.40)
@@ -141,6 +159,8 @@ def build_perfect_split_heart():
     m_vein = create_rich_pbr_material("Mat_CoronaryVein", (0.16, 0.44, 0.85), roughness=0.16, specular=0.85)
     m_valve = create_rich_pbr_material("Mat_ValveLeaflet", (0.95, 0.94, 0.88), roughness=0.20, sss_weight=0.48, transmission=0.35, is_valve=True)
     m_chordae = create_rich_pbr_material("Mat_Chordae", (0.96, 0.95, 0.92), roughness=0.18, sss_weight=0.50)
+    m_conduction = create_rich_pbr_material("Mat_ConductionNodes", (0.98, 0.84, 0.18), roughness=0.15, emissive=(0.95, 0.75, 0.15))
+    m_fossa = create_rich_pbr_material("Mat_FossaOvalis", (0.45, 0.10, 0.15), roughness=0.35, sss_weight=0.3)
 
     root = bpy.data.objects.new("Heart_Root", None)
     bpy.context.scene.collection.objects.link(root)
@@ -163,11 +183,10 @@ def build_perfect_split_heart():
     lv.scale = (1.40, 1.32, 1.82)
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
 
-    # Slice anterior half away along Y=0 to expose true hollow coronal interior!
+    # Slice anterior half away along Y=0 to expose true hollow coronal interior
     bm = bmesh.new()
     bm.from_mesh(lv.data)
     for v in bm.verts:
-        # Spiral vortex apex cordis
         if v.co.z < -0.75:
             d = abs(v.co.z + 0.75)
             ang = d * 0.75
@@ -178,7 +197,7 @@ def build_perfect_split_heart():
             taper = max(0.15, 1.0 - d * 0.48)
             v.co.x *= taper
             v.co.y *= taper
-    # Coronal cut: slice front (Y > 0.05) to expose interior!
+    # Coronal cut: slice front (Y > 0.08) to expose interior
     verts_to_remove = [v for v in bm.verts if v.co.y > 0.08]
     bmesh.ops.delete(bm, geom=verts_to_remove, context='VERTS')
     bm.to_mesh(lv.data)
@@ -285,6 +304,19 @@ def build_perfect_split_heart():
         sinus.data.materials.append(m_aorta)
         sinus.parent = left_heart
 
+    # Aortic Semilunar Valve (3 cusps inside aortic root)
+    for c_idx, c_name in enumerate(["Aortic_Cusp_Right", "Aortic_Cusp_Left", "Aortic_Cusp_Posterior"]):
+        ang = (c_idx / 3.0) * math.pi * 2.0
+        cx = 0.32 + math.cos(ang) * 0.14
+        cy = 0.08 + math.sin(ang) * 0.14
+        bpy.ops.mesh.primitive_cylinder_add(radius=0.18, depth=0.03, location=(cx, cy, 0.75))
+        aor_cusp = bpy.context.active_object
+        aor_cusp.name = c_name
+        aor_cusp.rotation_euler = (0.2 * math.sin(ang), 0.2 * math.cos(ang), 0)
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+        aor_cusp.data.materials.append(m_valve)
+        aor_cusp.parent = left_heart
+
     c_aorta = bpy.data.curves.new('Curve_Aorta', 'CURVE')
     c_aorta.dimensions = '3D'
     c_aorta.bevel_depth = 0.48
@@ -321,6 +353,45 @@ def build_perfect_split_heart():
         br.data.materials.append(m_aorta)
         br.parent = left_heart
 
+    # Left Circumflex Coronary Artery (LCx)
+    c_lcx = bpy.data.curves.new('Curve_LCx', 'CURVE')
+    c_lcx.dimensions = '3D'
+    c_lcx.bevel_depth = 0.048
+    s_lcx = c_lcx.splines.new('BEZIER')
+    s_lcx.bezier_points.add(3)
+    pts_lcx = [(0.45, 0.15, 0.55), (0.95, 0.05, 0.35), (1.35, -0.25, 0.05), (1.15, -0.65, -0.25)]
+    for i, pt in enumerate(pts_lcx):
+        s_lcx.bezier_points[i].co = pt
+        s_lcx.bezier_points[i].handle_left_type = 'AUTO'
+        s_lcx.bezier_points[i].handle_right_type = 'AUTO'
+    lcx_obj = bpy.data.objects.new("Circumflex_Artery", c_lcx)
+    bpy.context.scene.collection.objects.link(lcx_obj)
+    lcx_obj.data.materials.append(m_art)
+    lcx_obj.parent = left_heart
+
+    # AV Node (Koch's triangle near interatrial septum) & Bundle of His
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=14, ring_count=10, radius=0.12, location=(0.10, -0.08, 0.18))
+    av_node = bpy.context.active_object
+    av_node.name = "AV_Node"
+    av_node.data.materials.append(m_conduction)
+    av_node.parent = left_heart
+
+    # Left Ventricular Purkinje Conduction Fibers
+    c_purk_l = bpy.data.curves.new('Curve_Purkinje_LV', 'CURVE')
+    c_purk_l.dimensions = '3D'
+    c_purk_l.bevel_depth = 0.022
+    s_purk_l = c_purk_l.splines.new('BEZIER')
+    s_purk_l.bezier_points.add(3)
+    pts_purk_l = [(0.10, -0.08, 0.10), (0.35, -0.15, -0.40), (0.65, -0.25, -1.10), (0.95, -0.15, -1.65)]
+    for i, pt in enumerate(pts_purk_l):
+        s_purk_l.bezier_points[i].co = pt
+        s_purk_l.bezier_points[i].handle_left_type = 'AUTO'
+        s_purk_l.bezier_points[i].handle_right_type = 'AUTO'
+    purk_l_obj = bpy.data.objects.new("LV_Purkinje_Fibers", c_purk_l)
+    bpy.context.scene.collection.objects.link(purk_l_obj)
+    purk_l_obj.data.materials.append(m_conduction)
+    purk_l_obj.parent = left_heart
+
     # =========================================================================
     # 2. RIGHT HEART: TRUE HOLLOW CRESCENT RV (4mm WALL) & PULMONARY TRUNK
     # =========================================================================
@@ -338,7 +409,7 @@ def build_perfect_split_heart():
         if v.co.z < -0.75:
             d = abs(v.co.z + 0.75)
             v.co.x *= max(0.20, 1.0 - d * 0.40)
-    # Coronal cut: slice front (Y > 0.05) to expose interior!
+    # Coronal cut: slice front (Y > 0.08) to expose interior
     verts_to_remove = [v for v in bm.verts if v.co.y > 0.08]
     bmesh.ops.delete(bm, geom=verts_to_remove, context='VERTS')
     bm.to_mesh(rv.data)
@@ -371,6 +442,24 @@ def build_perfect_split_heart():
     ra.data.materials.append(m_myo_r)
     ra.parent = right_heart
 
+    # Fossa Ovalis depression on the interatrial septum
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.28, depth=0.05, location=(-0.95, -0.22, 1.25))
+    fossa = bpy.context.active_object
+    fossa.name = "Fossa_Ovalis"
+    fossa.rotation_euler = (0, math.pi / 2, 0)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    fossa.data.materials.append(m_fossa)
+    fossa.parent = right_heart
+
+    # Sinoatrial (SA) Node Pacemaker Crescent at SVC/RA junction
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.15, depth=0.35, location=(-1.36, -0.05, 2.15))
+    sa_node = bpy.context.active_object
+    sa_node.name = "SA_Node"
+    sa_node.rotation_euler = (0.2, 0, 0.3)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    sa_node.data.materials.append(m_conduction)
+    sa_node.parent = right_heart
+
     # Triangular Right Auricle
     bpy.ops.mesh.primitive_cone_add(radius1=0.42, radius2=0.08, depth=0.70, location=(-0.82, 0.45, 1.15))
     ra_aur = bpy.context.active_object
@@ -388,6 +477,19 @@ def build_perfect_split_heart():
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
     conus.data.materials.append(m_pulm)
     conus.parent = right_heart
+
+    # Pulmonary Semilunar Valve (3 cusps inside pulmonary root)
+    for c_idx, c_name in enumerate(["Pulmonary_Cusp_Anterior", "Pulmonary_Cusp_Right", "Pulmonary_Cusp_Left"]):
+        ang = (c_idx / 3.0) * math.pi * 2.0
+        cx = -0.35 + math.cos(ang) * 0.12
+        cy = 0.32 + math.sin(ang) * 0.12
+        bpy.ops.mesh.primitive_cylinder_add(radius=0.16, depth=0.03, location=(cx, cy, 0.68))
+        pul_cusp = bpy.context.active_object
+        pul_cusp.name = c_name
+        pul_cusp.rotation_euler = (0.15 * math.sin(ang), 0.15 * math.cos(ang), 0)
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+        pul_cusp.data.materials.append(m_valve)
+        pul_cusp.parent = right_heart
 
     # Pulmonary Trunk Curve
     c_pt = bpy.data.curves.new('Curve_PT', 'CURVE')
@@ -430,6 +532,22 @@ def build_perfect_split_heart():
     ivc.data.materials.append(m_cava)
     ivc.parent = right_heart
 
+    # Coronary Sinus (Large posterior venous collector draining into RA)
+    c_cs = bpy.data.curves.new('Curve_CS', 'CURVE')
+    c_cs.dimensions = '3D'
+    c_cs.bevel_depth = 0.08
+    s_cs = c_cs.splines.new('BEZIER')
+    s_cs.bezier_points.add(2)
+    pts_cs = [(0.8, -0.75, 0.35), (0.0, -0.85, 0.40), (-0.85, -0.65, 0.50)]
+    for i, pt in enumerate(pts_cs):
+        s_cs.bezier_points[i].co = pt
+        s_cs.bezier_points[i].handle_left_type = 'AUTO'
+        s_cs.bezier_points[i].handle_right_type = 'AUTO'
+    cs_obj = bpy.data.objects.new("Coronary_Sinus", c_cs)
+    bpy.context.scene.collection.objects.link(cs_obj)
+    cs_obj.data.materials.append(m_vein)
+    cs_obj.parent = right_heart
+
     # Right Coronary Artery (RCA)
     c_rca = bpy.data.curves.new('Curve_RCA', 'CURVE')
     c_rca.dimensions = '3D'
@@ -446,6 +564,22 @@ def build_perfect_split_heart():
     bpy.context.scene.collection.objects.link(rca_obj)
     rca_obj.data.materials.append(m_art)
     rca_obj.parent = right_heart
+
+    # Right Ventricular Purkinje & Moderator Band
+    c_purk_r = bpy.data.curves.new('Curve_Purkinje_RV', 'CURVE')
+    c_purk_r.dimensions = '3D'
+    c_purk_r.bevel_depth = 0.022
+    s_purk_r = c_purk_r.splines.new('BEZIER')
+    s_purk_r.bezier_points.add(3)
+    pts_purk_r = [(-0.20, 0.0, 0.05), (-0.55, 0.05, -0.45), (-0.95, 0.05, -0.85), (-1.15, 0.10, -1.35)]
+    for i, pt in enumerate(pts_purk_r):
+        s_purk_r.bezier_points[i].co = pt
+        s_purk_r.bezier_points[i].handle_left_type = 'AUTO'
+        s_purk_r.bezier_points[i].handle_right_type = 'AUTO'
+    purk_r_obj = bpy.data.objects.new("RV_Purkinje_Fibers", c_purk_r)
+    bpy.context.scene.collection.objects.link(purk_r_obj)
+    purk_r_obj.data.materials.append(m_conduction)
+    purk_r_obj.parent = right_heart
 
     # Convert all curves and smooth meshes
     bpy.ops.object.select_all(action='DESELECT')
@@ -492,14 +626,14 @@ def build_perfect_split_heart():
     rim_obj.location = (0.5, 5.0, 3.5)
 
     # Save to high-res .blend file
-    blend_path = os.path.join(MODELS_DIR, "heart_realistic.blend")
+    blend_path = os.path.join(MODELS_DIR_PATH, "heart_realistic.blend")
     bpy.ops.wm.save_as_mainfile(filepath=blend_path)
     print(f"[HEART] Saved native .blend to {blend_path}")
 
     # Render Preview PNG
     bpy.context.scene.render.resolution_x = 1024
     bpy.context.scene.render.resolution_y = 768
-    preview_path = os.path.join(MODELS_DIR, "heart_blender_preview.png")
+    preview_path = os.path.join(MODELS_DIR_PATH, "heart_blender_preview.png")
     bpy.context.scene.render.filepath = preview_path
     bpy.ops.render.render(write_still=True)
     print(f"[HEART] Rendered preview -> {preview_path}")
@@ -517,4 +651,3 @@ def build_perfect_split_heart():
 
 if __name__ == '__main__':
     build_perfect_split_heart()
-
