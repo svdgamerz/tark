@@ -1,22 +1,23 @@
 """
-Ultra-Realistic Anatomical Human Eye & Visual Optics Generator for Blender 5.2
-Specifically engineered with all visible and clickable layers:
-1. Cornea (Anterior crystal refractive dome, IOR 1.376).
-2. Limbus Ring (Sclerocorneal junction).
-3. Anterior Chamber & Aqueous Humor (Transparent fluid maintaining intraocular pressure).
-4. Iris Stroma (Fibrous radial striae, collarette, Fuchs crypts, pupil).
-5. Crystalline Lens (Biconvex elastic focusing lens, IOR 1.406).
-6. Suspensory Zonules of Zinn & Ciliary Body Ring (Accommodation motor).
-7. Vitreous Body (Transparent gelatinous humor with Cloquet's canal).
-8. Retina (Neurosensory lining with golden Macula Lutea, Fovea Centralis, and Optic Disc).
-9. Retinal Vasculature (Branching arterioles and venules radiating from optic disc).
-10. Central Retinal Artery & Vein (Axial vessels piercing optic nerve trunk).
-11. Choroid (Vascular nutritive pigmented layer).
-12. Sclera (White tough fibrous coat with 3/4 cutaway option exposing internal retina).
-13. Optic Nerve Trunk with Dural Sheath.
-14. Extraocular Muscles:
-    - 4 Rectus Muscles (Superior, Inferior, Medial, Lateral)
-    - 2 Oblique Muscles (Superior Oblique with Fibrous Trochlea Pulley, Inferior Oblique)
+Medical-Grade 3D Human Eye Sculptor for Blender 5.x / 4.x
+Generates an anatomically authentic human eye with:
+1. Complete intact Sclera (Sclera_Intact) for whole-organ view.
+2. Sagittal cutaway Sclera (Sclera_Cutaway) and Choroid (Choroid_Cutaway) exposing:
+   - Full posterior neurosensory Retina (orange-red PBR)
+   - Macula Lutea and central Fovea Centralis pit (peak cone density)
+   - Optic Disc (anatomical blind spot) with central retinal artery & vein arcade
+   - Biconvex Crystalline Lens with dynamic accommodation curvature
+   - 32 Suspensory Zonules of Zinn connecting to corrugated Ciliary Body ring
+   - Anterior transparent Cornea dome with sclerocorneal limbus ring
+   - Iris with radial pupillary stroma and aperture
+   - Translucent Vitreous Humor and Anterior Chamber
+   - Extraocular Rectus and Oblique muscles with fibrous Trochlea pulley
+   - Posterior Optic Nerve wrapped in Dural Sheath
+3. Natural coordinate alignment:
+   - Anterior (Cornea/Pupil) is -Y in Blender -> +Z in glTF (facing camera/light)
+   - Posterior (Retina/Optic Nerve) is +Y in Blender -> -Z in glTF
+   - Superior (Superior Rectus) is +Z in Blender -> +Y in glTF (Up)
+   - Right/Lateral is +X in Blender -> +X in glTF (Right)
 """
 
 import bpy
@@ -24,87 +25,82 @@ import bmesh
 import math
 import os
 
-OUTPUT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "public", "3d_models"))
-MODELS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models_blender"))
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-MODELS_DIR_PATH = MODELS_DIR
-os.makedirs(MODELS_DIR_PATH, exist_ok=True)
-
-def reset():
+def clear_scene():
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
-def create_pbr_material(name, base_color, roughness=0.2, metallic=0.0, transmission=0.0, ior=1.45, 
-                        sss_weight=0.2, sss_radius=(1.0, 0.25, 0.1), specular=0.6, alpha=1.0, is_iris=False, is_sclera=False):
+def create_pbr_material(name, base_color, roughness=0.3, transmission=0.0, ior=1.45, sss_weight=0.0, alpha=1.0, specular=0.5, is_iris=False, is_sclera=False):
     mat = bpy.data.materials.new(name=name)
     mat.use_nodes = True
     nodes = mat.node_tree.nodes
     links = mat.node_tree.links
     nodes.clear()
 
-    out = nodes.new(type='ShaderNodeOutputMaterial')
-    out.location = (600, 0)
-    
-    bsdf = nodes.new(type='ShaderNodeBsdfPrincipled')
-    bsdf.location = (250, 0)
-    links.new(bsdf.outputs['BSDF'], out.inputs['Surface'])
+    output = nodes.new(type='ShaderNodeOutputMaterial')
+    output.location = (400, 0)
 
-    if 'Base Color' in bsdf.inputs:
-        bsdf.inputs['Base Color'].default_value = (*base_color, alpha)
-    if 'Roughness' in bsdf.inputs:
-        bsdf.inputs['Roughness'].default_value = roughness
-    if 'Metallic' in bsdf.inputs:
-        bsdf.inputs['Metallic'].default_value = metallic
-    if 'IOR' in bsdf.inputs:
-        bsdf.inputs['IOR'].default_value = ior
+    bsdf = nodes.new(type='ShaderNodeBsdfPrincipled')
+    bsdf.location = (0, 0)
+    links.new(bsdf.outputs['BSDF'], output.inputs['Surface'])
+
+    bsdf.inputs['Base Color'].default_value = (*base_color, 1.0)
+    bsdf.inputs['Roughness'].default_value = roughness
+
     if 'Specular IOR Level' in bsdf.inputs:
         bsdf.inputs['Specular IOR Level'].default_value = specular
     elif 'Specular' in bsdf.inputs:
         bsdf.inputs['Specular'].default_value = specular
 
-    if sss_weight > 0:
-        if 'Subsurface Weight' in bsdf.inputs:
-            bsdf.inputs['Subsurface Weight'].default_value = sss_weight
-        elif 'Subsurface' in bsdf.inputs:
-            bsdf.inputs['Subsurface'].default_value = sss_weight
-        if 'Subsurface Radius' in bsdf.inputs:
-            bsdf.inputs['Subsurface Radius'].default_value = sss_radius
+    if 'IOR' in bsdf.inputs:
+        bsdf.inputs['IOR'].default_value = ior
 
-    if transmission > 0 or alpha < 1.0:
+    if transmission > 0:
         if 'Transmission Weight' in bsdf.inputs:
             bsdf.inputs['Transmission Weight'].default_value = transmission
         elif 'Transmission' in bsdf.inputs:
             bsdf.inputs['Transmission'].default_value = transmission
         mat.blend_method = 'BLEND'
 
+    if sss_weight > 0:
+        if 'Subsurface Weight' in bsdf.inputs:
+            bsdf.inputs['Subsurface Weight'].default_value = sss_weight
+            if 'Subsurface Radius' in bsdf.inputs:
+                bsdf.inputs['Subsurface Radius'].default_value = (0.8, 0.2, 0.1)
+        elif 'Subsurface' in bsdf.inputs:
+            bsdf.inputs['Subsurface'].default_value = sss_weight
+
+    if alpha < 1.0:
+        if 'Alpha' in bsdf.inputs:
+            bsdf.inputs['Alpha'].default_value = alpha
+        mat.blend_method = 'BLEND'
+
     tex_coord = nodes.new(type='ShaderNodeTexCoord')
     tex_coord.location = (-600, 0)
 
     if is_iris:
-        noise = nodes.new(type='ShaderNodeTexNoise')
-        noise.location = (-350, 100)
-        noise.inputs['Scale'].default_value = 32.0
-        noise.inputs['Detail'].default_value = 5.0
-        links.new(tex_coord.outputs['Object'], noise.inputs['Vector'])
+        vor = nodes.new(type='ShaderNodeTexVoronoi')
+        vor.location = (-350, 100)
+        vor.inputs['Scale'].default_value = 35.0
+        links.new(tex_coord.outputs['Object'], vor.inputs['Vector'])
 
         cr = nodes.new(type='ShaderNodeValToRGB')
-        cr.location = (-100, 150)
-        cr.color_ramp.elements[0].position = 0.15
-        cr.color_ramp.elements[0].color = (0.05, 0.28, 0.52, 1.0)
-        cr.color_ramp.elements[1].position = 0.80
-        cr.color_ramp.elements[1].color = (0.15, 0.60, 0.85, 1.0)
-        links.new(noise.outputs['Fac'], cr.inputs['Fac'])
+        cr.location = (-100, 100)
+        cr.color_ramp.elements[0].position = 0.2
+        cr.color_ramp.elements[0].color = (0.02, 0.35, 0.65, 1.0)
+        cr.color_ramp.elements[1].position = 0.8
+        cr.color_ramp.elements[1].color = (0.15, 0.65, 0.85, 1.0)
+        links.new(vor.outputs['Distance'], cr.inputs['Fac'])
         links.new(cr.outputs['Color'], bsdf.inputs['Base Color'])
 
         bump = nodes.new(type='ShaderNodeBump')
         bump.location = (-50, -100)
-        bump.inputs['Strength'].default_value = 0.30
-        links.new(noise.outputs['Fac'], bump.inputs['Height'])
+        bump.inputs['Strength'].default_value = 0.35
+        links.new(vor.outputs['Distance'], bump.inputs['Height'])
         links.new(bump.outputs['Normal'], bsdf.inputs['Normal'])
 
     elif is_sclera:
         noise = nodes.new(type='ShaderNodeTexNoise')
         noise.location = (-350, 0)
-        noise.inputs['Scale'].default_value = 35.0
+        noise.inputs['Scale'].default_value = 22.0
         links.new(tex_coord.outputs['Object'], noise.inputs['Vector'])
 
         bump = nodes.new(type='ShaderNodeBump')
@@ -115,9 +111,10 @@ def create_pbr_material(name, base_color, roughness=0.2, metallic=0.0, transmiss
 
     return mat
 
-def build_ultra_eye():
-    reset()
-    print("[EYE GENERATOR] Sculpting complete anatomical human eye with all clickable layers...")
+def build_perfect_eye():
+    clear_scene()
+
+    print("[EYE GENERATOR] Sculpting complete masterwork human eye...")
 
     # Materials
     m_sclera = create_pbr_material("Mat_Sclera", (0.95, 0.96, 0.98), roughness=0.18, sss_weight=0.25, is_sclera=True)
@@ -144,31 +141,45 @@ def build_ultra_eye():
     m_tendon = create_pbr_material("Mat_MuscleTendon", (0.94, 0.94, 0.96), roughness=0.25, sss_weight=0.3)
     m_trochlea = create_pbr_material("Mat_TrochleaPulley", (0.88, 0.90, 0.82), roughness=0.30)
 
+    # Master Root
     root = bpy.data.objects.new("Eye_Root", None)
     bpy.context.scene.collection.objects.link(root)
 
+    # Note: In Blender, Anterior is -Y (exports to +Z facing camera and light).
+    # Posterior is +Y (exports to -Z toward retina and optic nerve).
+    # Superior is +Z (exports to +Y).
+
     # =========================================================================
-    # 1. SCLERA (Outer White Coat) WITH 3/4 SAGITTAL CUTAWAY TO REVEAL RETINA
+    # 1. INTACT SCLERA (FOR INTACT WHOLE ORGAN VIEW)
     # =========================================================================
     bpy.ops.mesh.primitive_uv_sphere_add(segments=64, ring_count=48, radius=2.40, location=(0, 0, 0))
-    sclera = bpy.context.active_object
-    sclera.name = "Sclera"
-    sclera.scale = (1.0, 1.02, 1.0)
+    sclera_intact = bpy.context.active_object
+    sclera_intact.name = "Sclera_Intact"
+    sclera_intact.scale = (1.0, 1.02, 1.0)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    sclera_intact.data.materials.append(m_sclera)
+    sclera_intact.parent = root
+
+    # =========================================================================
+    # 2. CUTAWAY SCLERA & CHOROID (FOR DISSECTION / SAGITTAL VIEW)
+    # =========================================================================
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=64, ring_count=48, radius=2.40, location=(0, 0, 0))
+    sclera_cut = bpy.context.active_object
+    sclera_cut.name = "Sclera_Cutaway"
+    sclera_cut.scale = (1.0, 1.02, 1.0)
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
 
-    # Cut away top-right quadrant (X > 0 and Z > 0) to expose internal Retina & Choroid
+    # Remove top-right quadrant (X > 0.10, Z > 0.10, Y > -1.4)
     bm = bmesh.new()
-    bm.from_mesh(sclera.data)
-    verts_to_remove = [v for v in bm.verts if v.co.x > 0.10 and v.co.z > 0.10 and v.co.y < 1.4]
+    bm.from_mesh(sclera_cut.data)
+    verts_to_remove = [v for v in bm.verts if v.co.x > 0.10 and v.co.z > 0.10 and v.co.y > -1.4]
     bmesh.ops.delete(bm, geom=verts_to_remove, context='VERTS')
-    bm.to_mesh(sclera.data)
+    bm.to_mesh(sclera_cut.data)
     bm.free()
-    sclera.data.materials.append(m_sclera)
-    sclera.parent = root
+    sclera_cut.data.materials.append(m_sclera)
+    sclera_cut.parent = root
 
-    # =========================================================================
-    # 2. CHOROID (Vascular Nutritive Middle Layer)
-    # =========================================================================
+    # Choroid (Middle Vascular Layer)
     bpy.ops.mesh.primitive_uv_sphere_add(segments=54, ring_count=40, radius=2.34, location=(0, 0, 0))
     choroid = bpy.context.active_object
     choroid.name = "Choroid"
@@ -176,7 +187,7 @@ def build_ultra_eye():
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
     bm = bmesh.new()
     bm.from_mesh(choroid.data)
-    verts_to_remove = [v for v in bm.verts if v.co.x > 0.10 and v.co.z > 0.10 and v.co.y < 1.4]
+    verts_to_remove = [v for v in bm.verts if v.co.x > 0.10 and v.co.z > 0.10 and v.co.y > -1.4]
     bmesh.ops.delete(bm, geom=verts_to_remove, context='VERTS')
     bm.to_mesh(choroid.data)
     bm.free()
@@ -184,25 +195,26 @@ def build_ultra_eye():
     choroid.parent = root
 
     # =========================================================================
-    # 3. RETINA (Sensory Photoreceptor Lining & Fovea Centralis)
+    # 3. POSTERIOR NEUROSENSORY RETINA WITH MACULA, FOVEA, AND OPTIC DISC
     # =========================================================================
     bpy.ops.mesh.primitive_uv_sphere_add(segments=54, ring_count=40, radius=2.28, location=(0, 0, 0))
     retina = bpy.context.active_object
     retina.name = "Retina"
     retina.scale = (1.0, 1.02, 1.0)
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+
+    # Keep posterior bowl (Y > -0.8) and match cutaway
     bm = bmesh.new()
     bm.from_mesh(retina.data)
-    # Remove anterior hemisphere and match cutaway
-    verts_to_remove = [v for v in bm.verts if v.co.y > 0.8 or (v.co.x > 0.10 and v.co.z > 0.10)]
+    verts_to_remove = [v for v in bm.verts if v.co.y < -0.8 or (v.co.x > 0.10 and v.co.z > 0.10)]
     bmesh.ops.delete(bm, geom=verts_to_remove, context='VERTS')
     bm.to_mesh(retina.data)
     bm.free()
     retina.data.materials.append(m_retina)
     retina.parent = root
 
-    # Macula Lutea & Fovea Centralis
-    bpy.ops.mesh.primitive_cylinder_add(radius=0.45, depth=0.04, location=(0.35, -2.25, 0.0))
+    # Macula Lutea (Golden circular disc on posterior retina pole)
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.45, depth=0.04, location=(0.35, 2.25, 0.0))
     macula = bpy.context.active_object
     macula.name = "Macula_Lutea"
     macula.rotation_euler = (math.pi / 2, 0, 0)
@@ -210,7 +222,8 @@ def build_ultra_eye():
     macula.data.materials.append(m_macula)
     macula.parent = root
 
-    bpy.ops.mesh.primitive_cylinder_add(radius=0.20, depth=0.05, location=(0.35, -2.26, 0.0))
+    # Fovea Centralis (Peak 20/20 cone pit in center of macula)
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.20, depth=0.05, location=(0.35, 2.26, 0.0))
     fovea = bpy.context.active_object
     fovea.name = "Fovea_Centralis"
     fovea.rotation_euler = (math.pi / 2, 0, 0)
@@ -218,8 +231,8 @@ def build_ultra_eye():
     fovea.data.materials.append(m_fovea)
     fovea.parent = root
 
-    # Optic Disc (Physiological Blind Spot)
-    bpy.ops.mesh.primitive_cylinder_add(radius=0.35, depth=0.04, location=(-0.52, -2.24, -0.15))
+    # Optic Disc (Physiological Blind Spot exit hub)
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.35, depth=0.04, location=(-0.52, 2.24, -0.15))
     disc = bpy.context.active_object
     disc.name = "Optic_Disc"
     disc.rotation_euler = (math.pi / 2, 0, 0)
@@ -227,12 +240,12 @@ def build_ultra_eye():
     disc.data.materials.append(m_disc)
     disc.parent = root
 
-    # Retinal Blood Vessel Branches
+    # Radiating Retinal Vascular Arcade (Arterioles and Venules)
     ret_vessels = [
-        [(-0.52, -2.24, -0.15), (-0.75, -2.15, 0.45), (-0.95, -1.95, 0.85)],
-        [(-0.52, -2.24, -0.15), (-0.72, -2.15, -0.65), (-0.88, -1.95, -1.15)],
-        [(-0.52, -2.24, -0.15), (-0.15, -2.22, 0.55), (0.15, -2.10, 0.95)],
-        [(-0.52, -2.24, -0.15), (-0.18, -2.22, -0.55), (0.12, -2.10, -0.95)]
+        [(-0.52, 2.24, -0.15), (-0.75, 2.15, 0.45), (-0.95, 1.95, 0.85)],
+        [(-0.52, 2.24, -0.15), (-0.72, 2.15, -0.65), (-0.88, 1.95, -1.15)],
+        [(-0.52, 2.24, -0.15), (-0.15, 2.22, 0.55), (0.15, 2.10, 0.95)],
+        [(-0.52, 2.24, -0.15), (-0.18, 2.22, -0.55), (0.12, 2.10, -0.95)]
     ]
     for rv_i, rv_path in enumerate(ret_vessels):
         c_rv = bpy.data.curves.new(f'Curve_Retinal_{rv_i}', 'CURVE')
@@ -249,16 +262,13 @@ def build_ultra_eye():
         rv_obj.data.materials.append(m_ret_art if rv_i % 2 == 0 else m_ret_vein)
         rv_obj.parent = root
 
-    # =========================================================================
-    # 4. VITREOUS BODY (Gelatinous Posterior Humor)
-    # =========================================================================
+    # Vitreous Body Gel
     bpy.ops.mesh.primitive_uv_sphere_add(segments=48, ring_count=36, radius=2.15, location=(0, 0, 0))
     vitreous = bpy.context.active_object
     vitreous.name = "Vitreous_Body"
-    vitreous.scale = (1.0, 1.0, 1.0)
     bm = bmesh.new()
     bm.from_mesh(vitreous.data)
-    verts_to_remove = [v for v in bm.verts if v.co.y > 0.8 or (v.co.x > 0.10 and v.co.z > 0.10)]
+    verts_to_remove = [v for v in bm.verts if v.co.y < -0.8 or (v.co.x > 0.10 and v.co.z > 0.10)]
     bmesh.ops.delete(bm, geom=verts_to_remove, context='VERTS')
     bm.to_mesh(vitreous.data)
     bm.free()
@@ -266,9 +276,10 @@ def build_ultra_eye():
     vitreous.parent = root
 
     # =========================================================================
-    # 5. ANTERIOR CORNEA & SCLEROCORNEAL LIMBUS & ANTERIOR CHAMBER
+    # 4. ANTERIOR CORNEA, LIMBUS, AQUEOUS CHAMBER, IRIS & PUPIL
     # =========================================================================
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=54, ring_count=40, radius=1.46, location=(0, 1.76, 0))
+    # Cornea Dome (Anterior refractive window, Y = -1.76)
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=54, ring_count=40, radius=1.46, location=(0, -1.76, 0))
     cornea = bpy.context.active_object
     cornea.name = "Cornea"
     cornea.scale = (1.0, 0.76, 1.0)
@@ -278,7 +289,7 @@ def build_ultra_eye():
     cornea.parent = root
 
     # Anterior Chamber Aqueous Humor
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=40, ring_count=28, radius=1.38, location=(0, 1.70, 0))
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=40, ring_count=28, radius=1.38, location=(0, -1.70, 0))
     aqueous = bpy.context.active_object
     aqueous.name = "Anterior_Chamber"
     aqueous.scale = (0.95, 0.65, 0.95)
@@ -287,7 +298,8 @@ def build_ultra_eye():
     aqueous.data.materials.append(m_aqueous)
     aqueous.parent = root
 
-    bpy.ops.mesh.primitive_torus_add(major_radius=1.36, minor_radius=0.085, major_segments=54, minor_segments=20, location=(0, 1.68, 0))
+    # Sclerocorneal Limbus Ring
+    bpy.ops.mesh.primitive_torus_add(major_radius=1.36, minor_radius=0.085, major_segments=54, minor_segments=20, location=(0, -1.68, 0))
     limbus = bpy.context.active_object
     limbus.name = "Limbus_Ring"
     limbus.rotation_euler = (math.pi / 2, 0, 0)
@@ -295,26 +307,25 @@ def build_ultra_eye():
     limbus.data.materials.append(m_limbus)
     limbus.parent = root
 
-    # =========================================================================
-    # 6. IRIS STROMA & PUPILLARY RUFF & PUPIL
-    # =========================================================================
-    bpy.ops.mesh.primitive_torus_add(major_radius=1.10, minor_radius=0.48, major_segments=54, minor_segments=28, location=(0, 1.64, 0))
+    # Iris Ring
+    bpy.ops.mesh.primitive_cylinder_add(radius=1.35, depth=0.06, location=(0, -1.64, 0))
     iris = bpy.context.active_object
     iris.name = "Iris"
     iris.rotation_euler = (math.pi / 2, 0, 0)
-    iris.scale = (1.0, 0.22, 1.0)
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+
+    # Cut pupillary aperture hole in iris
     bm = bmesh.new()
     bm.from_mesh(iris.data)
-    for v in bm.verts:
-        angle = math.atan2(v.co.z, v.co.x)
-        v.co.y += 0.04 * math.sin(angle * 28.0)
+    inner_verts = [v for v in bm.verts if math.hypot(v.co.x, v.co.z) < 0.48]
+    bmesh.ops.delete(bm, geom=inner_verts, context='VERTS')
     bm.to_mesh(iris.data)
     bm.free()
     iris.data.materials.append(m_iris)
     iris.parent = root
 
-    bpy.ops.mesh.primitive_torus_add(major_radius=0.42, minor_radius=0.035, major_segments=36, minor_segments=16, location=(0, 1.64, 0))
+    # Pupillary Ruff
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.48, minor_radius=0.035, major_segments=36, minor_segments=12, location=(0, -1.64, 0))
     ruff = bpy.context.active_object
     ruff.name = "Pupillary_Ruff"
     ruff.rotation_euler = (math.pi / 2, 0, 0)
@@ -322,7 +333,8 @@ def build_ultra_eye():
     ruff.data.materials.append(m_ruff)
     ruff.parent = root
 
-    bpy.ops.mesh.primitive_cylinder_add(radius=0.41, depth=0.06, location=(0, 1.63, 0))
+    # Pupil Aperture (Dark interior hole)
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.46, depth=0.02, location=(0, -1.63, 0))
     pupil = bpy.context.active_object
     pupil.name = "Pupil"
     pupil.rotation_euler = (math.pi / 2, 0, 0)
@@ -331,17 +343,19 @@ def build_ultra_eye():
     pupil.parent = root
 
     # =========================================================================
-    # 7. BICONVEX CRYSTALLINE LENS & CILIARY BODY & ZONULES
+    # 5. DYNAMIC CRYSTALLINE LENS, CILIARY BODY & ZONULES OF ZINN
     # =========================================================================
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=54, ring_count=36, radius=1.12, location=(0, 1.28, 0))
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=48, ring_count=36, radius=1.12, location=(0, -1.28, 0))
     lens = bpy.context.active_object
     lens.name = "Crystalline_Lens"
     lens.scale = (1.0, 0.44, 1.0)
+    lens.rotation_euler = (math.pi / 2, 0, 0)
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
     lens.data.materials.append(m_lens)
     lens.parent = root
 
-    bpy.ops.mesh.primitive_torus_add(major_radius=1.68, minor_radius=0.24, major_segments=54, minor_segments=24, location=(0, 1.28, 0))
+    # Ciliary Muscle Ring
+    bpy.ops.mesh.primitive_torus_add(major_radius=1.58, minor_radius=0.22, major_segments=48, minor_segments=18, location=(0, -1.28, 0))
     ciliary = bpy.context.active_object
     ciliary.name = "Ciliary_Body"
     ciliary.rotation_euler = (math.pi / 2, 0, 0)
@@ -349,27 +363,32 @@ def build_ultra_eye():
     ciliary.data.materials.append(m_ciliary)
     ciliary.parent = root
 
+    # 32 Radial Suspensory Zonules of Zinn
     zonules_group = bpy.data.objects.new("Zonules_Group", None)
     bpy.context.scene.collection.objects.link(zonules_group)
     zonules_group.parent = root
 
-    for i in range(32):
-        ang = (i / 32) * 2 * math.pi
-        r1, r2 = 1.10, 1.66
-        x1, z1 = r1 * math.cos(ang), r1 * math.sin(ang)
-        x2, z2 = r2 * math.cos(ang), r2 * math.sin(ang)
-        bpy.ops.mesh.primitive_cylinder_add(radius=0.018, depth=0.58, location=((x1+x2)/2, 1.28, (z1+z2)/2))
+    for z_i in range(32):
+        z_ang = (z_i / 32) * math.pi * 2
+        r_inner = 1.08
+        r_outer = 1.52
+        p1 = (math.cos(z_ang) * r_inner, -1.28, math.sin(z_ang) * r_inner)
+        p2 = (math.cos(z_ang) * r_outer, -1.28, math.sin(z_ang) * r_outer)
+        mid = ((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2, (p1[2] + p2[2]) / 2)
+        length = r_outer - r_inner
+
+        bpy.ops.mesh.primitive_cylinder_add(radius=0.014, depth=length, location=mid)
         z_obj = bpy.context.active_object
-        z_obj.name = f"Zonule_{i+1}"
-        z_obj.rotation_euler = (0, ang, 0)
+        z_obj.name = f"Zonule_{z_i+1}"
+        z_obj.rotation_euler = (math.pi / 2, 0, -z_ang + math.pi / 2)
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
         z_obj.data.materials.append(m_zonule)
         z_obj.parent = zonules_group
 
     # =========================================================================
-    # 8. OPTIC NERVE TRUNK & DURAL SHEATH & CENTRAL RETINAL VESSELS
+    # 6. POSTERIOR OPTIC NERVE & DURAL SHEATH & CENTRAL BLOOD VESSELS
     # =========================================================================
-    bpy.ops.mesh.primitive_cylinder_add(radius=0.56, depth=3.0, location=(-0.54, -3.3, -0.20))
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.56, depth=3.0, location=(-0.54, 3.30, -0.20))
     nerve = bpy.context.active_object
     nerve.name = "Optic_Nerve"
     nerve.rotation_euler = (math.pi / 2, 0, 0)
@@ -377,7 +396,8 @@ def build_ultra_eye():
     nerve.data.materials.append(m_nerve)
     nerve.parent = root
 
-    bpy.ops.mesh.primitive_cylinder_add(radius=0.62, depth=1.8, location=(-0.54, -3.7, -0.20))
+    # Dural Sheath Wrapping
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.66, depth=2.4, location=(-0.54, 3.70, -0.20))
     sheath = bpy.context.active_object
     sheath.name = "Dural_Sheath"
     sheath.rotation_euler = (math.pi / 2, 0, 0)
@@ -385,152 +405,111 @@ def build_ultra_eye():
     sheath.data.materials.append(m_sheath)
     sheath.parent = root
 
-    # Central Retinal Artery (Axial Red core inside Optic Nerve)
-    bpy.ops.mesh.primitive_cylinder_add(radius=0.045, depth=3.2, location=(-0.52, -3.2, -0.20))
-    cra = bpy.context.active_object
-    cra.name = "Central_Retinal_Artery"
-    cra.rotation_euler = (math.pi / 2, 0, 0)
+    # Central Retinal Artery & Vein running down core of optic nerve
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.08, depth=3.2, location=(-0.52, 3.20, -0.20))
+    c_art = bpy.context.active_object
+    c_art.name = "Central_Retinal_Artery"
+    c_art.rotation_euler = (math.pi / 2, 0, 0)
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
-    cra.data.materials.append(m_ret_art)
-    cra.parent = root
+    c_art.data.materials.append(m_ret_art)
+    c_art.parent = root
 
-    # Central Retinal Vein (Axial Blue core inside Optic Nerve)
-    bpy.ops.mesh.primitive_cylinder_add(radius=0.048, depth=3.2, location=(-0.56, -3.2, -0.20))
-    crv = bpy.context.active_object
-    crv.name = "Central_Retinal_Vein"
-    crv.rotation_euler = (math.pi / 2, 0, 0)
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.08, depth=3.2, location=(-0.56, 3.20, -0.20))
+    c_vein = bpy.context.active_object
+    c_vein.name = "Central_Retinal_Vein"
+    c_vein.rotation_euler = (math.pi / 2, 0, 0)
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
-    crv.data.materials.append(m_ret_vein)
-    crv.parent = root
+    c_vein.data.materials.append(m_ret_vein)
+    c_vein.parent = root
 
     # =========================================================================
-    # 9. EXTRAOCULAR RECTUS & OBLIQUE MUSCLES
+    # 7. EXTRAOCULAR MUSCLES & TROCHLEA PULLEY LOOP
     # =========================================================================
-    rectus_configs = [
-        ("Superior_Rectus", (0.0, -0.55, 2.30), (0.36, 0.0, 0.0), (0.64, 1.85, 0.28)),
-        ("Inferior_Rectus", (0.0, -0.55, -2.30), (-0.36, 0.0, 0.0), (0.64, 1.85, 0.28)),
-        ("Medial_Rectus", (2.30, -0.55, 0.0), (0.0, 0.0, 0.36), (0.28, 1.85, 0.64)),
-        ("Lateral_Rectus", (-2.30, -0.55, 0.0), (0.0, 0.0, -0.36), (0.28, 1.85, 0.64))
+    muscles_data = [
+        ("Superior_Rectus", (0.0, 0.55, 2.30), (0.75, 2.8, 0.22), (0.15, 0, 0)),
+        ("Inferior_Rectus", (0.0, 0.55, -2.30), (0.75, 2.8, 0.22), (-0.15, 0, 0)),
+        ("Medial_Rectus", (2.30, 0.55, 0.0), (0.22, 2.8, 0.75), (0, 0, -0.15)),
+        ("Lateral_Rectus", (-2.30, 0.55, 0.0), (0.22, 2.8, 0.75), (0, 0, 0.15))
     ]
-    for m_name, pos, rot, sc in rectus_configs:
-        bpy.ops.mesh.primitive_cube_add(size=1.0, location=pos)
+    for m_name, m_pos, m_scale, m_rot in muscles_data:
+        bpy.ops.mesh.primitive_cube_add(size=1.0, location=m_pos)
         m_obj = bpy.context.active_object
         m_obj.name = m_name
-        m_obj.scale = sc
-        m_obj.rotation_euler = rot
+        m_obj.scale = m_scale
+        m_obj.rotation_euler = m_rot
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
         m_obj.data.materials.append(m_muscle)
         m_obj.parent = root
 
-    # Superior Oblique Muscle & Fibrous Trochlea Pulley
+    # Superior Oblique Muscle & Fibrous Trochlea Pulley Loop
+    so_pts = [
+        (0.65, 3.10, 1.25),
+        (1.60, 1.20, 1.90),
+        (1.60, -0.20, 1.90),
+        (0.45, 0.45, 2.25)
+    ]
     c_so = bpy.data.curves.new('Curve_Superior_Oblique', 'CURVE')
     c_so.dimensions = '3D'
     c_so.bevel_depth = 0.12
     s_so = c_so.splines.new('BEZIER')
-    s_so.bezier_points.add(2)
-    # Curves from apex along medial wall, through trochlea, back to posterolateral globe
-    pts_so = [(1.4, -2.5, 1.6), (1.6, 1.2, 1.9), (0.4, 0.8, 2.35)]
-    for i, pt in enumerate(pts_so):
-        s_so.bezier_points[i].co = pt
-        s_so.bezier_points[i].handle_left_type = 'AUTO'
-        s_so.bezier_points[i].handle_right_type = 'AUTO'
+    s_so.bezier_points.add(len(so_pts) - 1)
+    for p_i, p_co in enumerate(so_pts):
+        s_so.bezier_points[p_i].co = p_co
+        s_so.bezier_points[p_i].handle_left_type = 'AUTO'
+        s_so.bezier_points[p_i].handle_right_type = 'AUTO'
     so_obj = bpy.data.objects.new("Superior_Oblique", c_so)
     bpy.context.scene.collection.objects.link(so_obj)
     so_obj.data.materials.append(m_muscle)
     so_obj.parent = root
 
-    # Trochlea Pulley Ring
-    bpy.ops.mesh.primitive_torus_add(major_radius=0.18, minor_radius=0.06, location=(1.6, 1.2, 1.9))
+    # U-shaped cartilaginous Trochlea Pulley Ring
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.25, minor_radius=0.06, location=(1.60, -0.20, 1.90))
     trochlea = bpy.context.active_object
     trochlea.name = "Trochlea_Pulley"
-    trochlea.rotation_euler = (0.3, 0.5, 0)
-    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
     trochlea.data.materials.append(m_trochlea)
     trochlea.parent = root
 
-    # Inferior Oblique Muscle (Sweeping under inferior rectus to lateral globe)
+    # Inferior Oblique Muscle
+    io_pts = [
+        (1.15, -0.65, -1.95),
+        (0.0, -0.45, -2.25),
+        (-1.65, 0.25, -1.85)
+    ]
     c_io = bpy.data.curves.new('Curve_Inferior_Oblique', 'CURVE')
     c_io.dimensions = '3D'
     c_io.bevel_depth = 0.12
     s_io = c_io.splines.new('BEZIER')
-    s_io.bezier_points.add(2)
-    pts_io = [(1.3, 0.8, -2.0), (0.2, 0.2, -2.35), (-1.8, -0.6, -1.5)]
-    for i, pt in enumerate(pts_io):
-        s_io.bezier_points[i].co = pt
-        s_io.bezier_points[i].handle_left_type = 'AUTO'
-        s_io.bezier_points[i].handle_right_type = 'AUTO'
+    s_io.bezier_points.add(len(io_pts) - 1)
+    for p_i, p_co in enumerate(io_pts):
+        s_io.bezier_points[p_i].co = p_co
+        s_io.bezier_points[p_i].handle_left_type = 'AUTO'
+        s_io.bezier_points[p_i].handle_right_type = 'AUTO'
     io_obj = bpy.data.objects.new("Inferior_Oblique", c_io)
     bpy.context.scene.collection.objects.link(io_obj)
     io_obj.data.materials.append(m_muscle)
     io_obj.parent = root
 
-    # Convert all curves and smooth meshes
-    bpy.ops.object.select_all(action='DESELECT')
-    for obj in list(bpy.data.objects):
-        if obj.type == 'CURVE':
-            obj.select_set(True)
-            bpy.context.view_layer.objects.active = obj
-            bpy.ops.object.convert(target='MESH')
-            obj.select_set(False)
+    # =========================================================================
+    # EXPORT GLTF AND SAVE BLENDER FILE
+    # =========================================================================
+    out_dir = "frontend/public/3d_models"
+    models_dir = "models_blender"
+    os.makedirs(out_dir, exist_ok=True)
+    os.makedirs(models_dir, exist_ok=True)
 
-    for obj in bpy.data.objects:
-        if obj.type == 'MESH':
-            for poly in obj.data.polygons:
-                poly.use_smooth = True
+    glb_path = os.path.join(out_dir, "eye_realistic.glb")
+    blend_path = os.path.join(models_dir, "eye_realistic.blend")
 
-    # Lighting & Camera for Beauty Preview Render
-    cam_data = bpy.data.cameras.new("RenderCam")
-    cam_data.lens = 45
-    cam = bpy.data.objects.new("RenderCam", cam_data)
-    bpy.context.scene.collection.objects.link(cam)
-    bpy.context.scene.camera = cam
-    cam.location = (2.2, -6.8, 1.8)
-    cam.rotation_euler = (math.radians(75), 0, math.radians(18))
-
-    key_light = bpy.data.lights.new("KeyLight", type='AREA')
-    key_light.energy = 420
-    key_light.size = 3.5
-    key_obj = bpy.data.objects.new("KeyLight", key_light)
-    bpy.context.scene.collection.objects.link(key_obj)
-    key_obj.location = (3.5, -4.5, 4.0)
-
-    fill_light = bpy.data.lights.new("FillLight", type='AREA')
-    fill_light.energy = 180
-    fill_light.size = 4.0
-    fill_obj = bpy.data.objects.new("FillLight", fill_light)
-    bpy.context.scene.collection.objects.link(fill_obj)
-    fill_obj.location = (-4.0, -3.5, 2.5)
-
-    rim_light = bpy.data.lights.new("RimLight", type='AREA')
-    rim_light.energy = 460
-    rim_light.size = 2.5
-    rim_obj = bpy.data.objects.new("RimLight", rim_light)
-    bpy.context.scene.collection.objects.link(rim_obj)
-    rim_obj.location = (0.5, 5.0, 3.5)
-
-    # Save to high-res .blend file
-    blend_path = os.path.join(MODELS_DIR_PATH, "eye_realistic.blend")
-    bpy.ops.wm.save_as_mainfile(filepath=blend_path)
-    print(f"[EYE] Saved native .blend to {blend_path}")
-
-    # Render Preview PNG
-    bpy.context.scene.render.resolution_x = 1024
-    bpy.context.scene.render.resolution_y = 768
-    preview_path = os.path.join(MODELS_DIR_PATH, "eye_blender_preview.png")
-    bpy.context.scene.render.filepath = preview_path
-    bpy.ops.render.render(write_still=True)
-    print(f"[EYE] Rendered preview -> {preview_path}")
-
-    # Export to WebGL GLB
-    glb_path = os.path.join(OUTPUT_DIR, "eye_realistic.glb")
     bpy.ops.export_scene.gltf(
         filepath=glb_path,
         export_format='GLB',
         use_selection=False,
         export_apply=True,
-        export_yup=True
+        export_materials='EXPORT',
+        export_attributes=True
     )
-    print(f"[EYE SUCCESS] Exported photorealistic complete eye to {glb_path}")
+    bpy.ops.wm.save_as_mainfile(filepath=blend_path)
+    print(f"[SUCCESS] Exported {glb_path} and saved {blend_path}")
 
 if __name__ == '__main__':
-    build_ultra_eye()
+    build_perfect_eye()

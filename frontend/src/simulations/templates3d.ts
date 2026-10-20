@@ -3137,6 +3137,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       // Load Realistic Medical-Grade Blender GLTF Heart
       const gltfLoader = new GLTFLoader()
       let realisticHeartRoot: THREE.Group | null = null
+      let blenderAnterior: THREE.Object3D | null = null
       let blenderLeft: THREE.Object3D | null = null
       let blenderRight: THREE.Object3D | null = null
 
@@ -3148,8 +3149,10 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           realisticHeartRoot.position.set(0, -0.2, 0)
           heartRig.add(realisticHeartRoot)
 
+          blenderAnterior = realisticHeartRoot.getObjectByName('Anterior_Heart_Cover') || null
           blenderLeft = realisticHeartRoot.getObjectByName('Left_Heart') || null
           blenderRight = realisticHeartRoot.getObjectByName('Right_Heart') || null
+
           if (blenderLeft) {
             blenderLeft.scale.setScalar(1.35)
             blenderLeft.position.set(0, -0.2, 0)
@@ -3204,17 +3207,16 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
               child.castShadow = true
               child.receiveShadow = true
               const n = child.name.toLowerCase()
-              if (n.includes('aortic_cusp') || n.includes('aortic_valve')) registerPart(child, 'aortic_valve')
-              else if (n.includes('pulmonary_cusp') || n.includes('pulmonary_valve')) registerPart(child, 'pulmonary_valve')
-              else if (n.includes('sa_node')) registerPart(child, 'sa_node')
-              else if (n.includes('av_node')) registerPart(child, 'av_node')
-              else if (n.includes('purkinje')) registerPart(child, 'purkinje')
-              else if (n.includes('circumflex') || n.includes('lcx')) registerPart(child, 'circumflex')
-              else if (n.includes('coronary_sinus') || n.includes('curve_cs')) registerPart(child, 'coronary_sinus')
-              else if (n.includes('fossa_ovalis')) registerPart(child, 'fossa_ovalis')
+              if (n.includes('aortic_cusp') || n.includes('aortic_valve')) registerPart(child, 'aorta')
+              else if (n.includes('pulmonary_cusp') || n.includes('pulmonary_valve')) registerPart(child, 'pulmonary')
+              else if (n.includes('sa_node') || n.includes('av_node')) registerPart(child, 'sanode')
+              else if (n.includes('purkinje')) registerPart(child, 'sanode')
+              else if (n.includes('circumflex') || n.includes('lcx')) registerPart(child, 'coronary')
+              else if (n.includes('coronary_sinus') || n.includes('curve_cs')) registerPart(child, 'coronary')
+              else if (n.includes('fossa_ovalis')) registerPart(child, 'ra')
               else if (n.includes('mitral') || n.includes('chord')) registerPart(child, 'mitral')
               else if (n.includes('tricuspid')) registerPart(child, 'tricuspid')
-              else if (n.includes('coronary') || n.includes('lad') || n.includes('rca')) registerPart(child, 'coronary')
+              else if (n.includes('coronary') || n.includes('lad') || n.includes('rca') || n.includes('gcv') || n.includes('fat') || n.includes('sulcus')) registerPart(child, 'coronary')
               else if (n.includes('left_ventricle') || n.includes('lv_')) registerPart(child, 'lv')
               else if (n.includes('right_ventricle') || n.includes('rv_')) registerPart(child, 'rv')
               else if (n.includes('left_atrium') || n.includes('left_auricle') || n.includes('pv')) registerPart(child, 'la')
@@ -3225,6 +3227,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
             }
           }
 
+          if (blenderAnterior) blenderAnterior.traverse(setupHeartChild)
           if (blenderLeft) blenderLeft.traverse(setupHeartChild)
           if (blenderRight) blenderRight.traverse(setupHeartChild)
           realisticHeartRoot.traverse(setupHeartChild)
@@ -3363,6 +3366,19 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         leftHeartGroup.rotation.y = -splitProgress * 0.18
         leftHeartGroup.position.z = -splitProgress * 0.2
 
+        // Anterior Heart Cover: Seamlessly covers whole heart when intact, fades forward during coronal split
+        if (blenderAnterior) {
+          blenderAnterior.visible = splitProgress < 0.85
+          blenderAnterior.position.z = splitProgress * 1.6
+          blenderAnterior.traverse((child) => {
+            if (child instanceof THREE.Mesh && child.material) {
+              const mat = child.material as THREE.MeshStandardMaterial
+              mat.transparent = true
+              mat.opacity = Math.max(0, 1.0 - splitProgress * 2.0)
+            }
+          })
+        }
+
         // When realistic Blender model is present, prevent procedural fallback meshes from ever reappearing
         if (!realisticHeartRoot) {
           // Anterior ventricle shells fade smoothly as coronal interior opens (procedural fallback only)
@@ -3438,6 +3454,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
             ? 1.0 - Math.sin((cyclePhase - Math.PI * 0.4) * 1.25) * 0.14
             : 1.0 + Math.sin(cyclePhase) * 0.04
 
+          if (blenderAnterior) blenderAnterior.scale.set(1.35 * ventScale, 1.35 * (2 - ventScale), 1.35 * ventScale)
           if (blenderLeft) blenderLeft.scale.set(1.35 * ventScale, 1.35 * (2 - ventScale), 1.35 * ventScale)
           if (blenderRight) blenderRight.scale.set(1.35 * ventScale, 1.35 * (2 - ventScale), 1.35 * ventScale)
 
@@ -5780,14 +5797,17 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         '/3d_models/eye_realistic.glb',
         (gltf) => {
           realisticEyeRoot = gltf.scene
-          realisticEyeRoot.scale.setScalar(1.28)
-          realisticEyeRoot.rotation.y = Math.PI
+          realisticEyeRoot.scale.setScalar(1.30)
+          realisticEyeRoot.rotation.set(0, 0, 0)
           realisticEyeRoot.position.set(0, 0, 0)
           eyeRig.add(realisticEyeRoot)
 
-          // Hide low-poly procedural fallback meshes
+          // Permanently hide low-poly procedural fallback meshes
           scleraMesh.visible = false
           vesselsGroup.visible = false
+          cutawayScleraMesh.visible = false
+          choroidMesh.visible = false
+          vitreousMesh.visible = false
           corneaMesh.visible = false
           limbusMesh.visible = false
           irisMesh.visible = false
@@ -5799,6 +5819,15 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
           foveaMesh.visible = false
           nerveMesh.visible = false
           arteryMesh.visible = false
+
+          // Set initial visibility of intact vs cutaway sclera
+          const isSplitInit = params.splitView >= 0.5
+          const bScleraIntact = realisticEyeRoot.getObjectByName('Sclera_Intact')
+          const bScleraCut = realisticEyeRoot.getObjectByName('Sclera_Cutaway')
+          const bChoroid = realisticEyeRoot.getObjectByName('Choroid')
+          if (bScleraIntact) bScleraIntact.visible = !isSplitInit
+          if (bScleraCut) bScleraCut.visible = isSplitInit
+          if (bChoroid) bChoroid.visible = isSplitInit
 
           realisticEyeRoot.traverse((child) => {
             if (child instanceof THREE.Mesh) {
@@ -5865,11 +5894,26 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
         // Sclera and Sagittal section toggle (splitView)
         const isSplit = params.splitView >= 0.5
-        scleraMesh.visible = !isSplit
-        vesselsGroup.visible = !isSplit
-        cutawayScleraMesh.visible = isSplit
-        choroidMesh.visible = isSplit
-        vitreousMesh.visible = isSplit
+        if (realisticEyeRoot) {
+          const bScleraIntact = realisticEyeRoot.getObjectByName('Sclera_Intact')
+          const bScleraCut = realisticEyeRoot.getObjectByName('Sclera_Cutaway')
+          const bChoroid = realisticEyeRoot.getObjectByName('Choroid')
+          if (bScleraIntact) bScleraIntact.visible = !isSplit
+          if (bScleraCut) bScleraCut.visible = isSplit
+          if (bChoroid) bChoroid.visible = isSplit
+
+          scleraMesh.visible = false
+          vesselsGroup.visible = false
+          cutawayScleraMesh.visible = false
+          choroidMesh.visible = false
+          vitreousMesh.visible = false
+        } else {
+          scleraMesh.visible = !isSplit
+          vesselsGroup.visible = !isSplit
+          cutawayScleraMesh.visible = isSplit
+          choroidMesh.visible = isSplit
+          vitreousMesh.visible = isSplit
+        }
 
         let focalZ = -3.1 // Normal emmetropia
 
