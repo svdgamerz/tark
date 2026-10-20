@@ -461,10 +461,48 @@ def build_perfect_split_heart():
             for poly in obj.data.polygons:
                 poly.use_smooth = True
 
+    # Lighting & Camera for Beauty Preview Render
+    cam_data = bpy.data.cameras.new("RenderCam")
+    cam_data.lens = 45
+    cam = bpy.data.objects.new("RenderCam", cam_data)
+    bpy.context.scene.collection.objects.link(cam)
+    bpy.context.scene.camera = cam
+    cam.location = (2.2, -6.8, 1.8)
+    cam.rotation_euler = (math.radians(75), 0, math.radians(18))
+
+    key_light = bpy.data.lights.new("KeyLight", type='AREA')
+    key_light.energy = 420
+    key_light.size = 3.5
+    key_obj = bpy.data.objects.new("KeyLight", key_light)
+    bpy.context.scene.collection.objects.link(key_obj)
+    key_obj.location = (3.5, -4.5, 4.0)
+
+    fill_light = bpy.data.lights.new("FillLight", type='AREA')
+    fill_light.energy = 180
+    fill_light.size = 4.0
+    fill_obj = bpy.data.objects.new("FillLight", fill_light)
+    bpy.context.scene.collection.objects.link(fill_obj)
+    fill_obj.location = (-4.0, -3.5, 2.5)
+
+    rim_light = bpy.data.lights.new("RimLight", type='AREA')
+    rim_light.energy = 460
+    rim_light.size = 2.5
+    rim_obj = bpy.data.objects.new("RimLight", rim_light)
+    bpy.context.scene.collection.objects.link(rim_obj)
+    rim_obj.location = (0.5, 5.0, 3.5)
+
     # Save to high-res .blend file
     blend_path = os.path.join(MODELS_DIR, "heart_realistic.blend")
     bpy.ops.wm.save_as_mainfile(filepath=blend_path)
     print(f"[HEART] Saved native .blend to {blend_path}")
+
+    # Render Preview PNG
+    bpy.context.scene.render.resolution_x = 1024
+    bpy.context.scene.render.resolution_y = 768
+    preview_path = os.path.join(MODELS_DIR, "heart_blender_preview.png")
+    bpy.context.scene.render.filepath = preview_path
+    bpy.ops.render.render(write_still=True)
+    print(f"[HEART] Rendered preview -> {preview_path}")
 
     # Export to WebGL GLB
     glb_path = os.path.join(OUTPUT_DIR, "heart_realistic.glb")
@@ -479,3 +517,4 @@ def build_perfect_split_heart():
 
 if __name__ == '__main__':
     build_perfect_split_heart()
+

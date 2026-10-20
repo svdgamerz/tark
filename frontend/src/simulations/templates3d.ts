@@ -2239,22 +2239,32 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         }
       }
 
-      const handleDblClick = (e: MouseEvent) => {
-        triggerDissectionAtPoint(e.clientX, e.clientY)
+      let ptrStartX = 0
+      let ptrStartY = 0
+      const handlePointerDown = (e: PointerEvent) => {
+        ptrStartX = e.clientX
+        ptrStartY = e.clientY
       }
 
-      let lastTouchTime = 0
-      const handleTouchEnd = (e: TouchEvent) => {
-        const now = performance.now()
-        if (now - lastTouchTime < 340 && e.changedTouches.length > 0) {
-          const t = e.changedTouches[0]
-          triggerDissectionAtPoint(t.clientX, t.clientY)
+      const handlePointerUp = (e: PointerEvent) => {
+        const dist = Math.hypot(e.clientX - ptrStartX, e.clientY - ptrStartY)
+        if (dist < 6) {
+          triggerDissectionAtPoint(e.clientX, e.clientY)
         }
-        lastTouchTime = now
       }
 
-      renderer.domElement.addEventListener('dblclick', handleDblClick)
-      renderer.domElement.addEventListener('touchend', handleTouchEnd)
+      const handlePointerMove = (e: PointerEvent) => {
+        const rect = renderer.domElement.getBoundingClientRect()
+        pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+        raycaster.setFromCamera(pointer, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, false)
+        renderer.domElement.style.cursor = hits.length > 0 ? 'pointer' : 'grab'
+      }
+
+      renderer.domElement.addEventListener('pointerdown', handlePointerDown)
+      renderer.domElement.addEventListener('pointerup', handlePointerUp)
+      renderer.domElement.addEventListener('pointermove', handlePointerMove)
 
       // Animation Loop
       const animate = () => {
@@ -2299,8 +2309,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         dispose: () => {
           cancelAnimationFrame(animId)
           window.removeEventListener('resize', handleResize)
-          renderer.domElement.removeEventListener('dblclick', handleDblClick)
-          renderer.domElement.removeEventListener('touchend', handleTouchEnd)
+          renderer.domElement.removeEventListener('pointerdown', handlePointerDown)
+          renderer.domElement.removeEventListener('pointerup', handlePointerUp)
+          renderer.domElement.removeEventListener('pointermove', handlePointerMove)
           renderer.dispose()
           if (container.contains(renderer.domElement)) {
             container.removeChild(renderer.domElement)
@@ -5108,22 +5119,32 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         }
       }
 
-      const handleDblClick = (e: MouseEvent) => {
-        triggerDissectionAtPoint(e.clientX, e.clientY)
+      let ptrStartX = 0
+      let ptrStartY = 0
+      const handlePointerDown = (e: PointerEvent) => {
+        ptrStartX = e.clientX
+        ptrStartY = e.clientY
       }
 
-      let lastTouchTime = 0
-      const handleTouchEnd = (e: TouchEvent) => {
-        const now = performance.now()
-        if (now - lastTouchTime < 340 && e.changedTouches.length > 0) {
-          const t = e.changedTouches[0]
-          triggerDissectionAtPoint(t.clientX, t.clientY)
+      const handlePointerUp = (e: PointerEvent) => {
+        const dist = Math.hypot(e.clientX - ptrStartX, e.clientY - ptrStartY)
+        if (dist < 6) {
+          triggerDissectionAtPoint(e.clientX, e.clientY)
         }
-        lastTouchTime = now
       }
 
-      renderer.domElement.addEventListener('dblclick', handleDblClick)
-      renderer.domElement.addEventListener('touchend', handleTouchEnd)
+      const handlePointerMove = (e: PointerEvent) => {
+        const rect = renderer.domElement.getBoundingClientRect()
+        pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+        raycaster.setFromCamera(pointer, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, false)
+        renderer.domElement.style.cursor = hits.length > 0 ? 'pointer' : 'grab'
+      }
+
+      renderer.domElement.addEventListener('pointerdown', handlePointerDown)
+      renderer.domElement.addEventListener('pointerup', handlePointerUp)
+      renderer.domElement.addEventListener('pointermove', handlePointerMove)
 
       const applyExplode = () => {
         const factor = (params.explode / 100) * 8.0 // Explode expansion factor
@@ -5190,8 +5211,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         dispose: () => {
           cancelAnimationFrame(animId)
           window.removeEventListener('resize', handleResize)
-          renderer.domElement.removeEventListener('dblclick', handleDblClick)
-          renderer.domElement.removeEventListener('touchend', handleTouchEnd)
+          renderer.domElement.removeEventListener('pointerdown', handlePointerDown)
+          renderer.domElement.removeEventListener('pointerup', handlePointerUp)
+          renderer.domElement.removeEventListener('pointermove', handlePointerMove)
           renderer.dispose()
           if (container.contains(renderer.domElement)) {
             container.removeChild(renderer.domElement)
@@ -7810,5 +7832,926 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       }
     },
   },
+  brain_3d: {
+    type: 'brain_3d',
+    title: '3D Human Brain & Synaptic Neuron Anatomy',
+    subject: 'Biology · Neuroanatomy & Electrophysiology',
+    concept: 'Cerebral Lobes, Limbic Core, Cerebellum Arbor Vitae & Action Potential Conduction',
+    description: 'Explore the structural and functional anatomy of the human brain. Inspect the four cerebral lobes (Frontal, Parietal, Temporal, Occipital), Corpus Callosum commissure, Thalamus sensory relay, Cerebellum Arbor Vitae, and an interactive multipolar neuron with saltatory action potential conduction.',
+    emoji: '🧠',
+    difficulty: 'Advanced',
+    presets: [
+      { label: '🧠 Intact Whole Brain Anatomy', params: { splitView: 0, impulseSpeed: 1.0, activeLobe: 0, zoomNeuron: 0 } },
+      { label: '✂️ Hemispheric Sagittal Split (Limbic View)', params: { splitView: 75, impulseSpeed: 1.0, activeLobe: 0, zoomNeuron: 0 } },
+      { label: '⚡ Multipolar Neuron & Synaptic Bouton', params: { splitView: 0, impulseSpeed: 1.5, activeLobe: 0, zoomNeuron: 85 } },
+      { label: '🌿 Cerebellar Foliation & Arbor Vitae', params: { splitView: 60, impulseSpeed: 1.0, activeLobe: 3, zoomNeuron: 0 } },
+      { label: '⚡ High-Speed Action Potential (+30 mV)', params: { splitView: 0, impulseSpeed: 2.2, activeLobe: 0, zoomNeuron: 60 } },
+    ],
+    params: [
+      { key: 'splitView', label: 'Sagittal Split View', min: 0, max: 100, step: 5, defaultValue: 0, unit: '%' },
+      { key: 'impulseSpeed', label: 'Action Potential Speed', min: 0.2, max: 2.5, step: 0.1, defaultValue: 1.0, unit: 'x' },
+      { key: 'activeLobe', label: 'Cerebral Lobe Focus', min: 0, max: 3, step: 1, defaultValue: 0, unit: 'idx' },
+      { key: 'zoomNeuron', label: 'Neuron Ultrastructure', min: 0, max: 100, step: 5, defaultValue: 0, unit: '%' },
+    ],
+    calculateReadouts: (p) => {
+      const splitState = p.splitView === 0 ? 'Intact Bilateral Brain' : `Coronal Split (${p.splitView}%)`
+      const vel = (120 * p.impulseSpeed).toFixed(0)
+      return [
+        { label: 'Cerebral Structure', value: splitState },
+        { label: 'Saltatory Conduction', value: vel, unit: 'm/s', formula: 'v ∝ d_axon (Myelinated Aα fibers)' },
+        { label: 'Resting Membrane Potential', value: '-70', unit: 'mV', formula: 'Nernst/Goldman-Hodgkin-Katz' },
+        { label: 'Peak Depolarization Spike', value: '+30', unit: 'mV', formula: 'Voltage-Gated Na⁺ Activation' },
+        { label: 'Synaptic Transmission', value: 'Ca²⁺ Exocytosis · 0.5 ms delay' },
+      ]
+    },
+    initScene: (container, initialParams, callbacks = {}) => {
+      let params = { ...initialParams }
+      let isPlaying = true
+      let animId: number
+
+      const width = container.clientWidth || 800
+      const height = container.clientHeight || 500
+
+      const scene = new THREE.Scene()
+      createBioStudioEnvironment(scene)
+
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
+      camera.position.set(0, 4, 18)
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true })
+      renderer.setSize(width, height)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      setupRenderer(renderer)
+      container.appendChild(renderer.domElement)
+
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.enableDamping = true
+      controls.dampingFactor = 0.05
+      controls.target.set(0, 0, 0)
+
+      const brainRig = new THREE.Group()
+      scene.add(brainRig)
+
+      const interactableMeshes: THREE.Object3D[] = []
+      let activeDissectKey: string | null = null
+
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        frontal: {
+          title: 'Frontal Lobe & Prefrontal Cortex',
+          partName: 'Frontal Lobe & Prefrontal Cortex',
+          role: 'Executive Function, Motor Planning & Speech (Broca’s Area)',
+          description: 'The anterior-most cerebral lobe. Houses the primary motor cortex (precentral gyrus) controlling voluntary motor actions, Broca’s motor speech area, working memory, and executive decision-making.',
+          internalStructures: ['Primary Motor Cortex', 'Broca’s Speech Area', 'Dorsolateral Prefrontal Cortex', 'Olfactory Bulb'],
+        },
+        parietal: {
+          title: 'Parietal Lobe & Somatosensory Cortex',
+          partName: 'Parietal Lobe & Somatosensory Cortex',
+          role: 'Tactile Perception, Proprioception & Spatial Navigation',
+          description: 'Positioned superiorly behind the central sulcus. Contains the postcentral gyrus (primary somatosensory cortex) which processes touch, pain, temperature, spatial body orientation, and sensory integration.',
+          internalStructures: ['Postcentral Somatosensory Gyrus', 'Sensory Homunculus', 'Superior Parietal Lobule', 'Angular Gyrus'],
+        },
+        temporal: {
+          title: 'Temporal Lobe & Auditory Association',
+          partName: 'Temporal Lobe & Auditory Association',
+          role: 'Auditory Processing, Language Comprehension & Memory Consolidation',
+          description: 'Inferior to the lateral Sylvian fissure. Houses the primary auditory cortex (Heschl’s gyrus), Wernicke’s language comprehension area, and deep medial limbic structures (Hippocampus and Amygdala) critical for long-term memory formation.',
+          internalStructures: ['Primary Auditory Cortex', 'Wernicke’s Area', 'Hippocampus (Memory)', 'Amygdala (Emotion)'],
+        },
+        occipital: {
+          title: 'Occipital Lobe & Visual Cortex',
+          partName: 'Occipital Lobe & Visual Cortex',
+          role: 'Visual Perception, Retinotopic Mapping & Pattern Recognition',
+          description: 'The posterior cerebral pole centered around the calcarine sulcus. Receives optical neural signals via the optic radiations from the lateral geniculate nucleus of the thalamus to construct sight, depth, and color perception.',
+          internalStructures: ['Primary Visual Cortex (V1 / Brodmann 17)', 'Visual Association Area (V2-V5)', 'Calcarine Sulcus'],
+        },
+        corpus: {
+          title: 'Corpus Callosum & Fornix',
+          partName: 'Corpus Callosum & Fornix',
+          role: 'Interhemispheric White Matter Commissural Bridge',
+          description: 'A massive C-shaped dense white matter commissure containing over 200 million myelinated axonal fibers connecting homologous neocortical areas of the Left and Right cerebral hemispheres.',
+          internalStructures: ['Genu (Anterior)', 'Body (Trunk)', 'Splenium (Posterior)', 'Fornix Arch'],
+        },
+        thalamus: {
+          title: 'Thalamus & Hypothalamus',
+          partName: 'Thalamus & Hypothalamus',
+          role: 'Sensory Gateway, Relay Hub & Autonomic Neuroendocrine Center',
+          description: 'The egg-shaped dual nuclear mass of the diencephalon. Acts as the master sensory relay station routing all sensory inputs (except olfaction) to the cortex. Directly below lies the hypothalamus regulating temperature, hunger, thirst, circadian rhythms, and pituitary hormone release.',
+          internalStructures: ['Ventral Posterolateral Nucleus (VPL)', 'Lateral Geniculate Nucleus (LGN)', 'Hypothalamic Nuclei', 'Pituitary Gland Infundibulum'],
+        },
+        cerebellum: {
+          title: 'Cerebellum & Arbor Vitae',
+          partName: 'Cerebellum & Arbor Vitae',
+          role: 'Motor Precision, Coordination, Balance & Procedural Motor Learning',
+          description: 'Positioned in the posterior cranial fossa. Features horizontal foliated ridges and an internal branching white matter core called the "Arbor Vitae" (Tree of Life). Coordinates smooth voluntary motor velocity, posture balance via vestibular inputs, and motor memory.',
+          internalStructures: ['Arbor Vitae White Matter Core', 'Purkinje Cell Layer', 'Dentate Nucleus', 'Flocculonodular Lobe'],
+        },
+        brainstem: {
+          title: 'Brainstem (Midbrain, Pons, Medulla Oblongata)',
+          partName: 'Brainstem (Midbrain, Pons, Medulla Oblongata)',
+          role: 'Autonomic Cardiorespiratory Center & Ascending/Descending Tracts',
+          description: 'Controls fundamental vegetative life support functions. The medulla houses the respiratory rhythm generator and cardiac vasomotor centers. The pons bridges cerebello-cortical pathways. The midbrain houses substantia nigra and superior/inferior colliculi.',
+          internalStructures: ['Medullary Respiratory Center', 'Cardiac Vasomotor Center', 'Pons Varolii', 'Substantia Nigra'],
+        },
+        neuron: {
+          title: 'Multipolar Neuron (Soma, Axon & Dendrites)',
+          partName: 'Multipolar Neuron (Soma, Axon & Dendrites)',
+          role: 'Electrochemical Signal Reception, Integration & Propagation',
+          description: 'The foundational functional unit of the central nervous system. Receptive dendrites with dendritic spines gather synaptic inputs into the star-shaped soma. The axon hillock integrates graded potentials to generate all-or-nothing action potentials traveling down the myelinated axon.',
+          internalStructures: ['Soma (Cell Body)', 'Nissl Bodies', 'Dendritic Tree & Spines', 'Axon Hillock'],
+        },
+        myelin: {
+          title: 'Myelin Sheath & Nodes of Ranvier',
+          partName: 'Myelin Sheath & Nodes of Ranvier',
+          role: 'Saltatory Conduction Acceleration (120 m/s)',
+          description: 'Concentric insulating lipid wrappings produced by Schwann cells (PNS) or Oligodendrocytes (CNS). Gaps between myelin segments called Nodes of Ranvier contain dense clusters of voltage-gated Na⁺ channels, allowing action potentials to rapidly jump from node to node.',
+          internalStructures: ['Myelin Lipid Wrapping', 'Nodes of Ranvier', 'Voltage-Gated Na⁺ Channels', 'Internodal Segments'],
+        },
+        synapse: {
+          title: 'Synaptic Bouton & Neurotransmitter Exocytosis',
+          partName: 'Synaptic Bouton & Neurotransmitter Exocytosis',
+          role: 'Chemical Neurotransmission across 20 nm Synaptic Cleft',
+          description: 'The swollen axon terminal where electrical impulses are converted into chemical messengers. Action potential arrival opens voltage-gated Ca²⁺ channels, triggering SNARE-mediated fusion of synaptic vesicles (Acetylcholine / Glutamate) into the synaptic cleft.',
+          internalStructures: ['Synaptic Vesicles', 'Presynaptic Membrane', 'Synaptic Cleft (20nm)', 'Postsynaptic Receptor Density'],
+        },
+      }
+
+      // Action potential impulse spark traveling down axon
+      const sparkMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+      const sparkMesh = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), sparkMat)
+      brainRig.add(sparkMesh)
+
+      // Fallback Procedural Meshes Group
+      const proceduralGroup = new THREE.Group()
+      brainRig.add(proceduralGroup)
+
+      const matCortexL = new THREE.MeshStandardMaterial({ color: 0xd98880, roughness: 0.35, metalness: 0.05 })
+      const matCortexR = new THREE.MeshStandardMaterial({ color: 0xc0392b, roughness: 0.35, metalness: 0.05 })
+      const matCerebellum = new THREE.MeshStandardMaterial({ color: 0xa93226, roughness: 0.40 })
+      const matStem = new THREE.MeshStandardMaterial({ color: 0xf5cba7, roughness: 0.30 })
+
+      const leftHemiMesh = new THREE.Mesh(new THREE.SphereGeometry(2.4, 32, 24), matCortexL)
+      leftHemiMesh.scale.set(0.75, 1.25, 0.95)
+      leftHemiMesh.position.set(-1.0, 0.4, 0)
+      leftHemiMesh.name = 'frontal'
+      proceduralGroup.add(leftHemiMesh)
+      interactableMeshes.push(leftHemiMesh)
+
+      const rightHemiMesh = new THREE.Mesh(new THREE.SphereGeometry(2.4, 32, 24), matCortexR)
+      rightHemiMesh.scale.set(0.75, 1.25, 0.95)
+      rightHemiMesh.position.set(1.0, 0.4, 0)
+      rightHemiMesh.name = 'parietal'
+      proceduralGroup.add(rightHemiMesh)
+      interactableMeshes.push(rightHemiMesh)
+
+      const cerebMesh = new THREE.Mesh(new THREE.SphereGeometry(1.6, 24, 20), matCerebellum)
+      cerebMesh.scale.set(1.1, 0.7, 0.8)
+      cerebMesh.position.set(0, -1.6, -1.8)
+      cerebMesh.name = 'cerebellum'
+      proceduralGroup.add(cerebMesh)
+      interactableMeshes.push(cerebMesh)
+
+      const stemMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.4, 2.2, 16), matStem)
+      stemMesh.position.set(0, -2.0, -0.6)
+      stemMesh.name = 'brainstem'
+      proceduralGroup.add(stemMesh)
+      interactableMeshes.push(stemMesh)
+
+      let realisticBrainRoot: THREE.Group | null = null
+      let blenderLeftHemi: THREE.Object3D | null = null
+      let blenderRightHemi: THREE.Object3D | null = null
+
+      const gltfLoader = new GLTFLoader()
+      gltfLoader.load(
+        '/3d_models/brain_realistic.glb',
+        (gltf: any) => {
+          const root = gltf.scene as THREE.Group
+          realisticBrainRoot = root
+          root.scale.setScalar(1.4)
+          root.position.set(0, -0.5, 0)
+          brainRig.add(root)
+          proceduralGroup.visible = false
+
+          root.traverse((child: THREE.Object3D) => {
+            if ((child as THREE.Mesh).isMesh) {
+              const mesh = child as THREE.Mesh
+              const n = mesh.name.toLowerCase()
+              mesh.castShadow = true
+              mesh.receiveShadow = true
+
+              if (n.includes('left') && n.includes('hemisphere')) blenderLeftHemi = mesh
+              if (n.includes('right') && n.includes('hemisphere')) blenderRightHemi = mesh
+
+              if (n.includes('frontal')) mesh.name = 'frontal'
+              else if (n.includes('parietal')) mesh.name = 'parietal'
+              else if (n.includes('temporal')) mesh.name = 'temporal'
+              else if (n.includes('occipital')) mesh.name = 'occipital'
+              else if (n.includes('corpus') || n.includes('callosum')) mesh.name = 'corpus'
+              else if (n.includes('thalamus')) mesh.name = 'thalamus'
+              else if (n.includes('hypothalamus') || n.includes('pituitary')) mesh.name = 'hypothalamus'
+              else if (n.includes('cerebell') || n.includes('arbor')) mesh.name = 'cerebellum'
+              else if (n.includes('pons') || n.includes('medulla') || n.includes('midbrain')) mesh.name = 'brainstem'
+              else if (n.includes('soma') || n.includes('dendrite')) mesh.name = 'neuron'
+              else if (n.includes('myelin') || n.includes('ranvier')) mesh.name = 'myelin'
+              else if (n.includes('bouton') || n.includes('vesicle')) mesh.name = 'synapse'
+              else mesh.name = 'frontal'
+
+              interactableMeshes.push(mesh)
+            }
+          })
+        },
+        undefined,
+        (err: any) => console.warn('[BRAIN GLTF] Fallback to procedural model:', err)
+      )
+
+      const raycaster = new THREE.Raycaster()
+      const mouse = new THREE.Vector2()
+
+      function triggerRaycast(clientX: number, clientY: number) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        if (hits.length > 0) {
+          const key = hits[0].object.name || 'frontal'
+          if (activeDissectKey === key) {
+            activeDissectKey = null
+            callbacks.onInspectPart?.(null)
+          } else {
+            activeDissectKey = key
+            const card = DISSECT_CARDS[key] || DISSECT_CARDS.frontal
+            callbacks.onInspectPart?.(card)
+          }
+        }
+      }
+
+      let ptrStartX = 0
+      let ptrStartY = 0
+      function handlePointerDown(e: PointerEvent) {
+        ptrStartX = e.clientX
+        ptrStartY = e.clientY
+      }
+      function handlePointerUp(e: PointerEvent) {
+        const dist = Math.hypot(e.clientX - ptrStartX, e.clientY - ptrStartY)
+        if (dist < 6) triggerRaycast(e.clientX, e.clientY)
+      }
+      function handlePointerMove(e: PointerEvent) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        renderer.domElement.style.cursor = hits.length > 0 ? 'pointer' : 'grab'
+      }
+
+      renderer.domElement.addEventListener('pointerdown', handlePointerDown)
+      renderer.domElement.addEventListener('pointerup', handlePointerUp)
+      renderer.domElement.addEventListener('pointermove', handlePointerMove)
+
+      let sparkProg = 0
+
+      function animate() {
+        animId = requestAnimationFrame(animate)
+        controls.update()
+
+        const splitDist = (params.splitView / 100) * 2.8
+        if (blenderLeftHemi) blenderLeftHemi.position.x = -splitDist * 0.5
+        if (blenderRightHemi) blenderRightHemi.position.x = splitDist * 0.5
+
+        if (!realisticBrainRoot) {
+          leftHemiMesh.position.x = -1.0 - splitDist * 0.5
+          rightHemiMesh.position.x = 1.0 + splitDist * 0.5
+        }
+
+        if (isPlaying) {
+          sparkProg = (sparkProg + 0.015 * params.impulseSpeed) % 1.0
+          sparkMesh.position.set(4.5, 1.2 - sparkProg * 5.4, 0.0)
+          sparkMesh.visible = params.zoomNeuron > 20
+        }
+
+        const targetCamX = (params.zoomNeuron / 100) * 4.5
+        camera.position.x += (targetCamX - camera.position.x) * 0.05
+
+        renderer.render(scene, camera)
+      }
+
+      animate()
+
+      const handleResize = () => {
+        const w = container.clientWidth || 800
+        const h = container.clientHeight || 500
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+        renderer.setSize(w, h)
+      }
+      window.addEventListener('resize', handleResize)
+
+      return {
+        updateParams: (newParams: Record<string, number>) => {
+          params = { ...newParams }
+        },
+        setPlaying: (playing: boolean) => {
+          isPlaying = playing
+        },
+        reset: () => {
+          activeDissectKey = null
+          callbacks.onInspectPart?.(null)
+          controls.reset()
+        },
+        closeDissection: () => {
+          activeDissectKey = null
+          callbacks.onInspectPart?.(null)
+        },
+        dispose: () => {
+          cancelAnimationFrame(animId)
+          window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('pointerdown', handlePointerDown)
+          renderer.domElement.removeEventListener('pointerup', handlePointerUp)
+          renderer.domElement.removeEventListener('pointermove', handlePointerMove)
+          renderer.dispose()
+          if (container.contains(renderer.domElement)) {
+            container.removeChild(renderer.domElement)
+          }
+        },
+      }
+    },
+  },
+  lungs_3d: {
+    type: 'lungs_3d',
+    title: '3D Human Respiratory System & Alveolar Gas Exchange',
+    subject: 'Biology · Cardiorespiratory Physiology',
+    concept: 'Tracheobronchial Tree, Asymmetrical Lung Lobes, Cardiac Notch & Alveolar Gas Exchange',
+    description: 'Explore the 3D human respiratory system. Observe the hyaline cartilage rings of the trachea, carina bifurcation, 3-lobed right lung, 2-lobed left lung with cardiac notch, and an interactive microscopic alveolar sac with pulmonary capillary blood gas exchange.',
+    emoji: '🫁',
+    difficulty: 'Intermediate',
+    presets: [
+      { label: '🫁 Normal Resting Respiration (14 BPM)', params: { breathRate: 14, tidalVolume: 500, cutawayLungs: 0, zoomAlveoli: 0 } },
+      { label: '🏃 Strenuous Exercise Hyperventilation (32 BPM)', params: { breathRate: 32, tidalVolume: 950, cutawayLungs: 0, zoomAlveoli: 0 } },
+      { label: '🔬 Microscopic Alveolar Sac & Capillary Plexus', params: { breathRate: 14, tidalVolume: 500, cutawayLungs: 0, zoomAlveoli: 85 } },
+      { label: '✂️ Bronchial Tree Cutaway View', params: { breathRate: 14, tidalVolume: 500, cutawayLungs: 100, zoomAlveoli: 0 } },
+      { label: '❤️ Cardiac Notch & Mediastinal Anatomy', params: { breathRate: 12, tidalVolume: 500, cutawayLungs: 0, zoomAlveoli: 0 } },
+    ],
+    params: [
+      { key: 'breathRate', label: 'Respiratory Rate (RR)', min: 6, max: 40, step: 2, defaultValue: 14, unit: 'BPM' },
+      { key: 'tidalVolume', label: 'Tidal Volume (V_T)', min: 250, max: 1200, step: 50, defaultValue: 500, unit: 'mL' },
+      { key: 'cutawayLungs', label: 'Bronchial Cutaway', min: 0, max: 100, step: 10, defaultValue: 0, unit: '%' },
+      { key: 'zoomAlveoli', label: 'Alveoli Inset Focus', min: 0, max: 100, step: 5, defaultValue: 0, unit: '%' },
+    ],
+    calculateReadouts: (p) => {
+      const minuteVent = ((p.breathRate * p.tidalVolume) / 1000).toFixed(1)
+      const alveolarVent = ((p.breathRate * Math.max(0, p.tidalVolume - 150)) / 1000).toFixed(1)
+      return [
+        { label: 'Minute Ventilation (V̇_E)', value: minuteVent, unit: 'L/min', formula: 'V̇_E = RR × V_T' },
+        { label: 'Alveolar Ventilation (V̇_A)', value: alveolarVent, unit: 'L/min', formula: 'V̇_A = RR × (V_T - V_D)' },
+        { label: 'Anatomical Dead Space (V_D)', value: '150', unit: 'mL', formula: 'Conducting Zone Airways' },
+        { label: 'Alveolar Partial Pressure', value: 'PAO₂ 104 · PACO₂ 40', unit: 'mmHg' },
+        { label: 'Respiratory Membrane Area', value: '75', unit: 'm²', formula: '300 Million Alveoli' },
+      ]
+    },
+    initScene: (container, initialParams, callbacks = {}) => {
+      let params = { ...initialParams }
+      let isPlaying = true
+      let animId: number
+
+      const width = container.clientWidth || 800
+      const height = container.clientHeight || 500
+
+      const scene = new THREE.Scene()
+      createBioStudioEnvironment(scene)
+
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
+      camera.position.set(0, 2, 18)
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true })
+      renderer.setSize(width, height)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      setupRenderer(renderer)
+      container.appendChild(renderer.domElement)
+
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.enableDamping = true
+      controls.dampingFactor = 0.05
+      controls.target.set(0, 0, 0)
+
+      const lungsRig = new THREE.Group()
+      scene.add(lungsRig)
+
+      const interactableMeshes: THREE.Object3D[] = []
+      let activeDissectKey: string | null = null
+
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        trachea: {
+          title: 'Trachea (Windpipe) & C-Shaped Rings',
+          partName: 'Trachea (Windpipe) & C-Shaped Rings',
+          role: 'Conducting Airway with Mucociliary Clearance',
+          description: 'A 10-12 cm flexible airway reinforced by 16-20 C-shaped hyaline cartilage rings that prevent collapse under negative intrathoracic inspiratory pressure. Lined with pseudostratified ciliated columnar epithelium beating mucus upward.',
+          internalStructures: ['Hyaline Cartilage Rings', 'Annular Ligaments', 'Trachealis Muscle', 'Ciliated Epithelium'],
+        },
+        carina: {
+          title: 'Carina Tracheae & Primary Bronchi',
+          partName: 'Carina Tracheae & Primary Bronchi',
+          role: 'Bifurcation Point & Cough Reflex Receptor Zone',
+          description: 'The internal ridge at the inferior end of the trachea dividing into Right and Left primary bronchi. Extremely sensitive to foreign bodies, triggering the violent cough reflex. The right bronchus is wider, shorter, and more vertical.',
+          internalStructures: ['Carina Spur', 'Right Mainstem Bronchus', 'Left Mainstem Bronchus', 'Cough Receptors'],
+        },
+        right_lung: {
+          title: 'Right Lung (Superior, Middle & Inferior Lobes)',
+          partName: 'Right Lung (Superior, Middle & Inferior Lobes)',
+          role: 'Bulk Pulmonary Gas Exchange (3 Lobes)',
+          description: 'Larger and heavier than the left lung (~10% greater capacity). Divided into 3 lobes (Superior, Middle, Inferior) by the Horizontal and Oblique anatomical fissures. Accommodates the convex right dome of the liver below.',
+          internalStructures: ['Superior Lobe', 'Middle Lobe (Wedge)', 'Inferior Lobe (Base)', 'Horizontal & Oblique Fissures'],
+        },
+        left_lung: {
+          title: 'Left Lung with Cardiac Notch & Lingula',
+          partName: 'Left Lung with Cardiac Notch & Lingula',
+          role: 'Bilateral Gas Exchange with Cardiac Accommodation',
+          description: 'Divided into 2 lobes (Superior and Inferior) by an oblique fissure. The medial anterior border features the prominent "Cardiac Notch" concavity that houses the apex and pericardial wall of the left ventricle of the heart.',
+          internalStructures: ['Superior Lobe', 'Inferior Lobe', 'Cardiac Notch', 'Lingula'],
+        },
+        vessels: {
+          title: 'Pulmonary Arteries & Pulmonary Veins (Hilum)',
+          partName: 'Pulmonary Arteries & Pulmonary Veins (Hilum)',
+          role: 'Low-Pressure High-Flow Pulmonary Circulation',
+          description: 'The pulmonary artery branches carry deoxygenated venous return from the right ventricle into alveolar capillary networks. 4 pulmonary veins return freshly oxygenated arterial blood directly into the left atrium.',
+          internalStructures: ['Left & Right Pulmonary Arteries', '4 Pulmonary Veins', 'Pulmonary Hilum', 'Bronchial Arteries'],
+        },
+        alveoli: {
+          title: 'Alveolar Sac & Capillary Blood-Air Barrier',
+          partName: 'Alveolar Sac & Capillary Blood-Air Barrier',
+          role: 'Passive Gas Diffusion (O₂ Influx, CO₂ Efflux)',
+          description: 'Clusters of 300 million micro-spherical alveoli providing a massive ~75 m² surface area. Lined with ultra-thin Type I pneumocytes and surfactant-secreting Type II pneumocytes. Surrounded by an anastomosing capillary meshwork across a 0.5 µm diffusion barrier.',
+          internalStructures: ['Alveolar Sac', 'Type I Pneumocytes', 'Type II Surfactant Cells', 'Capillary Endothelium'],
+        },
+      }
+
+      // Procedural Fallback Meshes
+      const proceduralGroup = new THREE.Group()
+      lungsRig.add(proceduralGroup)
+
+      const matPleuraR = new THREE.MeshStandardMaterial({ color: 0xec7063, roughness: 0.35 })
+      const matPleuraL = new THREE.MeshStandardMaterial({ color: 0xe74c3c, roughness: 0.35 })
+      const matTrach = new THREE.MeshStandardMaterial({ color: 0xd6eaf8, roughness: 0.25 })
+
+      const trachMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 3.2, 20), matTrach)
+      trachMesh.position.set(0, 2.2, 0)
+      trachMesh.name = 'trachea'
+      proceduralGroup.add(trachMesh)
+      interactableMeshes.push(trachMesh)
+
+      const rLungMesh = new THREE.Mesh(new THREE.ConeGeometry(2.2, 4.5, 24), matPleuraR)
+      rLungMesh.position.set(2.0, -0.4, 0)
+      rLungMesh.name = 'right_lung'
+      proceduralGroup.add(rLungMesh)
+      interactableMeshes.push(rLungMesh)
+
+      const lLungMesh = new THREE.Mesh(new THREE.ConeGeometry(2.0, 4.4, 24), matPleuraL)
+      lLungMesh.position.set(-2.0, -0.4, 0)
+      lLungMesh.name = 'left_lung'
+      proceduralGroup.add(lLungMesh)
+      interactableMeshes.push(lLungMesh)
+
+      let realisticLungsRoot: THREE.Group | null = null
+      let blenderRightLung: THREE.Object3D | null = null
+      let blenderLeftLung: THREE.Object3D | null = null
+
+      const gltfLoader = new GLTFLoader()
+      gltfLoader.load(
+        '/3d_models/lungs_realistic.glb',
+        (gltf: any) => {
+          const root = gltf.scene as THREE.Group
+          realisticLungsRoot = root
+          root.scale.setScalar(1.35)
+          root.position.set(0, -0.2, 0)
+          lungsRig.add(root)
+          proceduralGroup.visible = false
+
+          root.traverse((child: THREE.Object3D) => {
+            if ((child as THREE.Mesh).isMesh) {
+              const mesh = child as THREE.Mesh
+              const n = mesh.name.toLowerCase()
+              mesh.castShadow = true
+              mesh.receiveShadow = true
+
+              if (n.includes('right') && n.includes('lobe')) {
+                mesh.name = 'right_lung'
+                blenderRightLung = mesh
+              } else if (n.includes('left') && n.includes('lobe')) {
+                mesh.name = 'left_lung'
+                blenderLeftLung = mesh
+              } else if (n.includes('trachea') || n.includes('ring') || n.includes('thyroid') || n.includes('cricoid')) {
+                mesh.name = 'trachea'
+              } else if (n.includes('bronchus') || n.includes('carina')) {
+                mesh.name = 'carina'
+              } else if (n.includes('pulmonary') && (n.includes('artery') || n.includes('vein'))) {
+                mesh.name = 'vessels'
+              } else if (n.includes('alveol') || n.includes('capillary')) {
+                mesh.name = 'alveoli'
+              } else {
+                mesh.name = 'trachea'
+              }
+
+              interactableMeshes.push(mesh)
+            }
+          })
+        },
+        undefined,
+        (err: any) => console.warn('[LUNGS GLTF] Fallback to procedural model:', err)
+      )
+
+      const raycaster = new THREE.Raycaster()
+      const mouse = new THREE.Vector2()
+
+      function triggerRaycast(clientX: number, clientY: number) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        if (hits.length > 0) {
+          const key = hits[0].object.name || 'trachea'
+          if (activeDissectKey === key) {
+            activeDissectKey = null
+            callbacks.onInspectPart?.(null)
+          } else {
+            activeDissectKey = key
+            const card = DISSECT_CARDS[key] || DISSECT_CARDS.trachea
+            callbacks.onInspectPart?.(card)
+          }
+        }
+      }
+
+      let ptrStartX = 0
+      let ptrStartY = 0
+      function handlePointerDown(e: PointerEvent) {
+        ptrStartX = e.clientX
+        ptrStartY = e.clientY
+      }
+      function handlePointerUp(e: PointerEvent) {
+        const dist = Math.hypot(e.clientX - ptrStartX, e.clientY - ptrStartY)
+        if (dist < 6) triggerRaycast(e.clientX, e.clientY)
+      }
+      function handlePointerMove(e: PointerEvent) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        renderer.domElement.style.cursor = hits.length > 0 ? 'pointer' : 'grab'
+      }
+
+      renderer.domElement.addEventListener('pointerdown', handlePointerDown)
+      renderer.domElement.addEventListener('pointerup', handlePointerUp)
+      renderer.domElement.addEventListener('pointermove', handlePointerMove)
+
+      let breathTime = 0
+
+      function animate() {
+        animId = requestAnimationFrame(animate)
+        controls.update()
+
+        if (isPlaying) {
+          const freq = (params.breathRate / 60) * Math.PI * 2
+          breathTime += 0.024
+          const breathPhase = Math.sin(breathTime * freq)
+          const tidalScale = 1.0 + (params.tidalVolume / 500) * 0.08 * breathPhase
+
+          if (blenderRightLung) blenderRightLung.scale.set(tidalScale, tidalScale, tidalScale)
+          if (blenderLeftLung) blenderLeftLung.scale.set(tidalScale, tidalScale, tidalScale)
+
+          if (!realisticLungsRoot) {
+            rLungMesh.scale.set(tidalScale, tidalScale, tidalScale)
+            lLungMesh.scale.set(tidalScale, tidalScale, tidalScale)
+          }
+        }
+
+        const targetCamX = (params.zoomAlveoli / 100) * 4.0
+        camera.position.x += (targetCamX - camera.position.x) * 0.05
+
+        renderer.render(scene, camera)
+      }
+
+      animate()
+
+      const handleResize = () => {
+        const w = container.clientWidth || 800
+        const h = container.clientHeight || 500
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+        renderer.setSize(w, h)
+      }
+      window.addEventListener('resize', handleResize)
+
+      return {
+        updateParams: (newParams: Record<string, number>) => {
+          params = { ...newParams }
+        },
+        setPlaying: (playing: boolean) => {
+          isPlaying = playing
+        },
+        reset: () => {
+          activeDissectKey = null
+          callbacks.onInspectPart?.(null)
+          controls.reset()
+        },
+        closeDissection: () => {
+          activeDissectKey = null
+          callbacks.onInspectPart?.(null)
+        },
+        dispose: () => {
+          cancelAnimationFrame(animId)
+          window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('pointerdown', handlePointerDown)
+          renderer.domElement.removeEventListener('pointerup', handlePointerUp)
+          renderer.domElement.removeEventListener('pointermove', handlePointerMove)
+          renderer.dispose()
+          if (container.contains(renderer.domElement)) {
+            container.removeChild(renderer.domElement)
+          }
+        },
+      }
+    },
+  },
+  kidney_3d: {
+    type: 'kidney_3d',
+    title: '3D Human Kidney & Microscopic Nephron Ultrastructure',
+    subject: 'Biology · Excretory & Renal Physiology',
+    concept: 'Glomerular Ultrafiltration, Counter-Current Osmotic Multiplier & Tubular Reabsorption',
+    description: 'Explore the 3D human kidney anatomy. Inspect the fibrous renal capsule, cortical nephrons, medullary pyramids, major/minor calyces, renal pelvis, ureter, and an interactive microscopic Nephron unit (Bowman capsule, Glomerulus, PCT, Loop of Henle, DCT, and Collecting Duct).',
+    emoji: '🫘',
+    difficulty: 'Intermediate',
+    presets: [
+      { label: '🫘 Normal Renal Function (GFR 125 mL/min)', params: { gfr: 125, reabsorption: 99, cutaway: 100, zoomNephron: 0 } },
+      { label: '🔬 Microscopic Nephron (Bowman Capsule & Henle)', params: { gfr: 125, reabsorption: 99, cutaway: 100, zoomNephron: 85 } },
+      { label: '✂️ Coronal Renal Medulla & Pyramids', params: { gfr: 125, reabsorption: 99, cutaway: 100, zoomNephron: 0 } },
+      { label: '💧 Maximum Water Reabsorption (High ADH)', params: { gfr: 130, reabsorption: 99.8, cutaway: 100, zoomNephron: 40 } },
+      { label: '🧪 Reduced GFR State (Renal Clearance 60 mL/min)', params: { gfr: 60, reabsorption: 96, cutaway: 100, zoomNephron: 0 } },
+    ],
+    params: [
+      { key: 'gfr', label: 'Glomerular Filtration (GFR)', min: 40, max: 180, step: 5, defaultValue: 125, unit: 'mL/min' },
+      { key: 'reabsorption', label: 'Tubular Reabsorption', min: 95, max: 99.8, step: 0.2, defaultValue: 99.0, unit: '%' },
+      { key: 'cutaway', label: 'Coronal Section Cutaway', min: 0, max: 100, step: 10, defaultValue: 100, unit: '%' },
+      { key: 'zoomNephron', label: 'Nephron Inset Focus', min: 0, max: 100, step: 5, defaultValue: 0, unit: '%' },
+    ],
+    calculateReadouts: (p) => {
+      const dailyFiltered = ((p.gfr * 60 * 24) / 1000).toFixed(0)
+      const urineRate = (p.gfr * (1 - p.reabsorption / 100)).toFixed(2)
+      const dailyUrine = ((parseFloat(urineRate) * 60 * 24) / 1000).toFixed(1)
+      return [
+        { label: 'Daily Plasma Filtered', value: dailyFiltered, unit: 'L/day', formula: 'GFR × 1440 min' },
+        { label: 'Urine Formation Rate', value: urineRate, unit: 'mL/min', formula: 'GFR × (1 - Reabsorption)' },
+        { label: '24h Urine Output', value: dailyUrine, unit: 'L/day', formula: 'Normal: 1.0 - 2.0 L/day' },
+        { label: 'Medullary Osmotic Gradient', value: '300 → 1200', unit: 'mOsm/kg', formula: 'Loop of Henle Multiplier' },
+        { label: 'Glomerular Hydrostatic Pressure', value: '55', unit: 'mmHg', formula: 'P_GC Net Driving Pressure' },
+      ]
+    },
+    initScene: (container, initialParams, callbacks = {}) => {
+      let params = { ...initialParams }
+      let isPlaying = true
+      let animId: number
+
+      const width = container.clientWidth || 800
+      const height = container.clientHeight || 500
+
+      const scene = new THREE.Scene()
+      createBioStudioEnvironment(scene)
+
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
+      camera.position.set(0, 2, 18)
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true })
+      renderer.setSize(width, height)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      setupRenderer(renderer)
+      container.appendChild(renderer.domElement)
+
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.enableDamping = true
+      controls.dampingFactor = 0.05
+      controls.target.set(0, 0, 0)
+
+      const kidneyRig = new THREE.Group()
+      scene.add(kidneyRig)
+
+      const interactableMeshes: THREE.Object3D[] = []
+      let activeDissectKey: string | null = null; void activeDissectKey
+
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        capsule: {
+          title: 'Fibrous Renal Capsule & Hilum',
+          partName: 'Fibrous Renal Capsule & Hilum',
+          role: 'Protective Fibrous Envelope & Neurovascular Entrance',
+          description: 'A tough, smooth fibrous membrane wrapping the outer renal parenchyma. Protects against mechanical trauma and infections. The medial indentation (hilum) transmits the renal artery, renal vein, lymphatic vessels, and ureter.',
+          internalStructures: ['Fibrous Capsule', 'Renal Hilum', 'Perirenal Fat Pad', 'Renal Fascia'],
+        },
+        cortex: {
+          title: 'Renal Cortex (Ultrafiltration Zone)',
+          partName: 'Renal Cortex (Ultrafiltration Zone)',
+          role: 'High-Pressure Plasma Filtration (1 Million Glomeruli)',
+          description: 'The light reddish-brown outer parenchymal shell. Contains all 1 million renal corpuscles (Bowman’s capsules + glomeruli) and convoluted tubules. Receives over 90% of total renal blood flow for continuous metabolic clearance.',
+          internalStructures: ['Renal Corpuscles', 'Cortical Glomeruli', 'Proximal Convoluted Tubules', 'Cortical Radiate Vessels'],
+        },
+        pyramid: {
+          title: 'Medullary Renal Pyramids (Columns of Bertin)',
+          partName: 'Medullary Renal Pyramids (Columns of Bertin)',
+          role: 'Counter-Current Osmotic Multiplier & Urine Concentration',
+          description: '8-12 conical striated tissue masses in the renal medulla. Consists of parallel arrays of Loops of Henle and Collecting Ducts. Establishes a steep osmotic gradient (300 to 1200 mOsm/kg) that drives water reabsorption under ADH control.',
+          internalStructures: ['Medullary Pyramids', 'Renal Columns of Bertin', 'Renal Papillae (Tips)', 'Vasa Recta Plexus'],
+        },
+        calyx: {
+          title: 'Minor & Major Calyces & Renal Pelvis',
+          partName: 'Minor & Major Calyces & Renal Pelvis',
+          role: 'Urine Collection & Funneling into Ureter',
+          description: 'Cup-shaped minor calyces enclose the papilla of each pyramid to catch discharged urine droplets. 2-3 minor calyces unite into major calyces, converging into the large funnel-shaped renal pelvis.',
+          internalStructures: ['Minor Calyces', 'Major Calyces', 'Renal Pelvis', 'Pelviureteric Junction'],
+        },
+        ureter: {
+          title: 'Ureter & Peristaltic Conduit',
+          partName: 'Ureter & Peristaltic Conduit',
+          role: 'Unidirectional Active Urine Transport to Bladder',
+          description: 'A 25-30 cm muscular tube lined with transitional epithelium. Smooth muscle layers contract in peristaltic waves 1-5 times per minute to propel urine into the bladder independently of gravity.',
+          internalStructures: ['Transitional Urothelium', 'Longitudinal & Circular Smooth Muscle', 'Adventitia'],
+        },
+        bowman: {
+          title: 'Bowman’s Capsule & Glomerular Capillaries',
+          partName: 'Bowman’s Capsule & Glomerular Capillaries',
+          role: 'High-Pressure Plasma Ultrafiltration Barrier',
+          description: 'The double-walled epithelial cup encasing the high-pressure (55 mmHg) fenestrated glomerular capillary knot. Specialized podocyte foot processes interdigitate to form 25-30 nm filtration slits that filter plasma while retaining albumin and blood cells.',
+          internalStructures: ['Bowman’s Capsule', 'Glomerular Capillaries', 'Podocyte Pedicels', 'Afferent & Efferent Arterioles'],
+        },
+        tubule: {
+          title: 'Proximal Tubule, Loop of Henle & Collecting Duct',
+          partName: 'Proximal Tubule, Loop of Henle & Collecting Duct',
+          role: 'Massive Solute/Water Reabsorption (99% Efficiency)',
+          description: 'The tubular nephron machinery. The PCT reabsorbs 100% of glucose and 65% of NaCl/water via microvilli brush borders. The hairpin Loop of Henle removes water and actively pumps NaCl. The Collecting Duct performs final water fine-tuning via Aquaporin-2 channels.',
+          internalStructures: ['PCT (Brush Border)', 'Loop of Henle Hairpin', 'DCT (Hormonal Tuning)', 'Collecting Duct (ADH Regulated)'],
+        },
+      }
+
+      // Procedural Fallback Meshes
+      const proceduralGroup = new THREE.Group()
+      kidneyRig.add(proceduralGroup)
+
+      const matKidney = new THREE.MeshStandardMaterial({ color: 0x922b21, roughness: 0.35 })
+      const matCalyx = new THREE.MeshStandardMaterial({ color: 0xfdfefe, roughness: 0.25 })
+
+      const kidneyMesh = new THREE.Mesh(new THREE.SphereGeometry(2.2, 32, 24), matKidney)
+      kidneyMesh.scale.set(1.15, 0.95, 1.85)
+      kidneyMesh.name = 'capsule'
+      proceduralGroup.add(kidneyMesh)
+      interactableMeshes.push(kidneyMesh)
+
+      const ureterMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 3.8, 16), matCalyx)
+      ureterMesh.position.set(-0.8, -2.2, 0)
+      ureterMesh.name = 'ureter'
+      proceduralGroup.add(ureterMesh)
+      interactableMeshes.push(ureterMesh)
+
+      let realisticKidneyRoot: THREE.Group | null = null
+
+      const gltfLoader = new GLTFLoader()
+      gltfLoader.load(
+        '/3d_models/kidney_realistic.glb',
+        (gltf: any) => {
+          const root = gltf.scene as THREE.Group
+          realisticKidneyRoot = root
+          root.scale.setScalar(1.4)
+          root.position.set(0, -0.2, 0)
+          kidneyRig.add(root)
+          proceduralGroup.visible = false
+
+          root.traverse((child: THREE.Object3D) => {
+            if ((child as THREE.Mesh).isMesh) {
+              const mesh = child as THREE.Mesh
+              const n = mesh.name.toLowerCase()
+              mesh.castShadow = true
+              mesh.receiveShadow = true
+
+              if (n.includes('capsule')) mesh.name = 'capsule'
+              else if (n.includes('cortex')) mesh.name = 'cortex'
+              else if (n.includes('pyramid')) mesh.name = 'pyramid'
+              else if (n.includes('calyx') || n.includes('pelvis')) mesh.name = 'calyx'
+              else if (n.includes('ureter')) mesh.name = 'ureter'
+              else if (n.includes('bowman') || n.includes('glomerul')) mesh.name = 'bowman'
+              else if (n.includes('tubule') || n.includes('henle') || n.includes('duct')) mesh.name = 'tubule'
+              else mesh.name = 'capsule'
+
+              interactableMeshes.push(mesh)
+            }
+          })
+        },
+        undefined,
+        (err: any) => console.warn('[KIDNEY GLTF] Fallback to procedural model:', err)
+      )
+
+      const raycaster = new THREE.Raycaster()
+      const mouse = new THREE.Vector2()
+
+      function triggerRaycast(clientX: number, clientY: number) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        if (hits.length > 0) {
+          const key = hits[0].object.name || 'capsule'
+          if (activeDissectKey === key) {
+            activeDissectKey = null
+            callbacks.onInspectPart?.(null)
+          } else {
+            activeDissectKey = key
+            const card = DISSECT_CARDS[key] || DISSECT_CARDS.capsule
+            callbacks.onInspectPart?.(card)
+          }
+        }
+      }
+
+      let ptrStartX = 0
+      let ptrStartY = 0
+      function handlePointerDown(e: PointerEvent) {
+        ptrStartX = e.clientX
+        ptrStartY = e.clientY
+      }
+      function handlePointerUp(e: PointerEvent) {
+        const dist = Math.hypot(e.clientX - ptrStartX, e.clientY - ptrStartY)
+        if (dist < 6) triggerRaycast(e.clientX, e.clientY)
+      }
+      function handlePointerMove(e: PointerEvent) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        renderer.domElement.style.cursor = hits.length > 0 ? 'pointer' : 'grab'
+      }
+
+      renderer.domElement.addEventListener('pointerdown', handlePointerDown)
+      renderer.domElement.addEventListener('pointerup', handlePointerUp)
+      renderer.domElement.addEventListener('pointermove', handlePointerMove)
+
+      function animate() {
+        animId = requestAnimationFrame(animate)
+        controls.update()
+
+        if (isPlaying) {
+          kidneyRig.rotation.y += 0.002
+        }
+
+        if (!realisticKidneyRoot) {
+          kidneyMesh.rotation.y += 0.001
+        }
+
+        const targetCamX = (params.zoomNephron / 100) * 4.2
+        camera.position.x += (targetCamX - camera.position.x) * 0.05
+
+        renderer.render(scene, camera)
+      }
+
+      animate()
+
+      const handleResize = () => {
+        const w = container.clientWidth || 800
+        const h = container.clientHeight || 500
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+        renderer.setSize(w, h)
+      }
+      window.addEventListener('resize', handleResize)
+
+      return {
+        updateParams: (newParams: Record<string, number>) => {
+          params = { ...newParams }
+        },
+        setPlaying: (playing: boolean) => {
+          isPlaying = playing
+        },
+        reset: () => {
+          activeDissectKey = null
+          callbacks.onInspectPart?.(null)
+          controls.reset()
+        },
+        closeDissection: () => {
+          activeDissectKey = null
+          callbacks.onInspectPart?.(null)
+        },
+        dispose: () => {
+          cancelAnimationFrame(animId)
+          window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('pointerdown', handlePointerDown)
+          renderer.domElement.removeEventListener('pointerup', handlePointerUp)
+          renderer.domElement.removeEventListener('pointermove', handlePointerMove)
+          renderer.dispose()
+          if (container.contains(renderer.domElement)) {
+            container.removeChild(renderer.domElement)
+          }
+        },
+      }
+    },
+  },
 }
+
+
+
 

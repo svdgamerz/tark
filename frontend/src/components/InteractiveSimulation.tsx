@@ -63,6 +63,22 @@ const TYPE_3D_MAPPING: Record<string, string> = {
   acid_base_titration: 'titration_3d',
   titration_curve: 'titration_3d',
   volumetric_titration: 'titration_3d',
+  brain: 'brain_3d',
+  brain_3d: 'brain_3d',
+  human_brain: 'brain_3d',
+  neuron: 'brain_3d',
+  neuron_action_potential: 'brain_3d',
+  nervous_system: 'brain_3d',
+  lungs: 'lungs_3d',
+  lungs_3d: 'lungs_3d',
+  respiratory_system: 'lungs_3d',
+  respiration: 'lungs_3d',
+  alveoli: 'lungs_3d',
+  kidney: 'kidney_3d',
+  kidney_3d: 'kidney_3d',
+  nephron: 'kidney_3d',
+  excretory_system: 'kidney_3d',
+  renal: 'kidney_3d',
 }
 
 function Icon({ name }: { name: 'zoom' | 'close' }) {

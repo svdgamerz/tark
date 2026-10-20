@@ -51,3 +51,5 @@ data/student_vault/
 tark_memory.json
 tark_goals.json
 
+# Blender backups
+*.blend1
