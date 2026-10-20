@@ -1058,12 +1058,15 @@ async def _chat_impl(
             if req.milestone_notes:
                 ch_query += " " + req.milestone_notes
             try:
-                hits = await run_in_threadpool(
-                    retrieve_chapter_grounding,
-                    ch_query,
-                    board=eff_board,
-                    grade=eff_grade,
-                    subject=eff_subject,
+                hits = await asyncio.wait_for(
+                    run_in_threadpool(
+                        retrieve_chapter_grounding,
+                        ch_query,
+                        board=eff_board,
+                        grade=eff_grade,
+                        subject=eff_subject,
+                    ),
+                    timeout=3.5,
                 )
             except Exception as e:
                 logger.warning(f"Chapter RAG retrieval non-fatal failure: {e}")
@@ -1072,16 +1075,22 @@ async def _chat_impl(
         if not hits and eff_board:
             try:
                 rag_query = _contextualize_query_for_rag(last_user, messages)
-                hits = await run_in_threadpool(
-                    retrieve, rag_query,
-                    board=eff_board, grade=eff_grade, subject=eff_subject,
+                hits = await asyncio.wait_for(
+                    run_in_threadpool(
+                        retrieve, rag_query,
+                        board=eff_board, grade=eff_grade, subject=eff_subject,
+                    ),
+                    timeout=3.5,
                 )
                 if not hits or hits[0].score < CONFIDENT_SCORE:
-                    expanded = await _expand_query(rag_query)
+                    expanded = await asyncio.wait_for(_expand_query(rag_query), timeout=2.5)
                     if expanded:
-                        better = await run_in_threadpool(
-                            retrieve_multi, [rag_query, *expanded],
-                            board=eff_board, grade=eff_grade, subject=eff_subject,
+                        better = await asyncio.wait_for(
+                            run_in_threadpool(
+                                retrieve_multi, [rag_query, *expanded],
+                                board=eff_board, grade=eff_grade, subject=eff_subject,
+                            ),
+                            timeout=3.0,
                         )
                         if better and (not hits or better[0].score > hits[0].score):
                             hits = better
@@ -1193,6 +1202,9 @@ async def _chat_impl(
     async def event_stream() -> AsyncIterator[bytes]:
         answer = ""
         try:
+            # Send immediate SSE comment so HTTP 200 headers and connection flush instantly to proxies
+            yield b": keep-alive\n\n"
+
             if was_engineered:
                 yield _sse({
                     "type": "prompt_engineered",

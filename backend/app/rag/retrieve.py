@@ -75,7 +75,7 @@ def retrieve_chapter_grounding(
     subject: str | None = None,
 ) -> list[Hit] | None:
     """Retrieve foundational textbook excerpts for the start of a chapter or milestone."""
-    if not chapter_or_topic:
+    if not chapter_or_topic or _index.count() == 0:
         return None
 
     norm_board = normalize_board(board)
@@ -135,14 +135,17 @@ def retrieve(
     subject: str | None = None,
 ) -> list[Hit] | None:
     """Return grounding hits if confident, else None (→ fall back)."""
-    if not message or not board:
+    if not message or not board or _index.count() == 0:
         return None
-    hits = _index.search(
-        embed_query(message), top_k=TOP_K, board=board, grade=grade, subject=subject
-    )
-    if not hits or hits[0].score < GROUND_THRESHOLD:
+    try:
+        hits = _index.search(
+            embed_query(message), top_k=TOP_K, board=board, grade=grade, subject=subject
+        )
+        if not hits or hits[0].score < GROUND_THRESHOLD:
+            return None
+        return hits
+    except Exception as e:
         return None
-    return hits
 
 
 def retrieve_multi(
@@ -155,22 +158,25 @@ def retrieve_multi(
     """Smart Retriever: search several phrasings of the question and merge the
     best chunk per (source, page). Used when the raw question alone didn't ground
     — the rewritten, textbook-worded queries usually rescue the match."""
-    if not board:
+    if not board or _index.count() == 0:
         return None
     best: dict[tuple, Hit] = {}
-    for q in queries:
-        if not q or not q.strip():
-            continue
-        for h in _index.search(
-            embed_query(q), top_k=TOP_K, board=board, grade=grade, subject=subject
-        ):
-            key = (h.source, h.page, h.text[:80])
-            if key not in best or h.score > best[key].score:
-                best[key] = h
-    hits = sorted(best.values(), key=lambda h: -h.score)[:TOP_K]
-    if not hits or hits[0].score < GROUND_THRESHOLD:
+    try:
+        for q in queries:
+            if not q or not q.strip():
+                continue
+            for h in _index.search(
+                embed_query(q), top_k=TOP_K, board=board, grade=grade, subject=subject
+            ):
+                key = (h.source, h.page, h.text[:80])
+                if key not in best or h.score > best[key].score:
+                    best[key] = h
+        hits = sorted(best.values(), key=lambda h: -h.score)[:TOP_K]
+        if not hits or hits[0].score < GROUND_THRESHOLD:
+            return None
+        return hits
+    except Exception:
         return None
-    return hits
 
 
 def hits_are_generated(hits: list[Hit]) -> bool:
