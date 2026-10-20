@@ -127,21 +127,26 @@ def build_perfect_split_heart():
 
     print("[HEART GENERATOR] Sculpting masterwork 3D human heart...")
 
-    # Materials
-    m_myo_l = create_rich_pbr_material("Mat_LV_Myocardium", (0.58, 0.08, 0.09), roughness=0.25, sss_weight=0.40)
-    m_myo_r = create_rich_pbr_material("Mat_RV_Myocardium", (0.52, 0.09, 0.12), roughness=0.28, sss_weight=0.35)
-    m_cut_l = create_rich_pbr_material("Mat_LV_CutFace", (0.74, 0.14, 0.15), roughness=0.38, sss_weight=0.45)
-    m_cut_r = create_rich_pbr_material("Mat_RV_CutFace", (0.65, 0.12, 0.16), roughness=0.42, sss_weight=0.40)
-    m_aorta = create_rich_pbr_material("Mat_Aorta", (0.82, 0.16, 0.18), roughness=0.20, sss_weight=0.28, specular=0.8)
-    m_pulm = create_rich_pbr_material("Mat_Pulmonary", (0.14, 0.38, 0.72), roughness=0.22, sss_weight=0.25, specular=0.8)
-    m_cava = create_rich_pbr_material("Mat_VenaCava", (0.10, 0.28, 0.62), roughness=0.25, sss_weight=0.22)
-    m_fat = create_rich_pbr_material("Mat_CoronaryFat", (0.88, 0.78, 0.38), roughness=0.48, sss_weight=0.48, is_fat=True)
-    m_art = create_rich_pbr_material("Mat_CoronaryArtery", (0.92, 0.10, 0.10), roughness=0.16, specular=0.85)
-    m_vein = create_rich_pbr_material("Mat_CoronaryVein", (0.16, 0.44, 0.85), roughness=0.16, specular=0.85)
-    m_valve = create_rich_pbr_material("Mat_ValveLeaflet", (0.95, 0.94, 0.88), roughness=0.20, sss_weight=0.48, transmission=0.35, is_valve=True)
-    m_chordae = create_rich_pbr_material("Mat_Chordae", (0.96, 0.95, 0.92), roughness=0.18, sss_weight=0.50)
-    m_conduction = create_rich_pbr_material("Mat_ConductionNodes", (0.98, 0.84, 0.18), roughness=0.15, emissive=(0.95, 0.75, 0.15))
-    m_fossa = create_rich_pbr_material("Mat_FossaOvalis", (0.45, 0.10, 0.15), roughness=0.35, sss_weight=0.3)
+    # Materials calibrated to reference model (media_1792523886539.jpg)
+    # Right Heart / Deoxygenated / Venous = Vibrant Royal Cobalt Blue
+    m_myo_r = create_rich_pbr_material("Mat_RV_Myocardium", (0.04, 0.28, 0.88), roughness=0.22, sss_weight=0.35, specular=0.8)
+    m_cut_r = create_rich_pbr_material("Mat_RV_CutFace", (0.72, 0.20, 0.18), roughness=0.40, sss_weight=0.40)
+    m_pulm = create_rich_pbr_material("Mat_Pulmonary", (0.06, 0.34, 0.90), roughness=0.20, sss_weight=0.25, specular=0.85)
+    m_cava = create_rich_pbr_material("Mat_VenaCava", (0.05, 0.28, 0.82), roughness=0.22, sss_weight=0.22, specular=0.85)
+    m_vein = create_rich_pbr_material("Mat_CoronaryVein", (0.08, 0.38, 0.92), roughness=0.16, specular=0.85)
+
+    # Left Heart / Oxygenated / Arterial = Vibrant Scarlet / Carmine Red
+    m_myo_l = create_rich_pbr_material("Mat_LV_Myocardium", (0.86, 0.08, 0.10), roughness=0.22, sss_weight=0.35, specular=0.8)
+    m_cut_l = create_rich_pbr_material("Mat_LV_CutFace", (0.75, 0.22, 0.18), roughness=0.38, sss_weight=0.45)
+    m_aorta = create_rich_pbr_material("Mat_Aorta", (0.90, 0.10, 0.10), roughness=0.18, sss_weight=0.28, specular=0.9)
+    m_art = create_rich_pbr_material("Mat_CoronaryArtery", (0.94, 0.08, 0.08), roughness=0.16, specular=0.85)
+
+    # Valves & Structures
+    m_fat = create_rich_pbr_material("Mat_CoronaryFat", (0.92, 0.82, 0.42), roughness=0.48, sss_weight=0.48, is_fat=True)
+    m_valve = create_rich_pbr_material("Mat_ValveLeaflet", (0.96, 0.96, 0.92), roughness=0.20, sss_weight=0.48, transmission=0.25, is_valve=True)
+    m_chordae = create_rich_pbr_material("Mat_Chordae", (0.98, 0.98, 0.95), roughness=0.18, sss_weight=0.50)
+    m_conduction = create_rich_pbr_material("Mat_ConductionNodes", (0.98, 0.85, 0.15), roughness=0.15, emissive=(0.98, 0.85, 0.15))
+    m_fossa = create_rich_pbr_material("Mat_FossaOvalis", (0.12, 0.22, 0.65), roughness=0.35, sss_weight=0.3)
 
     # Master Root
     root = bpy.data.objects.new("Heart_Root", None)

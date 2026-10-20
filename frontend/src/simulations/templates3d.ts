@@ -2572,21 +2572,23 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         },
       }
 
-      // High-Fidelity Medical Materials (matching Kenhub / WebMD)
+      // High-Fidelity Medical Materials (calibrated to reference working model photo)
+      // Left Heart = Saturated Crimson Red (Oxygenated)
       const myoMatLeft = new THREE.MeshStandardMaterial({
-        color: 0x9e1238,
-        roughness: 0.32,
-        metalness: 0.1,
+        color: 0xd32f2f,
+        roughness: 0.28,
+        metalness: 0.08,
       })
+      // Right Heart = Saturated Royal Cobalt Blue (Deoxygenated)
       const myoMatRight = new THREE.MeshStandardMaterial({
-        color: 0x881337,
-        roughness: 0.34,
-        metalness: 0.1,
+        color: 0x0d47a1,
+        roughness: 0.28,
+        metalness: 0.08,
       })
       const atriumMat = new THREE.MeshStandardMaterial({
-        color: 0xb91c1c,
-        roughness: 0.35,
-        metalness: 0.08,
+        color: 0xd32f2f,
+        roughness: 0.30,
+        metalness: 0.06,
       })
       const fatMat = new THREE.MeshStandardMaterial({
         color: 0xfef08a,
@@ -2594,43 +2596,44 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         metalness: 0.04,
       })
       const lumenMat = new THREE.MeshStandardMaterial({
-        color: 0x580614,
+        color: 0x880e4f,
         roughness: 0.38,
         side: THREE.BackSide,
       })
+      // Muscular Myocardium Cut Wall Rim (warm muscular terracotta cross-section)
       const cutWallLeftMat = new THREE.MeshStandardMaterial({
-        color: 0xbe123c,
-        roughness: 0.32,
+        color: 0xb91c1c,
+        roughness: 0.36,
         metalness: 0.1,
         side: THREE.DoubleSide,
       })
       const cutWallRightMat = new THREE.MeshStandardMaterial({
-        color: 0x9f1239,
-        roughness: 0.34,
-        metalness: 0.08,
+        color: 0x991b1b,
+        roughness: 0.36,
+        metalness: 0.1,
         side: THREE.DoubleSide,
       })
       const valveMat = new THREE.MeshStandardMaterial({
-        color: 0xffedd5,
-        roughness: 0.2,
+        color: 0xffffff,
+        roughness: 0.18,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.92,
+        opacity: 0.95,
       })
       const chordaeMat = new THREE.MeshStandardMaterial({
-        color: 0xf8fafc,
-        roughness: 0.25,
-        metalness: 0.15,
+        color: 0xffffff,
+        roughness: 0.20,
+        metalness: 0.10,
       })
       const arterialMat = new THREE.MeshStandardMaterial({
-        color: 0xef4444,
-        roughness: 0.24,
-        metalness: 0.26,
+        color: 0xe53935,
+        roughness: 0.22,
+        metalness: 0.20,
       })
       const venousMat = new THREE.MeshStandardMaterial({
-        color: 0x2563eb,
-        roughness: 0.26,
-        metalness: 0.26,
+        color: 0x1976d2,
+        roughness: 0.22,
+        metalness: 0.20,
       })
 
       // State tracking
@@ -8783,9 +8786,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       const proceduralGroup = new THREE.Group()
       lungsRig.add(proceduralGroup)
 
-      const matPleuraR = new THREE.MeshStandardMaterial({ color: 0xec7063, roughness: 0.35 })
-      const matPleuraL = new THREE.MeshStandardMaterial({ color: 0xe74c3c, roughness: 0.35 })
-      const matTrach = new THREE.MeshStandardMaterial({ color: 0xd6eaf8, roughness: 0.25 })
+      const matPleuraR = new THREE.MeshStandardMaterial({ color: 0xe84393, roughness: 0.30 })
+      const matPleuraL = new THREE.MeshStandardMaterial({ color: 0xe84393, roughness: 0.30 })
+      const matTrach = new THREE.MeshStandardMaterial({ color: 0x00cec9, roughness: 0.20 })
 
       const trachMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 3.2, 20), matTrach)
       trachMesh.position.set(0, 2.2, 0)
@@ -8808,6 +8811,7 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       let realisticLungsRoot: THREE.Group | null = null
       let blenderRightLung: THREE.Object3D | null = null
       let blenderLeftLung: THREE.Object3D | null = null
+      const blenderBalloons: THREE.Object3D[] = []
 
       const gltfLoader = new GLTFLoader()
       gltfLoader.load(
@@ -8833,6 +8837,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
               } else if (n.includes('left') && n.includes('lobe')) {
                 mesh.name = 'left_lung'
                 blenderLeftLung = mesh
+              } else if (n.includes('balloon')) {
+                mesh.name = 'alveoli'
+                blenderBalloons.push(mesh)
               } else if (n.includes('trachea') || n.includes('ring') || n.includes('thyroid') || n.includes('cricoid')) {
                 mesh.name = 'trachea'
               } else if (n.includes('bronchus') || n.includes('carina')) {
@@ -8913,6 +8920,10 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
 
           if (blenderRightLung) blenderRightLung.scale.set(tidalScale, tidalScale, tidalScale)
           if (blenderLeftLung) blenderLeftLung.scale.set(tidalScale, tidalScale, tidalScale)
+          const balloonScale = 1.0 + (params.tidalVolume / 500) * 0.22 * Math.max(0, breathPhase)
+          for (const bal of blenderBalloons) {
+            bal.scale.set(0.9 * balloonScale, 0.75 * balloonScale, 1.25 * balloonScale)
+          }
 
           if (!realisticLungsRoot) {
             rLungMesh.scale.set(tidalScale, tidalScale, tidalScale)

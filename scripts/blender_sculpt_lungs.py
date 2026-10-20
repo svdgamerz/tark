@@ -110,16 +110,24 @@ def build_realistic_lungs():
     reset()
     print("[LUNGS GENERATOR] Sculpting medical-grade 3D Respiratory System...")
 
-    # Materials
-    m_cartilage = create_pbr_material("Mat_Hyaline_Cartilage", (0.88, 0.92, 0.96), roughness=0.18, sss_weight=0.48, is_cartilage=True)
-    m_trachea_mem = create_pbr_material("Mat_Trachealis_Membrane", (0.80, 0.52, 0.55), roughness=0.35, sss_weight=0.38)
-    m_bronchi = create_pbr_material("Mat_Bronchial_Tree", (0.86, 0.82, 0.88), roughness=0.22, sss_weight=0.42)
-    m_lung_r = create_pbr_material("Mat_Right_Lung_Pleura", (0.88, 0.48, 0.52), roughness=0.28, sss_weight=0.45, is_lung=True)
-    m_lung_l = create_pbr_material("Mat_Left_Lung_Pleura", (0.86, 0.46, 0.50), roughness=0.28, sss_weight=0.45, is_lung=True)
-    m_pulm_art = create_pbr_material("Mat_Pulmonary_Artery", (0.16, 0.38, 0.78), roughness=0.20, specular=0.85)
-    m_pulm_vein = create_pbr_material("Mat_Pulmonary_Vein", (0.82, 0.14, 0.16), roughness=0.20, specular=0.85)
-    m_alveoli = create_pbr_material("Mat_Alveolar_Cluster", (0.94, 0.65, 0.68), roughness=0.22, sss_weight=0.52)
-    m_capillary = create_pbr_material("Mat_Capillary_Network", (0.75, 0.22, 0.38), roughness=0.18, specular=0.8)
+    # Materials calibrated to reference model (media_1792523893264.jpg)
+    # Larynx / Thyroid cartilage = Warm Golden Ochre / Terracotta
+    m_larynx = create_pbr_material("Mat_Larynx_Ochre", (0.88, 0.48, 0.14), roughness=0.35, sss_weight=0.30)
+    # Tracheal Rings & Bronchial Tree = Crisp Pure White
+    m_cartilage = create_pbr_material("Mat_Hyaline_Cartilage", (0.98, 0.98, 0.98), roughness=0.18, sss_weight=0.48, is_cartilage=True)
+    m_bronchi = create_pbr_material("Mat_Bronchial_Tree", (0.96, 0.96, 0.96), roughness=0.20, sss_weight=0.40)
+    # Trachea central tube/straw = Bright Turquoise / Cyan Blue
+    m_trachea_tube = create_pbr_material("Mat_Trachea_Cyan", (0.0, 0.78, 0.80), roughness=0.20, specular=0.8)
+    # Lung Lobes = Striking Rose-Pink / Coral Carmine
+    m_lung_r = create_pbr_material("Mat_Right_Lung_Pleura", (0.92, 0.24, 0.42), roughness=0.28, sss_weight=0.45, is_lung=True)
+    m_lung_l = create_pbr_material("Mat_Left_Lung_Pleura", (0.90, 0.22, 0.40), roughness=0.28, sss_weight=0.45, is_lung=True)
+    # Alveolar Expandable Balloon Sacs = Warm Tangerine Orange
+    m_balloon = create_pbr_material("Mat_Balloon_Orange", (0.98, 0.54, 0.08), roughness=0.24, sss_weight=0.50)
+    # Vessels
+    m_pulm_art = create_pbr_material("Mat_Pulmonary_Artery", (0.06, 0.32, 0.88), roughness=0.20, specular=0.85)
+    m_pulm_vein = create_pbr_material("Mat_Pulmonary_Vein", (0.88, 0.10, 0.12), roughness=0.20, specular=0.85)
+    m_alveoli = create_pbr_material("Mat_Alveolar_Cluster", (0.96, 0.65, 0.68), roughness=0.22, sss_weight=0.52)
+    m_capillary = create_pbr_material("Mat_Capillary_Network", (0.80, 0.18, 0.32), roughness=0.18, specular=0.8)
 
     root = bpy.data.objects.new("Respiratory_System_Root", None)
     bpy.context.scene.collection.objects.link(root)
@@ -158,7 +166,7 @@ def build_realistic_lungs():
     bm.to_mesh(thyroid.data)
     bm.free()
 
-    thyroid.data.materials.append(m_cartilage)
+    thyroid.data.materials.append(m_larynx)
     thyroid.parent = airway_group
     bpy.ops.object.shade_smooth()
 
@@ -166,7 +174,7 @@ def build_realistic_lungs():
     bpy.ops.mesh.primitive_cylinder_add(radius=0.38, depth=0.32, location=(0.0, 0.0, 2.55))
     cricoid = bpy.context.active_object
     cricoid.name = "Cricoid_Cartilage"
-    cricoid.data.materials.append(m_cartilage)
+    cricoid.data.materials.append(m_larynx)
     cricoid.parent = airway_group
     bpy.ops.object.shade_smooth()
 
@@ -176,7 +184,7 @@ def build_realistic_lungs():
     epiglottis.name = "Epiglottis"
     epiglottis.rotation_euler = (-0.35, 0, 0)
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
-    epiglottis.data.materials.append(m_cartilage)
+    epiglottis.data.materials.append(m_larynx)
     epiglottis.parent = airway_group
     bpy.ops.object.shade_smooth()
 
@@ -186,7 +194,7 @@ def build_realistic_lungs():
     trachea_inner = bpy.ops.mesh.primitive_cylinder_add(radius=0.34, depth=2.1, location=(0.0, 0.0, 1.35))
     trach_tube = bpy.context.active_object
     trach_tube.name = "Trachea_Lumen"
-    trach_tube.data.materials.append(m_trachea_mem)
+    trach_tube.data.materials.append(m_trachea_tube)
     trach_tube.parent = airway_group
 
     # 12 Detailed C-shaped Hyaline Rings
@@ -403,6 +411,21 @@ def build_realistic_lungs():
     l_inf.data.materials.append(m_lung_l)
     l_inf.parent = left_lung_group
     bpy.ops.object.shade_smooth()
+
+    # 2 Anterior Alveolar Balloon Sacs (Warm Tangerine Orange, from working model photo)
+    balloon_data = [
+        ("Right_Alveolar_Balloon", (1.45, -0.65, -0.45)),
+        ("Left_Alveolar_Balloon", (-1.40, -0.65, -0.45))
+    ]
+    for b_name, b_pos in balloon_data:
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=24, radius=0.45, location=b_pos)
+        bal = bpy.context.active_object
+        bal.name = b_name
+        bal.scale = (0.9, 0.75, 1.25)
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+        bal.data.materials.append(m_balloon)
+        bal.parent = lungs_group
+        bpy.ops.object.shade_smooth()
 
     # =========================================================================
     # 5. PULMONARY HILUM VESSELS (PULMONARY ARTERIES & VEINS)
