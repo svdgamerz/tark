@@ -91,9 +91,9 @@ def create_rich_pbr_material(name, base_color, roughness=0.3, sss_weight=0.2, sp
         cr = nodes.new(type='ShaderNodeValToRGB')
         cr.location = (-100, 150)
         cr.color_ramp.elements[0].position = 0.2
-        cr.color_ramp.elements[0].color = (0.92, 0.82, 0.42, 1.0)
+        cr.color_ramp.elements[0].color = (0.94, 0.88, 0.68, 1.0)
         cr.color_ramp.elements[1].position = 0.8
-        cr.color_ramp.elements[1].color = (0.76, 0.65, 0.32, 1.0)
+        cr.color_ramp.elements[1].color = (0.82, 0.74, 0.52, 1.0)
         links.new(vor.outputs['Distance'], cr.inputs['Fac'])
         links.new(cr.outputs['Color'], bsdf.inputs['Base Color'])
     elif is_valve:
@@ -127,26 +127,33 @@ def build_perfect_split_heart():
 
     print("[HEART GENERATOR] Sculpting masterwork 3D human heart...")
 
-    # Materials calibrated to reference model (media_1792523886539.jpg)
-    # Right Heart / Deoxygenated / Venous = Vibrant Royal Cobalt Blue
-    m_myo_r = create_rich_pbr_material("Mat_RV_Myocardium", (0.04, 0.28, 0.88), roughness=0.22, sss_weight=0.35, specular=0.8)
-    m_cut_r = create_rich_pbr_material("Mat_RV_CutFace", (0.72, 0.20, 0.18), roughness=0.40, sss_weight=0.40)
-    m_pulm = create_rich_pbr_material("Mat_Pulmonary", (0.06, 0.34, 0.90), roughness=0.20, sss_weight=0.25, specular=0.85)
-    m_cava = create_rich_pbr_material("Mat_VenaCava", (0.05, 0.28, 0.82), roughness=0.22, sss_weight=0.22, specular=0.85)
-    m_vein = create_rich_pbr_material("Mat_CoronaryVein", (0.08, 0.38, 0.92), roughness=0.16, specular=0.85)
+    # Medical-Grade Living Anatomical Color Palette
+    # Both Ventricles are living cardiac myocardium: rich, organic burgundy-crimson
+    m_myo_l = create_rich_pbr_material("Mat_LV_Myocardium", (0.58, 0.12, 0.15), roughness=0.28, sss_weight=0.35, specular=0.75)
+    m_myo_r = create_rich_pbr_material("Mat_RV_Myocardium", (0.55, 0.13, 0.16), roughness=0.28, sss_weight=0.35, specular=0.75)
+    
+    # Internal Cut Faces (Thick 15mm LV wall and 4mm RV wall cross sections)
+    m_cut_l = create_rich_pbr_material("Mat_LV_CutFace", (0.62, 0.15, 0.18), roughness=0.36, sss_weight=0.40)
+    m_cut_r = create_rich_pbr_material("Mat_RV_CutFace", (0.60, 0.14, 0.17), roughness=0.36, sss_weight=0.40)
 
-    # Left Heart / Oxygenated / Arterial = Vibrant Scarlet / Carmine Red
-    m_myo_l = create_rich_pbr_material("Mat_LV_Myocardium", (0.86, 0.08, 0.10), roughness=0.22, sss_weight=0.35, specular=0.8)
-    m_cut_l = create_rich_pbr_material("Mat_LV_CutFace", (0.75, 0.22, 0.18), roughness=0.38, sss_weight=0.45)
-    m_aorta = create_rich_pbr_material("Mat_Aorta", (0.90, 0.10, 0.10), roughness=0.18, sss_weight=0.28, specular=0.9)
-    m_art = create_rich_pbr_material("Mat_CoronaryArtery", (0.94, 0.08, 0.08), roughness=0.16, specular=0.85)
+    # Great Vessels:
+    # Aorta & Systemic Arteries = Rich Arterial Scarlet Crimson
+    m_aorta = create_rich_pbr_material("Mat_Aorta", (0.78, 0.12, 0.12), roughness=0.18, sss_weight=0.28, specular=0.85)
+    m_art = create_rich_pbr_material("Mat_CoronaryArtery", (0.85, 0.10, 0.10), roughness=0.16, specular=0.85)
 
-    # Valves & Structures
-    m_fat = create_rich_pbr_material("Mat_CoronaryFat", (0.92, 0.82, 0.42), roughness=0.48, sss_weight=0.48, is_fat=True)
-    m_valve = create_rich_pbr_material("Mat_ValveLeaflet", (0.96, 0.96, 0.92), roughness=0.20, sss_weight=0.48, transmission=0.25, is_valve=True)
-    m_chordae = create_rich_pbr_material("Mat_Chordae", (0.98, 0.98, 0.95), roughness=0.18, sss_weight=0.50)
-    m_conduction = create_rich_pbr_material("Mat_ConductionNodes", (0.98, 0.85, 0.15), roughness=0.15, emissive=(0.98, 0.85, 0.15))
-    m_fossa = create_rich_pbr_material("Mat_FossaOvalis", (0.12, 0.22, 0.65), roughness=0.35, sss_weight=0.3)
+    # Pulmonary Trunk & Vena Cava = Deep Royal Venous Blue (Natural deoxygenated vessel color)
+    m_pulm = create_rich_pbr_material("Mat_Pulmonary", (0.12, 0.28, 0.72), roughness=0.20, sss_weight=0.25, specular=0.85)
+    m_cava = create_rich_pbr_material("Mat_VenaCava", (0.10, 0.25, 0.68), roughness=0.22, sss_weight=0.22, specular=0.85)
+    m_vein = create_rich_pbr_material("Mat_CoronaryVein", (0.14, 0.32, 0.78), roughness=0.16, specular=0.85)
+
+    # Coronary Sulcus Fat Cushion: Warm soft ivory / buttery cream adipose tissue
+    m_fat = create_rich_pbr_material("Mat_CoronaryFat", (0.92, 0.84, 0.58), roughness=0.48, sss_weight=0.48, is_fat=True)
+
+    # Valves & Tendon Chordae: Pearlescent glistening tendon ivory with gentle translucency
+    m_valve = create_rich_pbr_material("Mat_ValveLeaflet", (0.96, 0.96, 0.92), roughness=0.20, sss_weight=0.48, transmission=0.22, is_valve=True)
+    m_chordae = create_rich_pbr_material("Mat_Chordae", (0.97, 0.97, 0.93), roughness=0.18, sss_weight=0.50)
+    m_conduction = create_rich_pbr_material("Mat_ConductionNodes", (0.98, 0.78, 0.12), roughness=0.15, emissive=(0.98, 0.78, 0.12))
+    m_fossa = create_rich_pbr_material("Mat_FossaOvalis", (0.18, 0.26, 0.48), roughness=0.35, sss_weight=0.3)
 
     # Master Root
     root = bpy.data.objects.new("Heart_Root", None)

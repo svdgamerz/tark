@@ -85,9 +85,9 @@ def create_pbr_material(name, base_color, roughness=0.3, transmission=0.0, ior=1
         cr = nodes.new(type='ShaderNodeValToRGB')
         cr.location = (-100, 100)
         cr.color_ramp.elements[0].position = 0.2
-        cr.color_ramp.elements[0].color = (0.02, 0.35, 0.65, 1.0)
+        cr.color_ramp.elements[0].color = (0.05, 0.22, 0.42, 1.0)
         cr.color_ramp.elements[1].position = 0.8
-        cr.color_ramp.elements[1].color = (0.15, 0.65, 0.85, 1.0)
+        cr.color_ramp.elements[1].color = (0.12, 0.48, 0.68, 1.0)
         links.new(vor.outputs['Distance'], cr.inputs['Fac'])
         links.new(cr.outputs['Color'], bsdf.inputs['Base Color'])
 
@@ -116,29 +116,36 @@ def build_perfect_eye():
 
     print("[EYE GENERATOR] Sculpting complete masterwork human eye...")
 
-    # Materials
-    m_sclera = create_pbr_material("Mat_Sclera", (0.95, 0.96, 0.98), roughness=0.18, sss_weight=0.25, is_sclera=True)
-    m_choroid = create_pbr_material("Mat_Choroid", (0.28, 0.05, 0.06), roughness=0.60, sss_weight=0.20)
-    m_retina = create_pbr_material("Mat_Retina", (0.88, 0.28, 0.10), roughness=0.55, sss_weight=0.35)
-    m_cornea = create_pbr_material("Mat_Cornea", (0.88, 0.96, 1.0), roughness=0.02, transmission=0.98, ior=1.376, specular=0.95)
-    m_aqueous = create_pbr_material("Mat_AqueousHumor", (0.90, 0.98, 1.0), roughness=0.01, transmission=0.98, ior=1.336, alpha=0.35)
-    m_vitreous = create_pbr_material("Mat_VitreousBody", (0.92, 0.98, 1.0), roughness=0.03, transmission=0.96, ior=1.336, alpha=0.30)
-    m_limbus = create_pbr_material("Mat_LimbusRing", (0.10, 0.14, 0.18), roughness=0.25)
-    m_iris = create_pbr_material("Mat_IrisStroma", (0.08, 0.38, 0.65), roughness=0.35, sss_weight=0.2, is_iris=True)
-    m_ruff = create_pbr_material("Mat_PupillaryRuff", (0.02, 0.02, 0.02), roughness=0.10)
-    m_pupil = create_pbr_material("Mat_Pupil", (0.008, 0.008, 0.008), roughness=0.05)
-    m_lens = create_pbr_material("Mat_CrystallineLens", (0.92, 0.98, 1.0), roughness=0.03, transmission=0.96, ior=1.406, specular=0.9)
-    m_ciliary = create_pbr_material("Mat_CiliaryMuscle", (0.75, 0.22, 0.12), roughness=0.50, sss_weight=0.3)
-    m_zonule = create_pbr_material("Mat_ZonuleFilament", (0.86, 0.94, 1.0), roughness=0.25, alpha=0.75, transmission=0.4)
-    m_macula = create_pbr_material("Mat_MaculaLutea", (0.95, 0.78, 0.18), roughness=0.35, sss_weight=0.25)
-    m_fovea = create_pbr_material("Mat_FoveaCentralis", (0.98, 0.86, 0.22), roughness=0.28)
-    m_disc = create_pbr_material("Mat_OpticDisc", (0.95, 0.90, 0.70), roughness=0.30)
-    m_ret_art = create_pbr_material("Mat_RetinalArtery", (0.90, 0.10, 0.10), roughness=0.2, specular=0.7)
-    m_ret_vein = create_pbr_material("Mat_RetinalVein", (0.15, 0.42, 0.85), roughness=0.2, specular=0.7)
-    m_nerve = create_pbr_material("Mat_OpticNerve", (0.92, 0.86, 0.48), roughness=0.45, sss_weight=0.3)
-    m_sheath = create_pbr_material("Mat_DuralSheath", (0.88, 0.88, 0.92), roughness=0.38, sss_weight=0.25)
-    m_muscle = create_pbr_material("Mat_RectusMuscle", (0.75, 0.18, 0.18), roughness=0.38, sss_weight=0.35)
-    m_tendon = create_pbr_material("Mat_MuscleTendon", (0.94, 0.94, 0.96), roughness=0.25, sss_weight=0.3)
+    # Materials calibrated to human ocular histology & ophthalmic funduscopy
+    # Sclera: Natural glistening ivory with warm organic micro-vascular undertone
+    m_sclera = create_pbr_material("Mat_Sclera", (0.94, 0.93, 0.90), roughness=0.18, sss_weight=0.35, is_sclera=True)
+    # Choroid: Deep melanin-rich chocolate brown-black vascular bed
+    m_choroid = create_pbr_material("Mat_Choroid", (0.16, 0.07, 0.04), roughness=0.65, sss_weight=0.15)
+    # Retina: Authentic ophthalmic fundus warm salmon/terracotta red sensory lining
+    m_retina = create_pbr_material("Mat_Retina", (0.78, 0.32, 0.20), roughness=0.45, sss_weight=0.40)
+    # Cornea: Optically transparent refractive glass (n=1.376)
+    m_cornea = create_pbr_material("Mat_Cornea", (0.98, 0.99, 1.0), roughness=0.015, transmission=0.98, ior=1.376, specular=0.98)
+    m_aqueous = create_pbr_material("Mat_AqueousHumor", (0.96, 0.98, 1.0), roughness=0.01, transmission=0.98, ior=1.336, alpha=0.15)
+    m_vitreous = create_pbr_material("Mat_VitreousBody", (0.96, 0.98, 1.0), roughness=0.02, transmission=0.97, ior=1.336, alpha=0.15)
+    m_limbus = create_pbr_material("Mat_LimbusRing", (0.05, 0.08, 0.12), roughness=0.20)
+    # Iris: Natural rich oceanic hazel-sapphire with warm amber collarette
+    m_iris = create_pbr_material("Mat_IrisStroma", (0.06, 0.32, 0.52), roughness=0.32, sss_weight=0.25, is_iris=True)
+    m_ruff = create_pbr_material("Mat_PupillaryRuff", (0.02, 0.015, 0.01), roughness=0.10)
+    m_pupil = create_pbr_material("Mat_Pupil", (0.005, 0.005, 0.005), roughness=0.04)
+    # Crystalline Lens: Optical crystalline biconvex lens (n=1.406)
+    m_lens = create_pbr_material("Mat_CrystallineLens", (0.95, 0.98, 1.0), roughness=0.025, transmission=0.95, ior=1.406, specular=0.92)
+    m_ciliary = create_pbr_material("Mat_CiliaryMuscle", (0.62, 0.18, 0.12), roughness=0.45, sss_weight=0.3)
+    m_zonule = create_pbr_material("Mat_ZonuleFilament", (0.92, 0.96, 1.0), roughness=0.20, alpha=0.55, transmission=0.6)
+    # Macula & Fovea: Natural luteal carotenoid yellow
+    m_macula = create_pbr_material("Mat_MaculaLutea", (0.88, 0.68, 0.12), roughness=0.32, sss_weight=0.3)
+    m_fovea = create_pbr_material("Mat_FoveaCentralis", (0.92, 0.74, 0.15), roughness=0.25)
+    m_disc = create_pbr_material("Mat_OpticDisc", (0.96, 0.82, 0.65), roughness=0.28)
+    m_ret_art = create_pbr_material("Mat_RetinalArtery", (0.82, 0.10, 0.10), roughness=0.18, specular=0.75)
+    m_ret_vein = create_pbr_material("Mat_RetinalVein", (0.16, 0.32, 0.68), roughness=0.18, specular=0.75)
+    m_nerve = create_pbr_material("Mat_OpticNerve", (0.92, 0.86, 0.68), roughness=0.40, sss_weight=0.3)
+    m_sheath = create_pbr_material("Mat_DuralSheath", (0.88, 0.88, 0.86), roughness=0.35, sss_weight=0.25)
+    m_muscle = create_pbr_material("Mat_RectusMuscle", (0.62, 0.14, 0.14), roughness=0.32, sss_weight=0.35)
+    m_tendon = create_pbr_material("Mat_MuscleTendon", (0.94, 0.94, 0.92), roughness=0.25, sss_weight=0.3)
     m_trochlea = create_pbr_material("Mat_TrochleaPulley", (0.88, 0.90, 0.82), roughness=0.30)
 
     # Master Root

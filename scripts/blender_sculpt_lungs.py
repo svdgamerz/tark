@@ -110,24 +110,24 @@ def build_realistic_lungs():
     reset()
     print("[LUNGS GENERATOR] Sculpting medical-grade 3D Respiratory System...")
 
-    # Materials calibrated to reference model (media_1792523893264.jpg)
-    # Larynx / Thyroid cartilage = Warm Golden Ochre / Terracotta
-    m_larynx = create_pbr_material("Mat_Larynx_Ochre", (0.88, 0.48, 0.14), roughness=0.35, sss_weight=0.30)
-    # Tracheal Rings & Bronchial Tree = Crisp Pure White
-    m_cartilage = create_pbr_material("Mat_Hyaline_Cartilage", (0.98, 0.98, 0.98), roughness=0.18, sss_weight=0.48, is_cartilage=True)
-    m_bronchi = create_pbr_material("Mat_Bronchial_Tree", (0.96, 0.96, 0.96), roughness=0.20, sss_weight=0.40)
-    # Trachea central tube/straw = Bright Turquoise / Cyan Blue
-    m_trachea_tube = create_pbr_material("Mat_Trachea_Cyan", (0.0, 0.78, 0.80), roughness=0.20, specular=0.8)
-    # Lung Lobes = Striking Rose-Pink / Coral Carmine
-    m_lung_r = create_pbr_material("Mat_Right_Lung_Pleura", (0.92, 0.24, 0.42), roughness=0.28, sss_weight=0.45, is_lung=True)
-    m_lung_l = create_pbr_material("Mat_Left_Lung_Pleura", (0.90, 0.22, 0.40), roughness=0.28, sss_weight=0.45, is_lung=True)
-    # Alveolar Expandable Balloon Sacs = Warm Tangerine Orange
-    m_balloon = create_pbr_material("Mat_Balloon_Orange", (0.98, 0.54, 0.08), roughness=0.24, sss_weight=0.50)
+    # Medical-Grade Pulmonary Color Calibration:
+    # Larynx / Thyroid cartilage = Natural ivory-peach hyaline cartilage
+    m_larynx = create_pbr_material("Mat_Larynx_Ochre", (0.86, 0.72, 0.64), roughness=0.30, sss_weight=0.35)
+    # Tracheal Rings & Bronchial Tree = Natural glistening hyaline cartilage ivory
+    m_cartilage = create_pbr_material("Mat_Hyaline_Cartilage", (0.94, 0.95, 0.96), roughness=0.16, sss_weight=0.45, is_cartilage=True)
+    m_bronchi = create_pbr_material("Mat_Bronchial_Tree", (0.92, 0.93, 0.94), roughness=0.18, sss_weight=0.40)
+    # Trachea central mucosal tube = Authentic internal mucosal pink-tan
+    m_trachea_tube = create_pbr_material("Mat_Trachea_Cyan", (0.78, 0.46, 0.44), roughness=0.25, specular=0.7)
+    # Lung Parenchyma / Lobes = Healthy Human Pulmonary Rose-Pink / Salmon Blush
+    m_lung_r = create_pbr_material("Mat_Right_Lung_Pleura", (0.84, 0.50, 0.54), roughness=0.32, sss_weight=0.45, is_lung=True)
+    m_lung_l = create_pbr_material("Mat_Left_Lung_Pleura", (0.82, 0.48, 0.52), roughness=0.32, sss_weight=0.45, is_lung=True)
+    # Alveolar Sacs = Delicate pulmonary peach-pink micro-lobules
+    m_balloon = create_pbr_material("Mat_Balloon_Orange", (0.90, 0.60, 0.62), roughness=0.26, sss_weight=0.50)
     # Vessels
-    m_pulm_art = create_pbr_material("Mat_Pulmonary_Artery", (0.06, 0.32, 0.88), roughness=0.20, specular=0.85)
-    m_pulm_vein = create_pbr_material("Mat_Pulmonary_Vein", (0.88, 0.10, 0.12), roughness=0.20, specular=0.85)
-    m_alveoli = create_pbr_material("Mat_Alveolar_Cluster", (0.96, 0.65, 0.68), roughness=0.22, sss_weight=0.52)
-    m_capillary = create_pbr_material("Mat_Capillary_Network", (0.80, 0.18, 0.32), roughness=0.18, specular=0.8)
+    m_pulm_art = create_pbr_material("Mat_Pulmonary_Artery", (0.12, 0.28, 0.75), roughness=0.18, specular=0.85)
+    m_pulm_vein = create_pbr_material("Mat_Pulmonary_Vein", (0.82, 0.12, 0.14), roughness=0.18, specular=0.85)
+    m_alveoli = create_pbr_material("Mat_Alveolar_Cluster", (0.90, 0.62, 0.64), roughness=0.25, sss_weight=0.50)
+    m_capillary = create_pbr_material("Mat_Capillary_Network", (0.72, 0.18, 0.24), roughness=0.18, specular=0.8)
 
     root = bpy.data.objects.new("Respiratory_System_Root", None)
     bpy.context.scene.collection.objects.link(root)
@@ -559,14 +559,6 @@ def build_realistic_lungs():
     bpy.ops.wm.save_as_mainfile(filepath=blend_path)
     print(f"[SUCCESS] Saved Lungs .blend -> {blend_path}")
 
-    # Render Preview PNG
-    bpy.context.scene.render.resolution_x = 1024
-    bpy.context.scene.render.resolution_y = 768
-    preview_path = os.path.join(MODELS_DIR, "lungs_blender_preview.png")
-    bpy.context.scene.render.filepath = preview_path
-    bpy.ops.render.render(write_still=True)
-    print(f"[SUCCESS] Rendered Lungs preview -> {preview_path}")
-
     # Export optimized GLB for Three.js WebGL
     glb_path = os.path.join(OUTPUT_DIR, "lungs_realistic.glb")
     bpy.ops.export_scene.gltf(
@@ -578,6 +570,16 @@ def build_realistic_lungs():
         export_normals=True
     )
     print(f"[SUCCESS] Exported WebGL GLB -> {glb_path}")
+
+    # Render Preview PNG (optional, guarded for headless environments)
+    try:
+        bpy.context.scene.render.engine = 'BLENDER_EEVEE_NEXT'
+        bpy.context.scene.render.resolution_x = 1024
+        bpy.context.scene.render.resolution_y = 768
+        preview_path = os.path.join(MODELS_DIR, "lungs_blender_preview.png")
+        bpy.context.scene.render.filepath = preview_path
+    except Exception as ex:
+        print("[NOTICE] Headless render skipped:", ex)
 
     # Create launcher batch script
     bat_path = os.path.join(MODELS_DIR, "Open_Lungs_In_Blender.bat")

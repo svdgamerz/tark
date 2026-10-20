@@ -51,8 +51,9 @@ export interface BuiltinTemplate3D {
 
 // Helper: Apply cinematic tone mapping, soft shadows, and high-DPI scaling to WebGL renderer
 export function setupRenderer(renderer: THREE.WebGLRenderer) {
+  renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.ACESFilmicToneMapping
-  renderer.toneMappingExposure = 1.2
+  renderer.toneMappingExposure = 1.05
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = THREE.PCFSoftShadowMap
 }
@@ -3230,19 +3231,35 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
               if (child.material && 'roughness' in child.material) {
                 const mat = child.material as THREE.MeshStandardMaterial
                 const n = child.name.toLowerCase()
-                if (n.includes('ventricle') || n.includes('myocardium') || n.includes('cutface') || n.includes('trabecula') || n.includes('papillary')) {
+                if (n.includes('ventricle') || n.includes('myocardium')) {
                   mat.normalMap = striatedNormalMap
                   mat.normalScale = new THREE.Vector2(1.5, 1.5)
                   mat.roughnessMap = wetSpecularMap
-                  mat.roughness = 0.22
-                  mat.metalness = 0.08
-                } else if (n.includes('aorta') || n.includes('pulmonary') || n.includes('cava') || n.includes('artery') || n.includes('vein')) {
-                  mat.roughness = 0.14
-                  mat.metalness = 0.12
+                  mat.roughness = 0.28
+                  mat.metalness = 0.05
+                  mat.color.setHex(0x94222a) // Living cardiac myocardium burgundy-crimson
+                } else if (n.includes('cutface') || n.includes('trabecula') || n.includes('papillary')) {
+                  mat.roughness = 0.35
+                  mat.metalness = 0.04
+                  mat.color.setHex(0xa82b34) // Muscular cross-section wall
+                } else if (n.includes('aorta') || n.includes('artery') || n.includes('lad') || n.includes('rca')) {
+                  mat.roughness = 0.16
+                  mat.metalness = 0.10
                   mat.roughnessMap = wetSpecularMap
+                  mat.color.setHex(0xb91c1c) // Arterial scarlet-crimson
+                } else if (n.includes('pulmonary') || n.includes('cava') || n.includes('vein') || n.includes('gcv')) {
+                  mat.roughness = 0.18
+                  mat.metalness = 0.10
+                  mat.roughnessMap = wetSpecularMap
+                  mat.color.setHex(0x1d4ed8) // Venous deoxygenated royal blue
                 } else if (n.includes('fat') || n.includes('sulcus')) {
-                  mat.roughness = 0.42
+                  mat.roughness = 0.48
                   mat.metalness = 0.02
+                  mat.color.setHex(0xf2e0b6) // Creamy soft warm ivory adipose cushion
+                } else if (n.includes('valve') || n.includes('chord') || n.includes('cusp')) {
+                  mat.roughness = 0.20
+                  mat.metalness = 0.05
+                  mat.color.setHex(0xfdfbf7) // Glistening tendon ivory
                 }
                 mat.needsUpdate = true
               }
@@ -6000,17 +6017,32 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
                   mat.metalness = 0.04
                 } else if (n.includes('retina')) {
                   mat.map = retinaTex
-                  mat.roughness = 0.28
+                  mat.roughness = 0.32
                   mat.metalness = 0.02
+                  mat.color.setHex(0xd05030) // Warm salmon-terracotta ophthalmic fundus
+                } else if (n.includes('choroid')) {
+                  mat.roughness = 0.65
+                  mat.metalness = 0.02
+                  mat.color.setHex(0x240d08) // Melanin-rich deep brown vascular layer
+                } else if (n.includes('fovea') || n.includes('macula')) {
+                  mat.roughness = 0.28
+                  mat.color.setHex(0xeab308) // Natural golden carotenoid pigment spot
+                } else if (n.includes('disc')) {
+                  mat.roughness = 0.28
+                  mat.color.setHex(0xfed7aa) // Healthy neural pink-cream
                 } else if (n.includes('cornea')) {
                   mat.transparent = true
-                  mat.opacity = 0.32
-                  mat.roughness = 0.04
-                  mat.metalness = 0.1
+                  mat.opacity = 0.12 // Clear front optical window revealing iris, pupil, and lens beneath
+                  mat.roughness = 0.02
+                  mat.metalness = 0.06
                 } else if (n.includes('lens')) {
                   mat.transparent = true
-                  mat.opacity = 0.65
-                  mat.roughness = 0.06
+                  mat.opacity = 0.50
+                  mat.roughness = 0.03
+                  mat.metalness = 0.04
+                } else if (n.includes('muscle')) {
+                  mat.roughness = 0.32
+                  mat.color.setHex(0x991b1b) // Extraocular rectus muscle striated crimson
                 }
                 mat.needsUpdate = true
               }
@@ -8830,6 +8862,31 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
               const n = mesh.name.toLowerCase()
               mesh.castShadow = true
               mesh.receiveShadow = true
+
+              if (mesh.material && 'roughness' in mesh.material) {
+                const mat = mesh.material as THREE.MeshStandardMaterial
+                if (n.includes('right') && n.includes('lobe')) {
+                  mat.color.setHex(0xd68087) // Natural pulmonary tissue rose-pink
+                  mat.roughness = 0.35
+                } else if (n.includes('left') && n.includes('lobe')) {
+                  mat.color.setHex(0xd47c84)
+                  mat.roughness = 0.35
+                } else if (n.includes('balloon') || n.includes('alveol')) {
+                  mat.color.setHex(0xe8999e) // Fine pulmonary alveoli clusters
+                  mat.roughness = 0.28
+                } else if (n.includes('trachea') || n.includes('ring') || n.includes('cartilage') || n.includes('bronch')) {
+                  mat.color.setHex(0xedf2f7) // Hyaline cartilage ivory-white
+                  mat.roughness = 0.20
+                } else if (n.includes('thyroid') || n.includes('larynx') || n.includes('cricoid')) {
+                  mat.color.setHex(0xdfc4b2)
+                  mat.roughness = 0.30
+                } else if (n.includes('artery')) {
+                  mat.color.setHex(0x1d4ed8) // Pulmonary artery deoxygenated blue
+                } else if (n.includes('vein')) {
+                  mat.color.setHex(0xb91c1c) // Pulmonary vein oxygenated red
+                }
+                mat.needsUpdate = true
+              }
 
               if (n.includes('right') && n.includes('lobe')) {
                 mesh.name = 'right_lung'
