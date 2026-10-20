@@ -79,6 +79,23 @@ const TYPE_3D_MAPPING: Record<string, string> = {
   nephron: 'kidney_3d',
   excretory_system: 'kidney_3d',
   renal: 'kidney_3d',
+  ear: 'ear_auditory_3d',
+  ear_3d: 'ear_auditory_3d',
+  ear_auditory_3d: 'ear_auditory_3d',
+  human_ear: 'ear_auditory_3d',
+  hearing: 'ear_auditory_3d',
+  cochlea: 'ear_auditory_3d',
+  stomach: 'stomach_3d',
+  stomach_3d: 'stomach_3d',
+  digestive_system: 'stomach_3d',
+  gastric: 'stomach_3d',
+  digestion: 'stomach_3d',
+  knee: 'knee_joint_3d',
+  knee_3d: 'knee_joint_3d',
+  knee_joint_3d: 'knee_joint_3d',
+  synovial_joint: 'knee_joint_3d',
+  joint: 'knee_joint_3d',
+  acl: 'knee_joint_3d',
 }
 
 function Icon({ name }: { name: 'zoom' | 'close' }) {

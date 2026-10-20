@@ -7856,26 +7856,75 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
       mScreen.position.set(0, 0.36, 0.2)
       meterGroup.add(mScreen)
 
-      // Raycaster for inspection
+      // Raycaster for single-click inspection
       const raycaster = new THREE.Raycaster()
       const mouse = new THREE.Vector2()
 
-      function handleDblClick(e: MouseEvent) {
+      let selectedTitrationMesh: THREE.Mesh | null = null
+      let origTitrationEmissiveHex: number = 0
+      let origTitrationEmissiveIntensity: number = 0
+
+      function highlightTitrationMesh(mesh: THREE.Mesh | null) {
+        if (selectedTitrationMesh && (selectedTitrationMesh.material as any)?.emissive) {
+          ;(selectedTitrationMesh.material as any).emissive.setHex(origTitrationEmissiveHex)
+          ;(selectedTitrationMesh.material as any).emissiveIntensity = origTitrationEmissiveIntensity
+          selectedTitrationMesh = null
+        }
+        if (mesh && (mesh.material as any)?.emissive) {
+          selectedTitrationMesh = mesh
+          origTitrationEmissiveHex = (mesh.material as any).emissive.getHex()
+          origTitrationEmissiveIntensity = (mesh.material as any).emissiveIntensity || 0
+          ;(mesh.material as any).emissive.setHex(0x38bdf8)
+          ;(mesh.material as any).emissiveIntensity = 0.85
+        }
+      }
+
+      function triggerRaycast(clientX: number, clientY: number) {
         const rect = renderer.domElement.getBoundingClientRect()
-        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
-        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+        mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1
 
         raycaster.setFromCamera(mouse, camera)
         const hits = raycaster.intersectObjects(interactableMeshes, true)
         if (hits.length > 0) {
-          const key = hits[0].object.name || 'burette'
+          const hit = hits[0].object as THREE.Mesh
+          const key = hit.name || 'burette'
           activeDissectKey = key
+          highlightTitrationMesh(hit)
           const card = DISSECT_CARDS[key] || DISSECT_CARDS.burette
           callbacks.onInspectPart?.(card)
+        } else {
+          highlightTitrationMesh(null)
+          callbacks.onInspectPart?.(null)
         }
       }
 
-      renderer.domElement.addEventListener('dblclick', handleDblClick)
+      let ptrStartX = 0
+      let ptrStartY = 0
+      function handlePointerDown(e: PointerEvent) {
+        ptrStartX = e.clientX
+        ptrStartY = e.clientY
+      }
+
+      function handlePointerUp(e: PointerEvent) {
+        const dist = Math.hypot(e.clientX - ptrStartX, e.clientY - ptrStartY)
+        if (dist < 6) {
+          triggerRaycast(e.clientX, e.clientY)
+        }
+      }
+
+      function handlePointerMove(e: PointerEvent) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        renderer.domElement.style.cursor = hits.length > 0 ? 'pointer' : 'default'
+      }
+
+      renderer.domElement.addEventListener('pointerdown', handlePointerDown)
+      renderer.domElement.addEventListener('pointerup', handlePointerUp)
+      renderer.domElement.addEventListener('pointermove', handlePointerMove)
 
       let stirAngle = 0
       let dropTimer = 0
@@ -8005,7 +8054,9 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         dispose: () => {
           cancelAnimationFrame(animId)
           window.removeEventListener('resize', handleResize)
-          renderer.domElement.removeEventListener('dblclick', handleDblClick)
+          renderer.domElement.removeEventListener('pointerdown', handlePointerDown)
+          renderer.domElement.removeEventListener('pointerup', handlePointerUp)
+          renderer.domElement.removeEventListener('pointermove', handlePointerMove)
           renderer.dispose()
           if (container.contains(renderer.domElement)) {
             container.removeChild(renderer.domElement)
@@ -8916,6 +8967,1181 @@ export const BUILTIN_TEMPLATES_3D: Record<string, BuiltinTemplate3D> = {
         },
         closeDissection: () => {
           activeDissectKey = null
+          callbacks.onInspectPart?.(null)
+        },
+        dispose: () => {
+          cancelAnimationFrame(animId)
+          window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('pointerdown', handlePointerDown)
+          renderer.domElement.removeEventListener('pointerup', handlePointerUp)
+          renderer.domElement.removeEventListener('pointermove', handlePointerMove)
+          renderer.dispose()
+          if (container.contains(renderer.domElement)) {
+            container.removeChild(renderer.domElement)
+          }
+        },
+      }
+    },
+  },
+
+  // ==========================================
+  // 19. BIOLOGY: 3D HUMAN EAR & HEARING ACOUSTICS
+  // ==========================================
+  ear_auditory_3d: {
+    type: 'ear_auditory_3d',
+    title: '3D Human Ear Anatomy & Hearing Acoustics',
+    subject: 'Biology · Sensory Anatomy & Biophysics',
+    concept: 'Acoustic Wave Amplification, Impedance Matching & Cochlear Frequency Tonotopy',
+    description: 'Explore the 3 structural divisions of the human ear. Track sound pressure waves through the Pinna, external ear canal, translucent tympanic membrane (eardrum), auditory ossicles (Malleus, Incus, Stapes), 3 semicircular canals for equilibrium, and the 2.5-turn spiral cochlea featuring the Organ of Corti and hair cell stereocilia.',
+    emoji: '👂',
+    difficulty: 'Intermediate',
+    presets: [
+      { label: '👂 Normal Conversational Acoustic Wave (1000 Hz, 60 dB)', params: { frequency: 1000, decibels: 60, ossicleMotion: 1.0, cutaway: 1 } },
+      { label: '🎵 High-Pitch Treble Tone (4000 Hz Base Tonotopy)', params: { frequency: 4000, decibels: 70, ossicleMotion: 1.5, cutaway: 1 } },
+      { label: '🔊 Low-Pitch Bass Rumbling (120 Hz Apex Tonotopy)', params: { frequency: 120, decibels: 85, ossicleMotion: 2.0, cutaway: 1 } },
+      { label: '⚖️ Semicircular Canals & Vestibular Balance', params: { frequency: 500, decibels: 50, ossicleMotion: 0.5, cutaway: 0 } },
+      { label: '🛡️ Acoustic Reflex (Stapedius & Tensor Tympani Active)', params: { frequency: 2000, decibels: 95, ossicleMotion: 0.2, cutaway: 1 } },
+    ],
+    params: [
+      { key: 'frequency', label: 'Sound Frequency (Pitch)', min: 50, max: 8000, step: 50, defaultValue: 1000, unit: 'Hz' },
+      { key: 'decibels', label: 'Acoustic Sound Pressure', min: 20, max: 110, step: 5, defaultValue: 60, unit: 'dB' },
+      { key: 'ossicleMotion', label: 'Ossicular Vibration Gain', min: 0.1, max: 3.0, step: 0.1, defaultValue: 1.0, unit: 'x' },
+      { key: 'cutaway', label: 'Cochlea Cutaway View', min: 0, max: 1, step: 1, defaultValue: 1, unit: '' },
+    ],
+    calculateReadouts: (p) => {
+      const vSound = 343 // m/s in air at 20C
+      const lambda = (vSound / p.frequency * 100).toFixed(1)
+      const presRatio = Math.pow(10, p.decibels / 20).toFixed(0)
+      const tonotopy = p.frequency > 2000 ? 'Basal Turn (Stiff, Narrow)' : p.frequency > 500 ? 'Middle Turn' : 'Helicotrema Apex (Floppy, Wide)'
+      return [
+        { label: 'Sound Wavelength (λ)', value: lambda, unit: 'cm', formula: 'λ = v / f' },
+        { label: 'Acoustic Pressure', value: presRatio, unit: 'rel P₀', formula: 'dB = 20 log₁₀(P / P₀)' },
+        { label: 'Impedance Ratio (Middle Ear)', value: '22:1 Amplification', formula: 'Area Ratio (17:1) × Lever (1.3:1)' },
+        { label: 'Cochlear Resonance Site', value: tonotopy, formula: 'Von Békésy Traveling Wave' },
+      ]
+    },
+    initScene: (container, initialParams, callbacks = {}) => {
+      let params = { ...initialParams }
+      let animId: number
+      let isPlaying = true; void isPlaying
+      let activeDissectKey: string | null = null; void activeDissectKey
+
+      const width = container.clientWidth || 800
+      const height = container.clientHeight || 500
+
+      const scene = new THREE.Scene()
+      createBioStudioEnvironment(scene)
+
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
+      camera.position.set(0, 2.5, 15)
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true })
+      renderer.setSize(width, height)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      setupRenderer(renderer)
+      container.appendChild(renderer.domElement)
+
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.enableDamping = true
+      controls.dampingFactor = 0.05
+      controls.minDistance = 4.0
+      controls.maxDistance = 28.0
+      controls.target.set(0, 0, 0)
+
+      const earRig = new THREE.Group()
+      scene.add(earRig)
+
+      const interactableMeshes: THREE.Object3D[] = []
+
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        pinna: {
+          title: 'Pinna / Auricle (Outer Ear Cartilage)',
+          partName: 'Elastic Cartilage Auricle (Helix, Antihelix & Concha)',
+          role: 'Captures incoming acoustic air pressure waves and funnels them into the external auditory canal',
+          bloodType: 'Neutral',
+          internalStructures: ['Helix Rim', 'Antihelix Fold', 'Concha Cavity', 'Tragus Acoustic Flap', 'Fibrofatty Lobule'],
+          description: 'The complex convolutions of the pinna provide spectral filtering, allowing the human brain to localize sound sources vertically and determine whether a sound originates in front of or behind the listener.',
+        },
+        canal: {
+          title: 'External Auditory Meatus (Ear Canal)',
+          partName: 'S-Shaped Acoustic Resonance Canal (~2.5 cm)',
+          role: 'Guides sound waves to the eardrum and acts as an acoustic quarter-wave resonator',
+          bloodType: 'Neutral',
+          internalStructures: ['Cartilaginous Outer 1/3', 'Bony Inner 2/3', 'Ceruminous Wax Glands', 'Tragal Protective Vibrissae'],
+          description: 'The ear canal resonates strongly at 2,000–4,000 Hz (the core frequencies of human speech), providing a natural 10–15 dB sound pressure boost directly at the tympanic membrane.',
+        },
+        tympanic: {
+          title: 'Tympanic Membrane (Eardrum)',
+          partName: 'Three-Layered Acoustic Vibrating Membrane',
+          role: 'Converts airborne sound pressure fluctuations into mechanical physical vibrations',
+          bloodType: 'Neutral',
+          internalStructures: ['Pars Tensa (Tense Vibrating Zone)', 'Pars Flaccida (Shrapnell Membrane)', 'Umbo (Central Peak attached to Malleus)', 'Cone of Light'],
+          description: 'Tilted at an angle of ~55 degrees to the canal axis, the eardrum vibrates with displacements as small as 0.1 nanometers (the diameter of a single hydrogen atom) at the human auditory threshold!',
+        },
+        malleus: {
+          title: 'Malleus (Hammer) · Auditory Ossicle',
+          partName: 'Primary Auditory Lever Ossicle',
+          role: 'Receives kinetic vibration from the eardrum and transfers it to the incus',
+          bloodType: 'Neutral',
+          internalStructures: ['Manubrium (Handle) embedded in Umbo', 'Lateral Process', 'Neck', 'Head (Caput Mallei) articulating with Incus'],
+          description: 'The malleus is the first of the three auditory ossicles. Its handle is tightly fused to the fibrous layer of the eardrum, ensuring 1:1 mechanical transfer of acoustic motion.',
+        },
+        incus: {
+          title: 'Incus (Anvil) · Auditory Ossicle',
+          partName: 'Intermediate Fulcrum Ossicle',
+          role: 'Transmits kinetic energy from the malleus to the stapes through an articulatory lever arm',
+          bloodType: 'Neutral',
+          internalStructures: ['Body of Incus', 'Short Limb (Crus Breve) anchored in Fossa', 'Long Limb (Crus Longum)', 'Lenticular Process'],
+          description: 'Acting as a second-class mechanical lever, the incus reduces vibrational displacement while proportionally amplifying mechanical force by a factor of 1.3x.',
+        },
+        stapes: {
+          title: 'Stapes (Stirrup) · Smallest Bone in Body',
+          partName: 'Piston-like Fluid Driving Ossicle',
+          role: 'Punches into the Oval Window, driving hydraulic fluid waves through the perilymph of the inner ear',
+          bloodType: 'Neutral',
+          internalStructures: ['Head (Capitulum)', 'Anterior & Posterior Crura', 'Oval Footplate (Base)', 'Annular Ligament'],
+          description: 'Because the surface area of the eardrum (55 mm²) is 17 times larger than the stapes footplate (3.2 mm²), combined with the 1.3x ossicular lever arm, the middle ear achieves a 22-fold pressure amplification, overcoming the 99.9% acoustic impedance mismatch between air and water!',
+        },
+        canals: {
+          title: 'Semicircular Canals & Ampullae',
+          partName: 'Orthogonal Vestibular Balance Apparatus',
+          role: 'Detects rotational (angular) head acceleration in three-dimensional space',
+          bloodType: 'Neutral',
+          internalStructures: ['Anterior/Superior Canal (Nodding Yes)', 'Posterior Canal (Tilting Shoulder)', 'Lateral/Horizontal Canal (Shaking No)', 'Ampullary Cupula Hair Cells'],
+          description: 'Positioned at exact 90-degree angles to one another, fluid endolymph inertia deflects the gelatinous cupula sail during head rotation, bending sensory hair cell bundles to trigger vestibular nerve impulses.',
+        },
+        vestibule: {
+          title: 'Vestibule (Utricle & Saccule)',
+          partName: 'Gravity & Linear Acceleration Sensor Hub',
+          role: 'Senses static head tilt and linear motion (e.g., elevator descent or automobile acceleration)',
+          bloodType: 'Neutral',
+          internalStructures: ['Macula of Utricle (Horizontal Motion)', 'Macula of Saccule (Vertical Motion & Gravity)', 'Otoliths (Calcium Carbonate Ear Stones)', 'Gelatinous Otolithic Membrane'],
+          description: 'Dense microscopic calcium carbonate otoconia stones rest on top of hair cells. Gravitational tilt slides these heavy stones, bending hair cells and informing the brain which way is up.',
+        },
+        cochlea: {
+          title: 'Cochlea (Spiral Acoustic Snail Shell)',
+          partName: 'Tonotopic Acoustic Sensory Transducer',
+          role: 'Decomposes complex acoustic frequencies into distinct spatial pitch coordinates',
+          bloodType: 'Neutral',
+          internalStructures: ['Scala Vestibuli (Perilymph)', 'Scala Media / Cochlear Duct (Endolymph)', 'Scala Tympani (Perilymph)', 'Modiolus Bony Core', 'Helicotrema Apex'],
+          description: 'Coiling 2.5 turns, the basilar membrane is narrow and stiff at the base (resonating to high frequencies up to 20,000 Hz) and broad and floppy at the apex (resonating to low frequencies down to 20 Hz).',
+        },
+        hair_cells: {
+          title: 'Organ of Corti & Sensory Hair Cells',
+          partName: 'Mechanotransduction Stereocilia Battery',
+          role: 'Converts microscopic fluid shearing into electrical nerve impulses',
+          bloodType: 'Neutral',
+          internalStructures: ['Inner Hair Cells (~3,500 Primary Sensors)', 'Outer Hair Cells (~12,000 Motor Amplifiers)', 'Tectorial Membrane Shearing Plate', 'Tip Links & Mechanically-Gated K⁺ Channels'],
+          description: 'Deflection of stereocilia pulls open tip-link ion channels, allowing K⁺ from potassium-rich endolymph (+80 mV endocochlear potential) to flood into hair cells, triggering neurotransmitter release.',
+        },
+        nerve: {
+          title: 'Vestibulocochlear Nerve (Cranial Nerve VIII)',
+          partName: 'Cochlear & Vestibular Neural Division',
+          role: 'Transmits digitized auditory action potentials and balance information to the brain',
+          bloodType: 'Neutral',
+          internalStructures: ['Spiral Ganglion Sensory Neurons', 'Cochlear Nerve Branch (~30,000 Axons)', 'Vestibular Nerve Branch', 'Internal Acoustic Meatus Canal'],
+          description: 'Preserves the strict tonotopic pitch map all the way to the primary auditory cortex (A1 in Heschl\'s gyrus) for perception of speech, music, and spatial acoustics.',
+        },
+        eustachian: {
+          title: 'Pharyngotympanic (Eustachian) Tube',
+          partName: 'Middle Ear Ventilating & Pressure Channel',
+          role: 'Equalizes atmospheric air pressure between the nasopharynx and middle ear cavity',
+          bloodType: 'Neutral',
+          internalStructures: ['Tensor Veli Palatini Muscle (Swallow Opener)', 'Levator Veli Palatini', 'Tubal Tonsil of Gerlach', 'Ciliated Epithelium'],
+          description: 'Normally closed, the Eustachian tube pops open during swallowing, yawning, or chewing to equalize middle ear pressure, preventing eardrum retraction or rupture during altitude changes.',
+        },
+      }
+
+      // Procedural Fallback Group
+      const proceduralGroup = new THREE.Group()
+      earRig.add(proceduralGroup)
+
+      const pinnaMat = new THREE.MeshStandardMaterial({ color: 0xf5b7b1, roughness: 0.35 })
+      const canalMat = new THREE.MeshStandardMaterial({ color: 0xd98880, roughness: 0.4 })
+      const eardrumMat = new THREE.MeshStandardMaterial({ color: 0xebedef, roughness: 0.2, transparent: true, opacity: 0.75 })
+      const boneMat = new THREE.MeshStandardMaterial({ color: 0xfdfefe, roughness: 0.25 })
+      const cochleaMat = new THREE.MeshStandardMaterial({ color: 0xd5dbdb, roughness: 0.3 })
+
+      // Fallback meshes
+      const pinnaMesh = new THREE.Mesh(new THREE.TorusGeometry(2.4, 0.45, 16, 32), pinnaMat)
+      pinnaMesh.position.set(-4.5, 0, 0)
+      pinnaMesh.name = 'pinna'
+      proceduralGroup.add(pinnaMesh)
+      interactableMeshes.push(pinnaMesh)
+
+      const canalMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.45, 3.8, 16), canalMat)
+      canalMesh.rotation.z = Math.PI / 2
+      canalMesh.position.set(-2.2, 0, 0)
+      canalMesh.name = 'canal'
+      proceduralGroup.add(canalMesh)
+      interactableMeshes.push(canalMesh)
+
+      const eardrumMesh = new THREE.Mesh(new THREE.ConeGeometry(0.85, 0.35, 24), eardrumMat)
+      eardrumMesh.rotation.z = -Math.PI / 2
+      eardrumMesh.position.set(-0.3, 0, 0)
+      eardrumMesh.name = 'tympanic'
+      proceduralGroup.add(eardrumMesh)
+      interactableMeshes.push(eardrumMesh)
+
+      const ossicleMesh = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.4, 0.4), boneMat)
+      ossicleMesh.position.set(0.6, 0.2, 0)
+      ossicleMesh.name = 'malleus'
+      proceduralGroup.add(ossicleMesh)
+      interactableMeshes.push(ossicleMesh)
+
+      const cochleaMesh = new THREE.Mesh(new THREE.SphereGeometry(1.4, 24, 20), cochleaMat)
+      cochleaMesh.position.set(2.4, 0, 0)
+      cochleaMesh.name = 'cochlea'
+      proceduralGroup.add(cochleaMesh)
+      interactableMeshes.push(cochleaMesh)
+
+      // Dynamic Acoustic Sound Pressure Wave Particles
+      const waveParticles: THREE.Mesh[] = []
+      const waveMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.75 })
+      const waveGeo = new THREE.SphereGeometry(0.08, 8, 8)
+      for (let w = 0; w < 30; w++) {
+        const wp = new THREE.Mesh(waveGeo, waveMat)
+        wp.position.set(-6.5 + (w / 30) * 4.5, (Math.random() - 0.5) * 0.8, (Math.random() - 0.5) * 0.8)
+        wp.userData = { offset: w / 30, baseSpeed: 0.04 }
+        earRig.add(wp)
+        waveParticles.push(wp)
+      }
+
+      // Load Blender Realistic Model
+      let realisticEarRoot: THREE.Group | null = null; void realisticEarRoot
+      let blenderStapes: THREE.Object3D | null = null
+      let blenderTympanic: THREE.Object3D | null = null
+
+      const gltfLoader = new GLTFLoader()
+      gltfLoader.load(
+        '/3d_models/ear_realistic.glb',
+        (gltf: any) => {
+          const root = gltf.scene as THREE.Group
+          realisticEarRoot = root
+          root.scale.setScalar(1.25)
+          earRig.add(root)
+          proceduralGroup.visible = false
+
+          root.traverse((child: THREE.Object3D) => {
+            if ((child as THREE.Mesh).isMesh) {
+              const mesh = child as THREE.Mesh
+              const n = mesh.name.toLowerCase()
+              mesh.castShadow = true
+              mesh.receiveShadow = true
+
+              if (n.includes('pinna') || n.includes('helix') || n.includes('antihelix') || n.includes('concha') || n.includes('tragus') || n.includes('lobule')) {
+                mesh.name = 'pinna'
+              } else if (n.includes('canal')) {
+                mesh.name = 'canal'
+              } else if (n.includes('tympanic')) {
+                mesh.name = 'tympanic'
+                blenderTympanic = mesh
+              } else if (n.includes('malleus')) {
+                mesh.name = 'malleus'
+              } else if (n.includes('incus')) {
+                mesh.name = 'incus'
+              } else if (n.includes('stapes')) {
+                mesh.name = 'stapes'
+                blenderStapes = mesh
+              } else if (n.includes('canal') || n.includes('ampulla')) {
+                mesh.name = 'canals'
+              } else if (n.includes('vestibule')) {
+                mesh.name = 'vestibule'
+              } else if (n.includes('cochlea')) {
+                mesh.name = 'cochlea'
+              } else if (n.includes('corti') || n.includes('basilar') || n.includes('hair_cell')) {
+                mesh.name = 'hair_cells'
+              } else if (n.includes('nerve')) {
+                mesh.name = 'nerve'
+              } else if (n.includes('eustachian')) {
+                mesh.name = 'eustachian'
+              } else {
+                mesh.name = 'pinna'
+              }
+
+              interactableMeshes.push(mesh)
+            }
+          })
+        },
+        undefined,
+        (err: any) => console.warn('[EAR GLTF] Fallback to procedural model:', err)
+      )
+
+      const raycaster = new THREE.Raycaster()
+      const mouse = new THREE.Vector2()
+
+      let selectedEarMesh: THREE.Mesh | null = null
+      let origEarEmissiveHex: number = 0
+      let origEarEmissiveIntensity: number = 0
+
+      function highlightEarMesh(mesh: THREE.Mesh | null) {
+        if (selectedEarMesh && (selectedEarMesh.material as any)?.emissive) {
+          ;(selectedEarMesh.material as any).emissive.setHex(origEarEmissiveHex)
+          ;(selectedEarMesh.material as any).emissiveIntensity = origEarEmissiveIntensity
+          selectedEarMesh = null
+        }
+        if (mesh && (mesh.material as any)?.emissive) {
+          selectedEarMesh = mesh
+          origEarEmissiveHex = (mesh.material as any).emissive.getHex()
+          origEarEmissiveIntensity = (mesh.material as any).emissiveIntensity || 0
+          ;(mesh.material as any).emissive.setHex(0x38bdf8)
+          ;(mesh.material as any).emissiveIntensity = 0.85
+        }
+      }
+
+      function triggerRaycast(clientX: number, clientY: number) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        if (hits.length > 0) {
+          const hit = hits[0].object as THREE.Mesh
+          const key = hit.name || 'pinna'
+          activeDissectKey = key
+          highlightEarMesh(hit)
+          const card = DISSECT_CARDS[key] || DISSECT_CARDS.pinna
+          callbacks.onInspectPart?.(card)
+        } else {
+          highlightEarMesh(null)
+          callbacks.onInspectPart?.(null)
+        }
+      }
+
+      let ptrStartX = 0
+      let ptrStartY = 0
+      function handlePointerDown(e: PointerEvent) {
+        ptrStartX = e.clientX
+        ptrStartY = e.clientY
+      }
+
+      function handlePointerUp(e: PointerEvent) {
+        const dist = Math.hypot(e.clientX - ptrStartX, e.clientY - ptrStartY)
+        if (dist < 6) {
+          triggerRaycast(e.clientX, e.clientY)
+        }
+      }
+
+      function handlePointerMove(e: PointerEvent) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        renderer.domElement.style.cursor = hits.length > 0 ? 'pointer' : 'default'
+      }
+
+      renderer.domElement.addEventListener('pointerdown', handlePointerDown)
+      renderer.domElement.addEventListener('pointerup', handlePointerUp)
+      renderer.domElement.addEventListener('pointermove', handlePointerMove)
+
+      function animate() {
+        animId = requestAnimationFrame(animate)
+        controls.update()
+
+        const t = Date.now() * 0.001
+        const vibAmp = (params.decibels / 100) * (params.ossicleMotion || 1.0) * 0.02
+        const freqRad = (params.frequency || 1000) * 0.01
+
+        if (blenderTympanic) {
+          blenderTympanic.position.x = -0.45 + Math.sin(t * freqRad) * vibAmp * 1.5
+        }
+        if (blenderStapes) {
+          blenderStapes.position.x = 1.25 + Math.sin(t * freqRad) * vibAmp
+        }
+
+        // Acoustic sound wave travel into ear canal
+        waveParticles.forEach((wp) => {
+          wp.position.x += 0.06 * (params.frequency > 2000 ? 1.4 : 1.0)
+          if (wp.position.x > -0.4) {
+            wp.position.x = -6.5
+          }
+        })
+
+        if (selectedEarMesh && (selectedEarMesh.material as any)?.emissive) {
+          ;(selectedEarMesh.material as any).emissiveIntensity = 0.65 + 0.35 * Math.sin(Date.now() * 0.007)
+        }
+
+        renderer.render(scene, camera)
+      }
+
+      animate()
+
+      const handleResize = () => {
+        const w = container.clientWidth || 800
+        const h = container.clientHeight || 500
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+        renderer.setSize(w, h)
+      }
+      window.addEventListener('resize', handleResize)
+
+      return {
+        updateParams: (newParams: Record<string, number>) => {
+          params = { ...newParams }
+        },
+        setPlaying: (playing: boolean) => {
+          isPlaying = playing
+        },
+        reset: () => {
+          activeDissectKey = null
+          highlightEarMesh(null)
+          callbacks.onInspectPart?.(null)
+          controls.reset()
+        },
+        closeDissection: () => {
+          activeDissectKey = null
+          highlightEarMesh(null)
+          callbacks.onInspectPart?.(null)
+        },
+        dispose: () => {
+          cancelAnimationFrame(animId)
+          window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('pointerdown', handlePointerDown)
+          renderer.domElement.removeEventListener('pointerup', handlePointerUp)
+          renderer.domElement.removeEventListener('pointermove', handlePointerMove)
+          renderer.dispose()
+          if (container.contains(renderer.domElement)) {
+            container.removeChild(renderer.domElement)
+          }
+        },
+      }
+    },
+  },
+
+  // ==========================================
+  // 20. BIOLOGY: 3D HUMAN STOMACH & GASTRIC ARCHITECTURE
+  // ==========================================
+  stomach_3d: {
+    type: 'stomach_3d',
+    title: '3D Human Stomach & Gastric Architecture',
+    subject: 'Biology · Digestive Physiology',
+    concept: 'Peristaltic Churning, Hydrochloric Acid Secretion & Chyme Emulsification',
+    description: 'Explore the 3D human stomach and proximal duodenum. Observe the terminal esophagus, cardiac sphincter, gastric fundus dome, corpus reservoir, greater/lesser curvatures, muscular pyloric sphincter, C-loop duodenum, deep mucosal gastric rugae folds, and parietal cell HCl secretion.',
+    emoji: '🫄',
+    difficulty: 'Intermediate',
+    presets: [
+      { label: '🫄 Postprandial Full Stomach (1.2 L Chyme, pH 1.8)', params: { fullness: 75, peristalsisSpeed: 1.0, acidProduction: 100, cutaway: 1 } },
+      { label: '🥣 Basal Fasting State (Empty Reservoir, Deep Rugae)', params: { fullness: 15, peristalsisSpeed: 0.3, acidProduction: 30, cutaway: 1 } },
+      { label: '⚡ Active Peristaltic Churning (3 Waves / min)', params: { fullness: 60, peristalsisSpeed: 2.2, acidProduction: 120, cutaway: 1 } },
+      { label: '🧪 Hyperchlorhydria Acid Surge (pH 1.20)', params: { fullness: 50, peristalsisSpeed: 1.2, acidProduction: 180, cutaway: 1 } },
+      { label: '🚪 Pyloric Chyme Metering into Duodenum', params: { fullness: 70, peristalsisSpeed: 1.5, acidProduction: 100, cutaway: 1 } },
+    ],
+    params: [
+      { key: 'fullness', label: 'Gastric Volume (Fullness)', min: 10, max: 100, step: 5, defaultValue: 60, unit: '%' },
+      { key: 'peristalsisSpeed', label: 'Peristaltic Contraction Rate', min: 0.2, max: 3.0, step: 0.2, defaultValue: 1.0, unit: 'x' },
+      { key: 'acidProduction', label: 'Parietal HCl Secretion', min: 20, max: 200, step: 10, defaultValue: 100, unit: '%' },
+      { key: 'cutaway', label: 'Anterior Mucosal Cutaway', min: 0, max: 1, step: 1, defaultValue: 1, unit: '' },
+    ],
+    calculateReadouts: (p) => {
+      const vol = (0.2 + (p.fullness / 100) * 1.3).toFixed(2)
+      const ph = Math.max(1.1, 2.5 - (p.acidProduction / 200) * 1.3).toFixed(2)
+      const emptyTime = (180 / (p.peristalsisSpeed || 1)).toFixed(0)
+      return [
+        { label: 'Gastric Chyme Volume', value: vol, unit: 'L', formula: 'Resting: 50 mL → Max: 2.0 L' },
+        { label: 'Intragastric Luminal pH', value: ph, formula: 'pH = -log₁₀[H⁺] (Parietal HCl)' },
+        { label: 'Gastric Emptying Half-Time', value: emptyTime, unit: 'min', formula: 'Pyloric Transit Rate' },
+        { label: 'Peristalsis Frequency', value: '3 waves/min', formula: 'Interstitial Cells of Cajal (ICC)' },
+      ]
+    },
+    initScene: (container, initialParams, callbacks = {}) => {
+      let params = { ...initialParams }
+      let animId: number
+      let isPlaying = true; void isPlaying
+      let activeDissectKey: string | null = null; void activeDissectKey
+
+      const width = container.clientWidth || 800
+      const height = container.clientHeight || 500
+
+      const scene = new THREE.Scene()
+      createBioStudioEnvironment(scene)
+
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
+      camera.position.set(0.5, 0.5, 14)
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true })
+      renderer.setSize(width, height)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      setupRenderer(renderer)
+      container.appendChild(renderer.domElement)
+
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.enableDamping = true
+      controls.dampingFactor = 0.05
+      controls.target.set(0.5, 0.2, 0)
+
+      const stomachRig = new THREE.Group()
+      scene.add(stomachRig)
+
+      const interactableMeshes: THREE.Object3D[] = []
+
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        cardia: {
+          title: 'Cardia & Lower Esophageal Sphincter (LES)',
+          partName: 'Gastroesophageal Junction (Z-Line)',
+          role: 'Prevents retroactive reflux of highly acidic gastric contents into the alkaline esophagus',
+          bloodType: 'Neutral',
+          internalStructures: ['Squamocolumnar Junction (Z-line)', 'Circular Smooth Muscle Tone', 'Phrenoesophageal Ligament', 'Angle of His Valve'],
+          description: 'The LES maintains a basal resting tone of 15–30 mmHg. Transient inappropriate relaxation allows stomach acid (pH ~1.5) to contact the unprotected esophageal lining, causing heartburn and GERD.',
+        },
+        fundus: {
+          title: 'Gastric Fundus (Superior Gas Dome)',
+          partName: 'Gastric Reservoir & Receptive Relaxation Dome',
+          role: 'Stores swallowed digestive gas bubbles and expands during receptive relaxation to accommodate large meals without pressure spikes',
+          bloodType: 'Neutral',
+          internalStructures: ['Gastric Air Bubble (Magenblase)', 'Vagally-Mediated Receptive Relaxation', 'Thin Elastic Smooth Muscle', 'Ghrelin Hunger Hormone Secretion'],
+          description: 'The dome-shaped fundus can stretch dramatically via vagal nitric oxide and VIP signaling, allowing the stomach to hold up to 1.5–2.0 liters of food without significant increase in intragastric pressure.',
+        },
+        corpus: {
+          title: 'Gastric Corpus (Body of Stomach)',
+          partName: 'Primary Chemical Digestion & Churning Reservoir',
+          role: 'Mechanical maceration and enzymatic breakdown of protein macromolecules into liquid chyme',
+          bloodType: 'Neutral',
+          internalStructures: ['Outer Longitudinal Muscle Layer', 'Middle Circular Muscle Layer', 'Inner Oblique Muscle Layer (Unique to Stomach!)', 'High-Density Parietal Cell Beds'],
+          description: 'The stomach is the only organ in the digestive tract with three distinct smooth muscle layers (longitudinal, circular, and inner oblique), allowing complex 3-dimensional wringing and peristaltic grinding.',
+        },
+        pylorus: {
+          title: 'Pyloric Antrum & Canal',
+          partName: 'Mechanical Grinding Mill & Retropulsion Engine',
+          role: 'Crushes solid food boluses into liquid chyme through vigorous terminal antral contraction and retropulsion',
+          bloodType: 'Neutral',
+          internalStructures: ['Terminal Antral Peristaltic Squeeze', 'Gastrin-Producing G-Cells', 'Incisura Angularis Notch', 'Narrow Pyloric Canal'],
+          description: 'When peristaltic waves reach the antrum, the pyloric sphincter is closed. Chyme is powerfully hurled backward into the corpus (retropulsion), pulverizing particles until they are smaller than 2 millimeters.',
+        },
+        sphincter: {
+          title: 'Pyloric Sphincter Valve',
+          partName: 'True Anatomical Smooth Muscle Ring Valve',
+          role: 'Meters small squirts (~3 mL) of thoroughly digested liquid chyme into the duodenum while holding back solid food',
+          bloodType: 'Neutral',
+          internalStructures: ['Thickened Circular Muscularis Ring', 'Enterogastric Reflex Inversion', 'CCK / Secretin Feedback Receptors'],
+          description: 'Acts as a strict biological gatekeeper. Only finely homogenized liquid chyme is permitted into the small intestine, preventing duodenal osmotic overload and ensuring complete enzyme digestion.',
+        },
+        duodenum: {
+          title: 'Duodenum (C-Loop) & Ampulla of Vater',
+          partName: 'Proximal Small Intestine & Bile / Pancreatic Entry',
+          role: 'Neutralizes incoming hydrochloric acid and initiates lipid/carbohydrate enzymatic hydrolysis',
+          bloodType: 'Neutral',
+          internalStructures: ['Brunner\'s Glands (Bicarbonate Alkaline Mucus)', 'Major Duodenal Papilla', 'Ampulla of Vater (Common Bile & Pancreatic Ducts)', 'Sphincter of Oddi'],
+          description: 'The C-shaped duodenum wraps around the head of the pancreas. Its Brunner\'s glands secrete alkaline mucus (pH 8.2–9.3) to instantly protect intestinal enterocytes from corrosive gastric acid.',
+        },
+        rugae: {
+          title: 'Gastric Rugae (Mucosal Accordion Folds)',
+          partName: 'Expandable Longitudinal Submucosal Folds',
+          role: 'Allows massive volumetric expansion of the stomach without tearing the epithelial surface',
+          bloodType: 'Neutral',
+          internalStructures: ['Mucosal & Submucosal Folds', 'Insoluble Alkaline Mucus Gel Blanket', 'Tight Epithelial Junctions', 'Rapid 3–5 Day Cellular Turnover'],
+          description: 'When the stomach is empty, the mucosa collapses into thick, longitudinal ridges called rugae. As food arrives, these folds unroll like an accordion, expanding surface area by over 400%!',
+        },
+        glands: {
+          title: 'Gastric Pits & Parietal Secretory Cells',
+          partName: 'Oxyntic Secretory Machinery (0.1 M HCl & Intrinsic Factor)',
+          role: 'Synthesizes massive concentrations of hydrochloric acid (pH 1.5–2.0) and intrinsic factor',
+          bloodType: 'Neutral',
+          internalStructures: ['H⁺/K⁺ ATPase Proton Pumps (Target of Omeprazole)', 'Carbonic Anhydrase Enzyme', 'Chief Cells (Pepsinogen Zymogen)', 'Intrinsic Factor for Vitamin B12 Absorption'],
+          description: 'Parietal cells use apical H⁺/K⁺ ATPase proton pumps to pump hydrogen ions against a 1,000,000-to-1 concentration gradient into the lumen, activating pepsinogen into active pepsin to denature proteins.',
+        },
+        artery: {
+          title: 'Gastric & Gastro-Omental Arterial Arcade',
+          partName: 'Celiac Trunk Vascular Anastomosis',
+          role: 'Delivers high-volume oxygenated arterial perfusion to sustain active parietal acid pump metabolism',
+          bloodType: 'Oxygenated',
+          internalStructures: ['Left Gastric Artery (from Celiac Trunk)', 'Right Gastric Artery (from Proper Hepatic)', 'Left & Right Gastro-Omental Arteries', 'Submucosal Micro-Vascular Shunts'],
+          description: 'The stomach has exceptionally dense vascular collateral anastomoses. Even if two major gastric arteries are occluded, collateral blood supply prevents gastric infarction.',
+        },
+        chyme: {
+          title: 'Gastric Chyme Pool & Acid Hydrolase',
+          partName: 'Hyper-Acidic Semi-Fluid Digested Slurry',
+          role: 'Denatures dietary proteins and sterilizes ingested pathogens through extreme acidity',
+          bloodType: 'Neutral',
+          internalStructures: ['Hydrochloric Acid (pH 1.5 - 2.0)', 'Active Pepsin Protease Enzyme', 'Gastric Lipase', 'Dissolved Electrolytes & Micronutrients'],
+          description: 'The hostile acidic environment kills over 99.9% of bacteria and viruses entering with food, serving as a frontline innate immune barrier.',
+        },
+      }
+
+      // Procedural fallback
+      const proceduralGroup = new THREE.Group()
+      stomachRig.add(proceduralGroup)
+
+      const bodyMat = new THREE.MeshStandardMaterial({ color: 0xe59866, roughness: 0.35 })
+      const fundusMat = new THREE.MeshStandardMaterial({ color: 0xd98880, roughness: 0.35 })
+      const duodenumMat = new THREE.MeshStandardMaterial({ color: 0xf0b27a, roughness: 0.35 })
+
+      const corpusFallback = new THREE.Mesh(new THREE.SphereGeometry(2.4, 24, 24), bodyMat)
+      corpusFallback.scale.set(1.2, 0.85, 1.4)
+      corpusFallback.name = 'corpus'
+      proceduralGroup.add(corpusFallback)
+      interactableMeshes.push(corpusFallback)
+
+      const fundusFallback = new THREE.Mesh(new THREE.SphereGeometry(1.6, 20, 20), fundusMat)
+      fundusFallback.position.set(-1.4, 0, 2.2)
+      fundusFallback.name = 'fundus'
+      proceduralGroup.add(fundusFallback)
+      interactableMeshes.push(fundusFallback)
+
+      const duodenumFallback = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.45, 16, 24, Math.PI * 1.2), duodenumMat)
+      duodenumFallback.position.set(3.2, 0, -1.2)
+      duodenumFallback.name = 'duodenum'
+      proceduralGroup.add(duodenumFallback)
+      interactableMeshes.push(duodenumFallback)
+
+      // Load Blender Realistic Model
+      let realisticStomachRoot: THREE.Group | null = null; void realisticStomachRoot
+
+      const gltfLoader = new GLTFLoader()
+      gltfLoader.load(
+        '/3d_models/stomach_realistic.glb',
+        (gltf: any) => {
+          const root = gltf.scene as THREE.Group
+          realisticStomachRoot = root
+          root.scale.setScalar(1.2)
+          root.position.set(0, -0.2, 0)
+          stomachRig.add(root)
+          proceduralGroup.visible = false
+
+          root.traverse((child: THREE.Object3D) => {
+            if ((child as THREE.Mesh).isMesh) {
+              const mesh = child as THREE.Mesh
+              const n = mesh.name.toLowerCase()
+              mesh.castShadow = true
+              mesh.receiveShadow = true
+
+              if (n.includes('fundus')) {
+                mesh.name = 'fundus'
+              } else if (n.includes('corpus') || n.includes('body')) {
+                mesh.name = 'corpus'
+              } else if (n.includes('antrum') || n.includes('canal')) {
+                mesh.name = 'pylorus'
+              } else if (n.includes('sphincter')) {
+                mesh.name = 'sphincter'
+              } else if (n.includes('duodenum') || n.includes('ampulla')) {
+                mesh.name = 'duodenum'
+              } else if (n.includes('rugae')) {
+                mesh.name = 'rugae'
+              } else if (n.includes('parietal') || n.includes('pits') || n.includes('gland')) {
+                mesh.name = 'glands'
+              } else if (n.includes('artery') || n.includes('omental')) {
+                mesh.name = 'artery'
+              } else if (n.includes('chyme') || n.includes('acid')) {
+                mesh.name = 'chyme'
+              } else if (n.includes('esophag') || n.includes('cardia')) {
+                mesh.name = 'cardia'
+              } else {
+                mesh.name = 'corpus'
+              }
+
+              interactableMeshes.push(mesh)
+            }
+          })
+        },
+        undefined,
+        (err: any) => console.warn('[STOMACH GLTF] Fallback to procedural model:', err)
+      )
+
+      const raycaster = new THREE.Raycaster()
+      const mouse = new THREE.Vector2()
+
+      let selectedStomachMesh: THREE.Mesh | null = null
+      let origStomachEmissiveHex: number = 0
+      let origStomachEmissiveIntensity: number = 0
+
+      function highlightStomachMesh(mesh: THREE.Mesh | null) {
+        if (selectedStomachMesh && (selectedStomachMesh.material as any)?.emissive) {
+          ;(selectedStomachMesh.material as any).emissive.setHex(origStomachEmissiveHex)
+          ;(selectedStomachMesh.material as any).emissiveIntensity = origStomachEmissiveIntensity
+          selectedStomachMesh = null
+        }
+        if (mesh && (mesh.material as any)?.emissive) {
+          selectedStomachMesh = mesh
+          origStomachEmissiveHex = (mesh.material as any).emissive.getHex()
+          origStomachEmissiveIntensity = (mesh.material as any).emissiveIntensity || 0
+          ;(mesh.material as any).emissive.setHex(0x38bdf8)
+          ;(mesh.material as any).emissiveIntensity = 0.85
+        }
+      }
+
+      function triggerRaycast(clientX: number, clientY: number) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        if (hits.length > 0) {
+          const hit = hits[0].object as THREE.Mesh
+          const key = hit.name || 'corpus'
+          activeDissectKey = key
+          highlightStomachMesh(hit)
+          const card = DISSECT_CARDS[key] || DISSECT_CARDS.corpus
+          callbacks.onInspectPart?.(card)
+        } else {
+          highlightStomachMesh(null)
+          callbacks.onInspectPart?.(null)
+        }
+      }
+
+      let ptrStartX = 0
+      let ptrStartY = 0
+      function handlePointerDown(e: PointerEvent) {
+        ptrStartX = e.clientX
+        ptrStartY = e.clientY
+      }
+
+      function handlePointerUp(e: PointerEvent) {
+        const dist = Math.hypot(e.clientX - ptrStartX, e.clientY - ptrStartY)
+        if (dist < 6) {
+          triggerRaycast(e.clientX, e.clientY)
+        }
+      }
+
+      function handlePointerMove(e: PointerEvent) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        renderer.domElement.style.cursor = hits.length > 0 ? 'pointer' : 'default'
+      }
+
+      renderer.domElement.addEventListener('pointerdown', handlePointerDown)
+      renderer.domElement.addEventListener('pointerup', handlePointerUp)
+      renderer.domElement.addEventListener('pointermove', handlePointerMove)
+
+      function animate() {
+        animId = requestAnimationFrame(animate)
+        controls.update()
+
+        // Physiological Peristaltic Churning Wave
+        const t = Date.now() * 0.001 * (params.peristalsisSpeed || 1.0)
+        const churnScale = 1.0 + Math.sin(t * 2.2) * 0.03
+        stomachRig.scale.set(churnScale, 1.0 + Math.cos(t * 2.2) * 0.02, churnScale)
+
+        if (selectedStomachMesh && (selectedStomachMesh.material as any)?.emissive) {
+          ;(selectedStomachMesh.material as any).emissiveIntensity = 0.65 + 0.35 * Math.sin(Date.now() * 0.007)
+        }
+
+        renderer.render(scene, camera)
+      }
+
+      animate()
+
+      const handleResize = () => {
+        const w = container.clientWidth || 800
+        const h = container.clientHeight || 500
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+        renderer.setSize(w, h)
+      }
+      window.addEventListener('resize', handleResize)
+
+      return {
+        updateParams: (newParams: Record<string, number>) => {
+          params = { ...newParams }
+        },
+        setPlaying: (playing: boolean) => {
+          isPlaying = playing
+        },
+        reset: () => {
+          activeDissectKey = null
+          highlightStomachMesh(null)
+          callbacks.onInspectPart?.(null)
+          controls.reset()
+        },
+        closeDissection: () => {
+          activeDissectKey = null
+          highlightStomachMesh(null)
+          callbacks.onInspectPart?.(null)
+        },
+        dispose: () => {
+          cancelAnimationFrame(animId)
+          window.removeEventListener('resize', handleResize)
+          renderer.domElement.removeEventListener('pointerdown', handlePointerDown)
+          renderer.domElement.removeEventListener('pointerup', handlePointerUp)
+          renderer.domElement.removeEventListener('pointermove', handlePointerMove)
+          renderer.dispose()
+          if (container.contains(renderer.domElement)) {
+            container.removeChild(renderer.domElement)
+          }
+        },
+      }
+    },
+  },
+
+  // ==========================================
+  // 21. BIOLOGY: 3D SYNOVIAL KNEE JOINT & BIOMECHANICS
+  // ==========================================
+  knee_joint_3d: {
+    type: 'knee_joint_3d',
+    title: '3D Synovial Knee Joint & Musculoskeletal Biomechanics',
+    subject: 'Biology · Musculoskeletal Anatomy & Orthopedics',
+    concept: 'Four-Bar Cruciate Linkage, Meniscal Shock Absorption & Joint Kinematics',
+    description: 'Explore the 3D musculoskeletal mechanics of the human knee. Observe the distal femur condyles, proximal tibia plateaus, fibular head, patella kneecap, pearlescent hyaline articular cartilage, C-shaped medial and lateral menisci shock absorbers, and the stabilizing ligamentous network (ACL, PCL, MCL, LCL) during dynamic flexion/extension.',
+    emoji: '🦵',
+    difficulty: 'Intermediate',
+    presets: [
+      { label: '🦵 Full Terminal Knee Extension (0° Screw-Home Mechanism)', params: { flexionAngle: 0, patellaTracking: 1.0, showLigaments: 1, showMenisci: 1 } },
+      { label: '🚶 Normal Mid-Stance Gait Flexion (20° Walk)', params: { flexionAngle: 20, patellaTracking: 1.0, showLigaments: 1, showMenisci: 1 } },
+      { label: '🏃 Athletic Running Swing Phase (60° Flexion)', params: { flexionAngle: 60, patellaTracking: 1.0, showLigaments: 1, showMenisci: 1 } },
+      { label: '🏋️ Deep Squat / High Flexion (110° Peak Patellar Load)', params: { flexionAngle: 110, patellaTracking: 1.0, showLigaments: 1, showMenisci: 1 } },
+      { label: '💥 Anterior Cruciate Ligament (ACL) Lachman Stress View', params: { flexionAngle: 30, patellaTracking: 1.0, showLigaments: 1, showMenisci: 1 } },
+    ],
+    params: [
+      { key: 'flexionAngle', label: 'Knee Flexion Angle', min: 0, max: 135, step: 5, defaultValue: 0, unit: '°' },
+      { key: 'patellaTracking', label: 'Patellar Cartilage Excursion', min: 0, max: 1, step: 1, defaultValue: 1, unit: '' },
+      { key: 'showLigaments', label: 'Cruciate & Collateral Ligaments', min: 0, max: 1, step: 1, defaultValue: 1, unit: '' },
+      { key: 'showMenisci', label: 'Menisci Shock Absorbers', min: 0, max: 1, step: 1, defaultValue: 1, unit: '' },
+    ],
+    calculateReadouts: (p) => {
+      const angle = p.flexionAngle || 0
+      const patellaForce = (1.5 + (angle / 135) * 5.5).toFixed(1)
+      const aclTension = angle < 30 ? 'Maximum (Prevents Hyperextension)' : angle < 90 ? 'Moderate (Tension shifts to AM bundle)' : 'Relaxed (PCL takes primary load)'
+      const pclTension = angle > 70 ? 'High (Resists Posterior Tibial Sag)' : 'Low'
+      return [
+        { label: 'Tibiofemoral Flexion Angle', value: `${angle}°`, formula: 'Normal ROM: 0° (Ext) → 140° (Flex)' },
+        { label: 'Patellofemoral Joint Force', value: `${patellaForce}x Body Weight`, formula: 'F_PFJ = 2 × F_quad × sin(θ/2)' },
+        { label: 'ACL Biomechanical Tension', value: aclTension },
+        { label: 'PCL Biomechanical Tension', value: pclTension },
+        { label: 'Meniscal Load Distribution', value: 'Medial: 60% · Lateral: 40%', formula: 'Compressive Hoop Stress' },
+      ]
+    },
+    initScene: (container, initialParams, callbacks = {}) => {
+      let params = { ...initialParams }
+      let animId: number
+      let isPlaying = true; void isPlaying
+      let activeDissectKey: string | null = null; void activeDissectKey
+
+      const width = container.clientWidth || 800
+      const height = container.clientHeight || 500
+
+      const scene = new THREE.Scene()
+      createBioStudioEnvironment(scene)
+
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
+      camera.position.set(0, 0, 16)
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true })
+      renderer.setSize(width, height)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      setupRenderer(renderer)
+      container.appendChild(renderer.domElement)
+
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.enableDamping = true
+      controls.dampingFactor = 0.05
+      controls.target.set(0, 0, 0)
+
+      const kneeRig = new THREE.Group()
+      scene.add(kneeRig)
+
+      const femurGroup = new THREE.Group()
+      const tibiaGroup = new THREE.Group()
+      kneeRig.add(femurGroup, tibiaGroup)
+
+      const interactableMeshes: THREE.Object3D[] = []
+
+      const DISSECT_CARDS: Record<string, DissectInfo> = {
+        femur: {
+          title: 'Distal Femur (Femoral Condyles & Trochlea)',
+          partName: 'Medial & Lateral Femoral Condyles',
+          role: 'Transmits body weight across the joint and provides articulating rolling-gliding surfaces for the tibia and patella',
+          bloodType: 'Neutral',
+          internalStructures: ['Medial Femoral Condyle (Larger, more curved)', 'Lateral Femoral Condyle', 'Intercondylar Notch / Fossa', 'Patellar Trochlear Groove'],
+          description: 'The femoral condyles are not spherical but cam-shaped (their radius of curvature decreases posteriorly), forcing the knee to undergo a complex combination of rolling, sliding, and axial rotation during flexion.',
+        },
+        tibia: {
+          title: 'Proximal Tibia & Tibial Plateaus',
+          partName: 'Weight-Bearing Tibial Condyles & Eminence',
+          role: 'Serves as the primary weight-bearing platform of the lower extremity',
+          bloodType: 'Neutral',
+          internalStructures: ['Medial Tibial Plateau (Concave)', 'Lateral Tibial Plateau (Convex)', 'Intercondylar Eminence (Spines)', 'Tibial Tuberosity (Patellar Tendon Anchor)'],
+          description: 'The medial tibial plateau is significantly larger and dished out (concave) to bear 60% of vertical body weight, whereas the lateral plateau is slightly convex, enabling agile gliding.',
+        },
+        fibula: {
+          title: 'Proximal Fibula & Fibular Head',
+          partName: 'Lateral Stabilizer & Ligament Anchor',
+          role: 'Anchors the Lateral Collateral Ligament (LCL) and biceps femoris tendon',
+          bloodType: 'Neutral',
+          internalStructures: ['Fibular Head', 'Styloid Process', 'Superior Tibiofibular Synovial Joint', 'Common Peroneal (Fibular) Nerve Pathway'],
+          description: 'Although the fibula bears less than 10% of axial load, its head is the essential lateral tether preventing the knee from bowing outward under varus stress.',
+        },
+        patella: {
+          title: 'Patella (Kneecap Sesamoid Bone)',
+          partName: 'Biomechanical Pulley Sesamoid',
+          role: 'Increases the mechanical moment arm of the quadriceps muscle by 30–50%',
+          bloodType: 'Neutral',
+          internalStructures: ['Thickest Articular Cartilage in Human Body (up to 6.5 mm!)', 'Medial & Lateral Facets', 'Odd Facet', 'Superior Base & Inferior Apex'],
+          description: 'By holding the quadriceps tendon away from the joint center of rotation, the patella acts as a living mechanical pulley, dramatically boosting knee extension torque with minimum muscle effort.',
+        },
+        acl: {
+          title: 'Anterior Cruciate Ligament (ACL)',
+          partName: 'Primary Anterior Restraint & Rotational Pivot',
+          role: 'Provides 85% of total passive resistance against anterior translation of the tibia relative to the femur',
+          bloodType: 'Neutral',
+          internalStructures: ['Anteromedial (AM) Functional Bundle', 'Posterolateral (PL) Functional Bundle', 'Mechanoreceptive Ruffini & Pacinian Endings', 'Middle Genicular Artery Blood Supply'],
+          description: 'The most commonly injured knee ligament in athletes. High-risk non-contact pivot-shift and deceleration landings stress the ACL beyond its ~2,200 Newton ultimate tensile failure limit.',
+        },
+        pcl: {
+          title: 'Posterior Cruciate Ligament (PCL)',
+          partName: 'Strongest Ligament of the Knee Complex',
+          role: 'Prevents posterior displacement of the tibia relative to the femur (resists "dashboard injury")',
+          bloodType: 'Neutral',
+          internalStructures: ['Anterolateral (AL) Major Bundle', 'Posteromedial (PM) Bundle', 'Meniscofemoral Ligaments (Humphry & Wrisberg)', 'Double the Cross-Sectional Area of ACL (~3,000 N strength)'],
+          description: 'Twice as thick and strong as the ACL, the PCL tightens progressively during deep knee flexion, ensuring the femur does not roll off the back of the tibial plateau.',
+        },
+        mcl: {
+          title: 'Medial Collateral Ligament (MCL)',
+          partName: 'Broad Tibial Collateral Stabilizer',
+          role: 'Primary passive stabilizer against valgus (knock-knee) inward bending stress',
+          bloodType: 'Neutral',
+          internalStructures: ['Superficial MCL (Broad Flat Band)', 'Deep MCL (Firmly Fused to Medial Meniscus)', 'Pes Anserinus Tendon Overlap'],
+          description: 'Because the deep layer of the MCL is anchored to the medial meniscus, high-energy valgus blow injuries frequently tear both structures simultaneously alongside the ACL ("O\'Donoghue Unhappy Triad").',
+        },
+        lcl: {
+          title: 'Lateral Collateral Ligament (LCL)',
+          partName: 'Fibular Collateral Cord Restraint',
+          role: 'Resists varus (bow-legged) outward bending stress and lateral joint opening',
+          bloodType: 'Neutral',
+          internalStructures: ['Independent Cord-Like Morphology (Free from Meniscus)', 'Biceps Femoris Tendon Insertion', 'Popliteus Tendon Hiatus Crossing'],
+          description: 'Unlike the MCL, the LCL does NOT attach to the lateral meniscus, leaving the lateral meniscus freely mobile to slide up to 12 mm during deep squats.',
+        },
+        medial_meniscus: {
+          title: 'Medial Meniscus (C-Shaped Fibrocartilage)',
+          partName: 'Shock Absorption & Congruence Gasket',
+          role: 'Transmits 50–70% of axial compressive joint load into tensile circumferential "hoop stresses"',
+          bloodType: 'Neutral',
+          internalStructures: ['Red Zone (Vascular Outer 1/3 - Capable of Healing)', 'White Zone (Avascular Inner 2/3 - Powered by Synovial Diffusion)', 'Anterior & Posterior Horn Anchors', 'Firm MCL Adhesion'],
+          description: 'Acts as a wedge that deepens the flat tibial plateau. Without the medial meniscus, peak contact stresses on femoral articular cartilage triple, inevitably triggering osteoarthritis.',
+        },
+        lateral_meniscus: {
+          title: 'Lateral Meniscus (Circular O-Shaped Disc)',
+          partName: 'Mobile Lateral Shock Absorber',
+          role: 'Absorbs peak kinetic impacts on the convex lateral tibial plateau',
+          bloodType: 'Neutral',
+          internalStructures: ['Nearly Full Circular Loop Ring', 'Wrisberg & Humphry Ligament Ties', 'Twice the Excursion Mobility of Medial Meniscus'],
+          description: 'Covers up to 84% of the lateral tibial plateau surface. Its high mobility allows it to glide smoothly backwards as the lateral femoral condyle rolls back during deep knee bending.',
+        },
+        cartilage: {
+          title: 'Articular Hyaline Cartilage',
+          partName: 'Ultra-Low Friction Bearing Surface',
+          role: 'Provides a frictionless, wear-resistant surface that glides smoothly across decades of cyclic loading',
+          bloodType: 'Neutral',
+          internalStructures: ['Type II Collagen Fibril Arcade', 'Negatively Charged Aggrecan Proteoglycans', 'Interstitial Water Trapping (Hydraulic Cushioning)', 'Zero Blood Vessels & Zero Nerves'],
+          description: 'Hyaline cartilage has a coefficient of friction of ~0.002 (five times slicker than wet ice sliding on wet ice!). Because it is avascular and aneural, cartilage damage causes no initial pain until subchondral bone is exposed.',
+        },
+        quad_tendon: {
+          title: 'Quadriceps Femoris Tendon & Patellar Ligament',
+          partName: 'Extensor Power Transmission Continuum',
+          role: 'Transfers massive tensile forces generated by the quadriceps muscles into the tibial tuberosity',
+          bloodType: 'Neutral',
+          internalStructures: ['Rectus Femoris, Vastus Medialis, Intermedius & Lateralis Confluence', 'Patellar Ligament (Site of L3-L4 Deep Tendon Reflex)', 'Infrapatellar Fat Pad (Hoffa\'s Cushion)'],
+          description: 'During athletic jumping and sprint braking, the patellar tendon withstands forces exceeding 8,000 Newtons (over 10 times total human body weight!).',
+        },
+      }
+
+      // Procedural Fallback
+      const proceduralGroup = new THREE.Group()
+      kneeRig.add(proceduralGroup)
+
+      const boneMat = new THREE.MeshStandardMaterial({ color: 0xfcf3cf, roughness: 0.35 })
+
+      const femurMesh = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.4, 6.0, 24), boneMat)
+      femurMesh.position.y = 3.2
+      femurMesh.name = 'femur'
+      proceduralGroup.add(femurMesh)
+      interactableMeshes.push(femurMesh)
+
+      const tibiaMesh = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 0.9, 6.0, 24), boneMat)
+      tibiaMesh.position.y = -3.2
+      tibiaMesh.name = 'tibia'
+      proceduralGroup.add(tibiaMesh)
+      interactableMeshes.push(tibiaMesh)
+
+      const patellaMesh = new THREE.Mesh(new THREE.SphereGeometry(0.85, 20, 16), boneMat)
+      patellaMesh.scale.set(1.1, 0.6, 1.2)
+      patellaMesh.position.set(0, 1.2, 1.4)
+      patellaMesh.name = 'patella'
+      proceduralGroup.add(patellaMesh)
+      interactableMeshes.push(patellaMesh)
+
+      // Load Blender Realistic Model
+      let realisticKneeRoot: THREE.Group | null = null; void realisticKneeRoot
+      let blenderTibiaNode: THREE.Object3D | null = null
+      let blenderPatellaNode: THREE.Object3D | null = null
+
+      const gltfLoader = new GLTFLoader()
+      gltfLoader.load(
+        '/3d_models/knee_realistic.glb',
+        (gltf: any) => {
+          const root = gltf.scene as THREE.Group
+          realisticKneeRoot = root
+          root.scale.setScalar(1.2)
+          root.position.set(0, 0, 0)
+          kneeRig.add(root)
+          proceduralGroup.visible = false
+
+          root.traverse((child: THREE.Object3D) => {
+            if ((child as THREE.Mesh).isMesh) {
+              const mesh = child as THREE.Mesh
+              const n = mesh.name.toLowerCase()
+              mesh.castShadow = true
+              mesh.receiveShadow = true
+
+              if (n.includes('femur') || n.includes('condyle')) {
+                mesh.name = 'femur'
+              } else if (n.includes('tibia')) {
+                mesh.name = 'tibia'
+                blenderTibiaNode = mesh
+              } else if (n.includes('fibula')) {
+                mesh.name = 'fibula'
+              } else if (n.includes('patella') && !n.includes('ligament')) {
+                mesh.name = 'patella'
+                blenderPatellaNode = mesh
+              } else if (n.includes('acl') || (n.includes('cruciate') && n.includes('anterior'))) {
+                mesh.name = 'acl'
+              } else if (n.includes('pcl') || (n.includes('cruciate') && n.includes('posterior'))) {
+                mesh.name = 'pcl'
+              } else if (n.includes('mcl') || n.includes('medial_collateral')) {
+                mesh.name = 'mcl'
+              } else if (n.includes('lcl') || n.includes('lateral_collateral')) {
+                mesh.name = 'lcl'
+              } else if (n.includes('medial_meniscus')) {
+                mesh.name = 'medial_meniscus'
+              } else if (n.includes('lateral_meniscus') || n.includes('meniscus')) {
+                mesh.name = 'lateral_meniscus'
+              } else if (n.includes('cartilage')) {
+                mesh.name = 'cartilage'
+              } else if (n.includes('quadriceps') || n.includes('quad') || n.includes('patellar_ligament') || n.includes('tendon')) {
+                mesh.name = 'quad_tendon'
+              } else {
+                mesh.name = 'femur'
+              }
+
+              interactableMeshes.push(mesh)
+            }
+          })
+        },
+        undefined,
+        (err: any) => console.warn('[KNEE GLTF] Fallback to procedural model:', err)
+      )
+
+      const raycaster = new THREE.Raycaster()
+      const mouse = new THREE.Vector2()
+
+      let selectedKneeMesh: THREE.Mesh | null = null
+      let origKneeEmissiveHex: number = 0
+      let origKneeEmissiveIntensity: number = 0
+
+      function highlightKneeMesh(mesh: THREE.Mesh | null) {
+        if (selectedKneeMesh && (selectedKneeMesh.material as any)?.emissive) {
+          ;(selectedKneeMesh.material as any).emissive.setHex(origKneeEmissiveHex)
+          ;(selectedKneeMesh.material as any).emissiveIntensity = origKneeEmissiveIntensity
+          selectedKneeMesh = null
+        }
+        if (mesh && (mesh.material as any)?.emissive) {
+          selectedKneeMesh = mesh
+          origKneeEmissiveHex = (mesh.material as any).emissive.getHex()
+          origKneeEmissiveIntensity = (mesh.material as any).emissiveIntensity || 0
+          ;(mesh.material as any).emissive.setHex(0x38bdf8)
+          ;(mesh.material as any).emissiveIntensity = 0.85
+        }
+      }
+
+      function triggerRaycast(clientX: number, clientY: number) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        if (hits.length > 0) {
+          const hit = hits[0].object as THREE.Mesh
+          const key = hit.name || 'femur'
+          activeDissectKey = key
+          highlightKneeMesh(hit)
+          const card = DISSECT_CARDS[key] || DISSECT_CARDS.femur
+          callbacks.onInspectPart?.(card)
+        } else {
+          highlightKneeMesh(null)
+          callbacks.onInspectPart?.(null)
+        }
+      }
+
+      let ptrStartX = 0
+      let ptrStartY = 0
+      function handlePointerDown(e: PointerEvent) {
+        ptrStartX = e.clientX
+        ptrStartY = e.clientY
+      }
+
+      function handlePointerUp(e: PointerEvent) {
+        const dist = Math.hypot(e.clientX - ptrStartX, e.clientY - ptrStartY)
+        if (dist < 6) {
+          triggerRaycast(e.clientX, e.clientY)
+        }
+      }
+
+      function handlePointerMove(e: PointerEvent) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+        raycaster.setFromCamera(mouse, camera)
+        const hits = raycaster.intersectObjects(interactableMeshes, true)
+        renderer.domElement.style.cursor = hits.length > 0 ? 'pointer' : 'default'
+      }
+
+      renderer.domElement.addEventListener('pointerdown', handlePointerDown)
+      renderer.domElement.addEventListener('pointerup', handlePointerUp)
+      renderer.domElement.addEventListener('pointermove', handlePointerMove)
+
+      function animate() {
+        animId = requestAnimationFrame(animate)
+        controls.update()
+
+        // Biomechanical Flexion Angle Transformation
+        const flexRad = ((params.flexionAngle || 0) * Math.PI) / 180
+        if (blenderTibiaNode) {
+          blenderTibiaNode.rotation.x = -flexRad
+          blenderTibiaNode.position.z = -Math.sin(flexRad) * 0.4
+        }
+        if (blenderPatellaNode) {
+          blenderPatellaNode.position.y = 1.3 - flexRad * 0.5
+          blenderPatellaNode.position.z = 1.3 - Math.sin(flexRad) * 0.6
+        }
+
+        if (selectedKneeMesh && (selectedKneeMesh.material as any)?.emissive) {
+          ;(selectedKneeMesh.material as any).emissiveIntensity = 0.65 + 0.35 * Math.sin(Date.now() * 0.007)
+        }
+
+        renderer.render(scene, camera)
+      }
+
+      animate()
+
+      const handleResize = () => {
+        const w = container.clientWidth || 800
+        const h = container.clientHeight || 500
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+        renderer.setSize(w, h)
+      }
+      window.addEventListener('resize', handleResize)
+
+      return {
+        updateParams: (newParams: Record<string, number>) => {
+          params = { ...newParams }
+        },
+        setPlaying: (playing: boolean) => {
+          isPlaying = playing
+        },
+        reset: () => {
+          activeDissectKey = null
+          highlightKneeMesh(null)
+          callbacks.onInspectPart?.(null)
+          controls.reset()
+        },
+        closeDissection: () => {
+          activeDissectKey = null
+          highlightKneeMesh(null)
           callbacks.onInspectPart?.(null)
         },
         dispose: () => {
